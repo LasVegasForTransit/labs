@@ -1,0 +1,32 @@
+{
+  "note": "Frozen output of the data-viz palette validation. Changing a value in tokens.css requires re-running the validator against both surfaces and updating this file in the same commit.",
+  "validatedOn": "2026-08-04",
+  "pairs": "all",
+  "light": {
+    "surface": "#f7f4ec",
+    "roles": {
+      "authorized": "#4a4e57",
+      "legislative": "#2b62b0",
+      "constitutional": "#e5471a",
+      "federal-match": "#0f8f6a"
+    },
+    "worstCvdDeltaE": 11.3,
+    "worstNormalVisionDeltaE": 19.8
+  },
+  "dark": {
+    "surface": "#0f1115",
+    "roles": {
+      "authorized": "#a8acb4",
+      "legislative": "#5b8fe0",
+      "constitutional": "#e5471a",
+      "federal-match": "#22a97e"
+    },
+    "worstCvdDeltaE": 10.8,
+    "worstNormalVisionDeltaE": 19.1
+  },
+  "derivations": [
+    "Spruce lightens for data use. The brand's #145848 fails the lightness band and the chroma floor: it reads gray at mark size and sits deltaE 7.4 from Stone, indistinguishable even with full colour vision. Editorial Spruce is unchanged.",
+    "Transit Blue snaps bluer. At the brand's ~#1f6f9c it is teal-leaning and cannot clear the normal-vision floor against any usable green (12 to 14.5, floor is 15). #2b62b0 clears at 19.8 with the best tritan separation of the passing candidates."
+  ],
+  "secondaryEncodingRequired": "Tritan separation sits low, so hue alone cannot carry the distinction: every band takes a direct label, adjacent fills are separated by a 2px surface gap, and estimated flows render hatched."
+}

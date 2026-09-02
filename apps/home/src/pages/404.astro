@@ -1,0 +1,18 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const canonical = new URL('https://labs.lasvegasfortransit.org/404');
+---
+
+<BaseLayout
+  title="Page not found | LVBT Labs"
+  description="The requested LVBT Labs page does not exist."
+  {canonical}
+>
+  <main class="not-found">
+    <p class="eyebrow">404</p>
+    <h1>Page not found</h1>
+    <p>The address does not match an active or archived lab.</p>
+    <a class="project-link" href="/">Browse LVBT Labs</a>
+  </main>
+</BaseLayout>

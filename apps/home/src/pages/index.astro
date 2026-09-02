@@ -1,0 +1,289 @@
+---
+import path from 'node:path';
+import { discoverLabs } from '@lvbt/labs-tooling/manifest';
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const root = path.resolve(process.cwd(), '../..');
+const labs = (await discoverLabs(root)).filter(
+  (manifest) =>
+    manifest.slug !== 'home' && manifest.status === 'active' && manifest.visibility === 'listed',
+);
+
+const projects = [
+  {
+    title: 'TransitMapper',
+    summary:
+      'Sketch routes on a real street map, place stops and stations, and see how a transit system operates.',
+    href: 'https://map.lasvegasfortransit.org/',
+    image: '/catalog/transit-mapper.png',
+    imageAlt: 'TransitMapper interface showing a sample Las Vegas transit network on a street map.',
+    action: 'Open project',
+    schemaType: 'SoftwareApplication',
+  },
+  ...labs.map((manifest) => ({
+    title: manifest.title,
+    summary: manifest.summary,
+    href: `/${manifest.slug}/`,
+    image: `/catalog/${manifest.slug}.png`,
+    imageAlt: manifest.previewImage.alt,
+    action: 'Open project',
+    schemaType: 'CreativeWork',
+  })),
+];
+
+const canonical = new URL('https://labs.lasvegasfortransit.org/');
+const introduction =
+  'Public experiments that help Southern Nevadans understand transportation and explore what could work better.';
+const description =
+  'Public transportation experiments for Southern Nevada from Las Vegas for Better Transit.';
+const currentYear = new Date().getFullYear();
+const organizationLinks = [
+  { label: 'About', href: 'https://lasvegasfortransit.org/about' },
+  { label: 'Programs', href: 'https://lasvegasfortransit.org/programs' },
+  { label: 'Projects', href: 'https://lasvegasfortransit.org/projects' },
+  { label: 'Events', href: 'https://lasvegasfortransit.org/events' },
+  { label: 'Contact', href: 'https://lasvegasfortransit.org/contact' },
+  {
+    label: 'Candid',
+    href: 'https://app.candid.org/profile/16646908/las-vegans-for-better-transit-42-1995935',
+  },
+];
+const involvementLinks = [
+  { label: 'Join us', href: 'https://lasvegasfortransit.org/join' },
+  { label: 'Newsletter', href: 'https://lasvegasfortransit.org/newsletter' },
+  { label: 'Donate', href: 'https://givebutter.com/lvbt' },
+  { label: 'Discord', href: 'https://discord.gg/Pfzk5p8QNV' },
+  { label: 'Instagram', href: 'https://instagram.com/lasvegasfortransit' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/company/lasvegasfortransit/' },
+  { label: 'Email', href: 'mailto:hello@lasvegasfortransit.org' },
+];
+const structuredData = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Las Vegas for Better Transit',
+    url: 'https://lasvegasfortransit.org/',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'LVBT Labs',
+    description,
+    url: canonical.toString(),
+    hasPart: projects.map((project) => ({
+      '@type': project.schemaType,
+      name: project.title,
+      description: project.summary,
+      url: new URL(project.href, canonical).toString(),
+    })),
+  },
+];
+---
+
+<BaseLayout title="LVBT Labs" {description} {canonical} {structuredData}>
+  <a class="skip-link" href="#projects">Skip to projects</a>
+
+  <div class="labs-shell">
+    <header class="lab-sidebar">
+      <a
+        class="brand"
+        href="https://lasvegasfortransit.org/"
+        aria-label="Las Vegas for Better Transit website"
+      >
+        <span class="brand-name">Las Vegans</span>
+        <span class="brand-purpose">for Better Transit</span>
+      </a>
+
+      <div class="sidebar-copy">
+        <h1 id="page-title">LVBT Labs</h1>
+        <p>{introduction}</p>
+      </div>
+
+      <div class="mobile-hero">
+        <div class="mobile-hero__title">
+          <h1 id="mobile-page-title" aria-label="LVBT Labs">Labs</h1>
+        </div>
+
+        <div class="mobile-hero__context">
+          <p class="mobile-hero__description">{introduction}</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Labs">
+        <a
+          class="nav-link"
+          href="https://github.com/LasVegasForTransit/labs/blob/main/CONTRIBUTING.md"
+        >
+          Contribute
+        </a>
+      </nav>
+    </header>
+
+    <div class="content-column">
+      <main>
+        <section class="program-introduction" aria-labelledby="program-introduction-title">
+          <div class="program-introduction__inner">
+            <div class="program-introduction__heading">
+              <p class="program-introduction__label">About the program</p>
+              <h2 id="program-introduction-title">Public work in progress</h2>
+            </div>
+
+            <div class="program-introduction__copy">
+              <p>
+                LVBT Labs is where Las Vegas for Better Transit publishes experimental maps, tools,
+                and visualizations about transportation in Southern Nevada. Each project turns a
+                question about how the region moves into something people can inspect, use, or
+                challenge.
+              </p>
+              <p>
+                Projects vary in scope and maturity. Some test an idea; others explain public data
+                or support planning. Methods and source material stay available whenever possible so
+                the work can improve in public.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section id="projects" class="catalog" aria-label="Projects" tabindex="-1">
+          <div class="project-grid">
+            {
+              projects.map((project) => (
+                <article class="project-card">
+                  <a class="project-card-link" href={project.href}>
+                    <div class="project-visual">
+                      <img
+                        src={project.image}
+                        alt={project.imageAlt}
+                        width="1200"
+                        height="630"
+                        loading="eager"
+                      />
+                    </div>
+
+                    <div class="project-copy">
+                      <h2>{project.title}</h2>
+                      <p>{project.summary}</p>
+                      <span class="project-action">
+                        {project.action}
+                        <span class="arrow" aria-hidden="true">
+                          →
+                        </span>
+                      </span>
+                    </div>
+                  </a>
+                </article>
+              ))
+            }
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="footer-stripe" aria-hidden="true"></div>
+
+        <div class="footer-middle">
+          <div class="footer-primary">
+            <div class="footer-brand">
+              <a
+                class="footer-wordmark"
+                href="https://lasvegasfortransit.org/"
+                aria-label="Las Vegans for Better Transit"
+              >
+                <img src="/brand/lvbt-wordmark-dark.svg" alt="" width="720" height="190" />
+              </a>
+            </div>
+
+            <nav class="footer-nav" aria-label="Organization">
+              <p class="footer-nav-title">Organization</p>
+              <ul class="footer-nav-list">
+                {
+                  organizationLinks.map((link) => (
+                    <li>
+                      <a class="nav-link" href={link.href}>
+                        {link.label}
+                      </a>
+                    </li>
+                  ))
+                }
+              </ul>
+            </nav>
+
+            <nav class="footer-nav" aria-label="Get involved">
+              <p class="footer-nav-title">Get involved</p>
+              <ul class="footer-nav-list">
+                {
+                  involvementLinks.map((link) => (
+                    <li>
+                      <a class="nav-link" href={link.href}>
+                        {link.label}
+                      </a>
+                    </li>
+                  ))
+                }
+              </ul>
+            </nav>
+          </div>
+
+          <div class="footer-mission">
+            <p>
+              14th-busiest bus system in the country. <span>Zero miles of rail.</span> Las&nbsp;Vegans
+              deserve better. We're organizing to build it.
+            </p>
+          </div>
+        </div>
+
+        <div class="footer-meta">
+          <nav class="footer-utilities" aria-label="Labs utilities">
+            <span class="footer-utility-group">© {currentYear} Las Vegans for Better Transit</span>
+            <span class="footer-utility-group">
+              <a class="nav-link" href="https://lasvegasfortransit.org/">Main website</a>
+              <a
+                class="nav-link"
+                href="https://github.com/LasVegasForTransit/labs/blob/main/CONTRIBUTING.md"
+              >
+                Contributing guide
+              </a>
+              <a class="nav-link" href="https://github.com/LasVegasForTransit/labs">Source</a>
+            </span>
+          </nav>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    const brand = document.querySelector<HTMLElement>('.brand');
+    const footer = document.querySelector<HTMLElement>('.site-footer');
+    const footerWordmark = document.querySelector<HTMLElement>('.footer-wordmark');
+    const largeWindow = window.matchMedia('(min-width: 75rem)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    const updateBrandHandoff = () => {
+      if (!brand || !footer || !footerWordmark || !largeWindow.matches) {
+        brand?.style.removeProperty('--brand-handoff-y');
+        if (brand) brand.inert = false;
+        return;
+      }
+
+      const footerBox = footer.getBoundingClientRect();
+      const wordmarkBox = footerWordmark.getBoundingClientRect();
+      const travel = brand.offsetTop + brand.offsetHeight + 4;
+      const handoffRange = Math.max(wordmarkBox.top - footerBox.top, 1);
+      const progress = Math.min(
+        Math.max((window.innerHeight - footerBox.top) / handoffRange, 0),
+        1,
+      );
+      const visibleProgress = reducedMotion.matches ? Number(progress === 1) : progress;
+
+      brand.style.setProperty('--brand-handoff-y', `${-travel * visibleProgress}px`);
+      brand.inert = progress === 1;
+    };
+
+    window.addEventListener('scroll', updateBrandHandoff, { passive: true });
+    window.addEventListener('resize', updateBrandHandoff);
+    largeWindow.addEventListener('change', updateBrandHandoff);
+    reducedMotion.addEventListener('change', updateBrandHandoff);
+    document.fonts.ready.then(updateBrandHandoff);
+    updateBrandHandoff();
+  </script>
+</BaseLayout>

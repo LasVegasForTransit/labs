@@ -1,0 +1,72 @@
+@import 'tailwindcss';
+@import '@lvbt/brand/tokens.css';
+@import '../theme/tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+.lab-header {
+  display: flex;
+  width: min(100% - 3rem, 72rem);
+  min-height: 5rem;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--color-outline);
+}
+
+.lab-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: inherit;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.lab-brand img {
+  width: min(11rem, 45vw);
+  height: auto;
+}
+
+.lab-brand span {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--color-outline);
+}
+
+.lab-project {
+  color: var(--color-on-surface-variant);
+  font-size: var(--text-title-sm);
+  font-weight: var(--text-title-sm--font-weight);
+  line-height: var(--text-title-sm--line-height);
+  letter-spacing: var(--text-title-sm--letter-spacing);
+}
+
+@media (max-width: 30rem) {
+  .lab-header {
+    width: min(100% - 2rem, 72rem);
+  }
+
+  .lab-brand span {
+    display: none;
+  }
+
+  .lab-project {
+    font-size: var(--text-label-md);
+  }
+}

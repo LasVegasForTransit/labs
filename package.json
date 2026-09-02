@@ -1,0 +1,45 @@
+{
+  "name": "lvbt-labs",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "bootstrap": "lvbt bootstrap",
+    "preflight": "lvbt preflight",
+    "build": "turbo run build",
+    "build:archive": "turbo run build:archive",
+    "dev": "turbo run dev",
+    "preview": "tsx packages/labs-tooling/src/preview.ts",
+    "lab": "tsx packages/labs-tooling/src/cli.ts",
+    "lint": "turbo run lint",
+    "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && markdownlint-cli2 && lvbt check && turbo run lint check-types test",
+    "check:fix": "pnpm format && markdownlint-cli2 --fix && turbo run lint -- --fix",
+    "prepare": "git config --local core.hooksPath .githooks",
+    "deploy": "lvbt deploy"
+  },
+  "lint-staged": {
+    "*": "prettier --write --ignore-unknown"
+  },
+  "devDependencies": {
+    "@lvbt/cli": "link:../repository-tooling/packages/cli",
+    "@lvbt/prettier-config": "link:../repository-tooling/packages/prettier-config",
+    "lint-staged": "catalog:",
+    "markdownlint-cli2": "catalog:",
+    "markdownlint-rule-relative-links": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-astro": "catalog:",
+    "tsx": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:",
+    "wrangler": "catalog:"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": "^24.20.0"
+  }
+}

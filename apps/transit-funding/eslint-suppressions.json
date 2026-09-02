@@ -1,0 +1,55 @@
+{
+  "src/core/layout.ts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "src/core/sourced.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 4
+    },
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/sankey/Sankey.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/story/ActOne.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "tests/core/data-rtc.test.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 1
+    }
+  },
+  "tests/core/flow.test.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 3
+    }
+  },
+  "tests/core/layout.test.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 8
+    }
+  },
+  "tests/core/model.test.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 10
+    }
+  },
+  "tests/core/sourced.test.ts": {
+    "@typescript-eslint/no-unused-expressions": {
+      "count": 2
+    }
+  },
+  "tests/web/tween.test.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 5
+    }
+  }
+}

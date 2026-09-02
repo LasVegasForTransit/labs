@@ -1,0 +1,33 @@
+/*
+ * Data-visualisation palette. Hue encodes how hard the money is to get, and
+ * nothing else — source identity is carried by direct labels on the bands,
+ * because eight hues cannot pass colour-vision separation and could not be
+ * told apart anyway.
+ *
+ * These steps passed all-pairs colour-vision validation against the brand
+ * surfaces; the recorded results live in src/theme/palette-lock.json and
+ * check:palette fails the build if a value here drifts from them. Do not
+ * adjust one by eye.
+ */
+:root {
+  --viz-surface: var(--paper);
+  --viz-authorized: var(--stone);
+  --viz-legislative: #2b62b0;
+  --viz-constitutional: var(--ember);
+  --viz-federal-match: #0f8f6a;
+}
+
+[data-canvas='dark'] {
+  --viz-surface: var(--ink);
+  --viz-authorized: var(--slab-muted-light);
+  --viz-legislative: #5b8fe0;
+  --viz-constitutional: var(--ember);
+  --viz-federal-match: #22a97e;
+}
+
+/* Sharp corners are brand law, not a stylistic preference. */
+*,
+*::before,
+*::after {
+  border-radius: 0;
+}

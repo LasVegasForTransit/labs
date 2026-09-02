@@ -1,0 +1,38 @@
+{
+  "name": "@lvbt/lab-home",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "astro build",
+    "build:archive": "astro build --outDir dist-archive",
+    "dev": "astro dev --host 127.0.0.1 --port 4320",
+    "preview": "astro preview --host 127.0.0.1 --port 4320",
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "astro check",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "catalog:",
+    "@lvbt/brand": "workspace:*",
+    "@lvbt/labs-tooling": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "astro": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "devDependencies": {
+    "@astrojs/check": "catalog:",
+    "@lvbt/eslint-config": "link:../../../repository-tooling/packages/eslint-config",
+    "@lvbt/playwright-config": "link:../../../repository-tooling/packages/playwright-config",
+    "@lvbt/typescript-config": "link:../../../repository-tooling/packages/typescript-config",
+    "@lvbt/vitest-config": "link:../../../repository-tooling/packages/vitest-config",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

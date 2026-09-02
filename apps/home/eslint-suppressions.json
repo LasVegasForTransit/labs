@@ -1,0 +1,7 @@
+{
+  "tests/e2e/home.spec.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 37
+    }
+  }
+}

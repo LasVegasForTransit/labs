@@ -1,0 +1,30 @@
+{
+  "name": "@lvbt/labs-tooling",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./manifest": "./src/manifest.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@lvbt/eslint-config": "link:../../../repository-tooling/packages/eslint-config",
+    "@lvbt/playwright-config": "link:../../../repository-tooling/packages/playwright-config",
+    "@lvbt/typescript-config": "link:../../../repository-tooling/packages/typescript-config",
+    "@lvbt/vitest-config": "link:../../../repository-tooling/packages/vitest-config",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

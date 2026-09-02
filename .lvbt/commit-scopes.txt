@@ -1,0 +1,10 @@
+# One scope per durable boundary in this repository; omit a scope when a
+# change crosses them.
+home
+transit-funding
+brand
+ui
+tooling
+docs
+ci
+dx
