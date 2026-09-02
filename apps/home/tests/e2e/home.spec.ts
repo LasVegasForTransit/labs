@@ -109,7 +109,11 @@ test('presents the Labs projects clearly without overflowing', async ({ page }) 
 
 test('matches the organization footer interactions and hands off the sticky brand', async ({
   page,
+  isMobile,
 }) => {
+  // Hover and the sticky-brand handoff are pointer interactions; touch profiles have neither.
+  test.skip(isMobile, 'pointer interactions are desktop only');
+
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('/');
 
