@@ -26,8 +26,8 @@
     "*": "prettier --write --ignore-unknown"
   },
   "devDependencies": {
-    "@lvbt/cli": "github:LasVegasForTransit/repository-tooling#v0.2.1&path:/packages/cli",
-    "@lvbt/prettier-config": "github:LasVegasForTransit/repository-tooling#v0.2.1&path:/packages/prettier-config",
+    "@lvbt/cli": "github:LasVegasForTransit/repository-tooling#v0.2.2&path:/packages/cli",
+    "@lvbt/prettier-config": "github:LasVegasForTransit/repository-tooling#v0.2.2&path:/packages/prettier-config",
     "@playwright/test": "catalog:",
     "lint-staged": "catalog:",
     "markdownlint-cli2": "catalog:",
