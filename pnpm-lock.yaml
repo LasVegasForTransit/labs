@@ -345,6 +345,9 @@ importers:
       '@lvbt/prettier-config':
         specifier: github:LasVegasForTransit/repository-tooling#v0.2.1&path:/packages/prettier-config
         version: https://codeload.github.com/LasVegasForTransit/repository-tooling/tar.gz/a194348783fb9ef6f7a70a65fe89c2421bc22317#path:/packages/prettier-config(prettier@3.9.6)
+      '@playwright/test':
+        specifier: 'catalog:'
+        version: 1.62.1
       lint-staged:
         specifier: 'catalog:'
         version: 17.4.1
