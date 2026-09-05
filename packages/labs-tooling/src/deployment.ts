@@ -25,7 +25,7 @@ export async function deployProjects(
   operations: DeploymentOperations,
 ) {
   const results: DeploymentResult[] = [];
-  if (plan.packages.length === 0) return { ok: true, results };
+  if (plan.packages.length === 0 && plan.deploy.length === 0) return { ok: true, results };
   try {
     await operations.build(plan.packages);
   } catch (error) {

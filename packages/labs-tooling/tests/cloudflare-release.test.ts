@@ -1,8 +1,26 @@
 import { expect, test } from 'vitest';
-import { activeVersion, uploadedVersion } from '../src/cloudflare-release.js';
+import { activeVersion, uploadedVersion, verifyArchiveVersion } from '../src/cloudflare-release.js';
 
 const first = '2ae50b24-3d42-48d2-a784-627b60841961';
 const second = '1c4deaba-ee53-4c3f-ba65-176ae596cad5';
+
+test('requires the uploaded archive version to expose only its static assets binding', () => {
+  const version = { id: first, resources: { bindings: [{ name: 'ASSETS', type: 'assets' }] } };
+  expect(() => verifyArchiveVersion(version, first)).not.toThrow();
+  expect(() => verifyArchiveVersion(version, second)).toThrow();
+  for (const binding of [
+    { name: 'DB', type: 'd1' },
+    { name: 'TOKEN', type: 'secret_text' },
+  ]) {
+    expect(() =>
+      verifyArchiveVersion(
+        { ...version, resources: { bindings: [...version.resources.bindings, binding] } },
+        first,
+      ),
+    ).toThrow();
+  }
+  expect(() => verifyArchiveVersion({ id: first, resources: {} }, first)).toThrow();
+});
 const deployment = (version: string, date: string) => ({
   created_on: date,
   versions: [{ version_id: version, percentage: 100 }],
