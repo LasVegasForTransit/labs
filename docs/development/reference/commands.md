@@ -22,14 +22,66 @@ The full list, exit codes, and hooks are in the
 
 ## `pnpm lab`
 
-| Command                   | Behavior                                                   |
-| ------------------------- | ---------------------------------------------------------- |
-| `pnpm lab dev <slug>`     | Run the selected lab's development server                  |
-| `pnpm lab preview <slug>` | Serve the selected lab's production artifact               |
-| `pnpm lab status <slug>`  | Print the lab's validated manifest (`--json` for one line) |
+| Command                             | Behavior                                                                     |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm lab create --manifest <file>` | Generate a draft lab from a JSON manifest; supports `--dry-run` and `--json` |
+| `pnpm lab dev <slug>`               | Run the selected lab's development server                                    |
+| `pnpm lab preview <slug>`           | Serve the selected lab's production artifact                                 |
+| `pnpm lab status <slug>`            | Print the lab's validated manifest (`--json` for one line)                   |
+| `pnpm lab deprecate <slug>`         | Preview deprecation metadata; `--apply` writes the manifest                  |
 
 A slug is the directory under `apps/`; the command validates `apps/<slug>/lab.config.ts` before it
 runs anything and exits with status 2 on a usage error.
+
+### Deprecation
+
+`pnpm lab deprecate <slug> --reason <text> --sunset YYYY-MM-DD` previews the change. Add `--apply`
+to write it, or `--dry-run` to make the preview explicit. Both modes accept `--json`. The
+interactive command prompts for missing slug, reason, and sunset values; JSON mode requires complete
+flags and never prompts. Successor links require both `--successor <https-url>` and
+`--successor-label <text>`.
+
+Deprecation preserves the slug, visibility, publication date, and original deprecation date. Only
+active and deprecated labs accept this transition; the home catalog does not. The sunset date cannot
+precede deprecation. The command edits literal TypeScript manifests without executing them and
+rejects computed fields rather than replacing project-owned logic. Run `pnpm format` and
+`pnpm check` before committing the change.
+
+## Deployment planning
+
+`pnpm deploy:plan --base <commit> --head <commit> --json` compares committed Git trees and prints
+affected packages, apps, and deployment order. The head defaults to `HEAD`. Use `--all` instead of
+`--base` for a full plan. The command does not build or deploy; `--dry-run` makes that intent
+explicit and `--apply` is rejected.
+
+Uncommitted edits are not part of a plan. Both revisions resolve to immutable commit IDs in the
+output. Missing revisions and unreadable manifests fail the command instead of producing an empty
+deployment. Historical manifests are parsed as literal TypeScript data, not executed.
+
+Shared package changes include transitive dependents. Manifest and metadata changes also include
+home. Active and deprecated apps enter the deployment list; drafts remain buildable without being
+published. Home appears last. A removed package still invalidates surviving dependents through the
+previous revision's dependency graph.
+
+### Applying a deployment
+
+`pnpm deploy:affected --base <commit> --apply --json` builds and deploys the plan. Omit `--apply`
+for a preview, or use `--all` instead of `--base` for a full deployment. Apply requires a clean
+checkout of the planned commit on main and runs `pnpm check` before building. The checkout must
+match remote main. The command checks its commit and cleanliness again after building and
+immediately before each upload; an unavailable remote or a newer commit stops deployment.
+
+Each artifact contains `lvbt-release.json` with its project slug, source commit, and asset checksum.
+Verification compares the stable URL's marker with the built artifact and confirms that Cloudflare's
+active version matches the upload receipt. A page returning 200 by itself is not release acceptance.
+The command refuses traffic-split deployments rather than recording an incomplete rollback target.
+
+Deployment journals under `.wrangler/deployments/` record the previous version before upload and
+retain unconfirmed uploads for inspection. Do not retry an unconfirmed upload blindly. Inspect the
+journal and current Cloudflare deployment first. CI retains these journals as deployment-receipt
+artifacts for 90 days. A successful immediately preceding run supplies the comparison commit. After
+a failed, cancelled, uncertain, or retried run, CI deploys all published apps. Some apps can already
+be live when another app fails, so comparing only against an older success misses reversions.
 
 ## `pnpm preview`
 

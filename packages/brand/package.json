@@ -13,9 +13,9 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@lvbt/eslint-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/eslint-config",
-    "@lvbt/typescript-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/typescript-config",
-    "@lvbt/vitest-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/vitest-config",
+    "@lvbt/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
+    "@lvbt/typescript-config": "file:../../.lvbt/web-platform/packages/typescript-config",
+    "@lvbt/vitest-config": "file:../../.lvbt/web-platform/packages/vitest-config",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",

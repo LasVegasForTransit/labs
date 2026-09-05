@@ -51,5 +51,19 @@ surrounding layout permits.
 Lifecycle banners display the manifest reason, date, and successor. They never hide or replace
 project content.
 
+### Lifecycle imports
+
+React apps import `LabLifecycleNotice` from `@lvbt/ui` and include
+`@import '@lvbt/ui/lifecycle.css';` in their application stylesheet. Astro sites import the default
+component from `@lvbt/ui/astro/lifecycle-notice`; that component includes its stylesheet. Both
+receive the project manifest as the `manifest` prop. Generated projects include these imports.
+
+The notice renders only for deprecated and retired projects. Deprecated projects include the sunset
+date; retired archives omit future-tense retirement copy. Missing required lifecycle metadata fails
+rendering rather than silently hiding the notice.
+
+The shared theme uses `@theme static` to retain semantic CSS variables when component styles compile
+separately. This changes token availability, not brand values.
+
 Brand metadata includes the LVBT organization name, canonical hostname, favicons, social card
 defaults, attribution, and analytics hook. Preview and local builds omit the analytics hook.

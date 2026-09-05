@@ -5,12 +5,11 @@ export default {
   summary: 'See where transit money comes from, what it pays for, and what better service costs.',
   kind: 'visualization',
   profile: 'app',
-  status: 'active',
+  status: 'draft',
   visibility: 'unlisted',
   maintainers: ['williecubed'],
   dates: {
     created: '2026-08-31',
-    published: '2026-08-31',
   },
   previewImage: {
     path: 'public/transit-funding/preview.png',

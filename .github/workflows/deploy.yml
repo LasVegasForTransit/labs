@@ -1,6 +1,5 @@
-# Deploys every app with a wrangler config on each push to main, after the
-# same check pull requests run. Needs the CLOUDFLARE_API_TOKEN (Workers Scripts
-# edit) and CLOUDFLARE_ACCOUNT_ID repository secrets.
+# Deploys affected active and deprecated labs after validation.
+# Requires CLOUDFLARE_API_TOKEN in the production environment.
 name: Deploy
 
 on:
@@ -26,17 +25,46 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production
+    permissions:
+      contents: read
+      actions: read
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Setup Node + pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      - name: Deploy
-        run: pnpm run deploy
+      - name: Deploy affected apps
+        shell: bash
+        run: |
+          set -euo pipefail
+          CURRENT=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
+          if [ "$CURRENT" != "$GITHUB_SHA" ]; then
+            echo "This commit was superseded on main; refusing an older production deployment." >&2
+            exit 1
+          fi
+          BASE=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs" \
+            --method GET -f branch=main -f per_page=100 | \
+            pnpm exec tsx packages/labs-tooling/src/deployment-baseline.ts)
+          if [ -n "$BASE" ]; then
+            pnpm deploy:affected --base "$BASE" --apply --json
+          else
+            pnpm deploy:affected --all --apply --json
+          fi
         env:
+          GH_TOKEN: ${{ github.token }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Preserve deployment receipts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deployment-receipts-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .wrangler/deployments/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 90

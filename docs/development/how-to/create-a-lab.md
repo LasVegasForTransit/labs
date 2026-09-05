@@ -1,9 +1,5 @@
 # Create a lab
 
-> **Planned.** `pnpm lab create` is defined by the platform contract but not implemented yet; the
-> steps below describe the intended behavior. Today `pnpm lab` offers `dev`, `preview`, and
-> `status`.
-
 Create a lab after its permanent slug, audience, public summary, framework profile, owner, and
 licenses are known.
 
@@ -17,15 +13,19 @@ optional Worker code; profile choice describes the default application shape.
 
 ### Run the generator
 
-Interactive creation prompts for every manifest field:
+Prepare a JSON manifest matching the [project contract](../reference/project-contract.md). New
+projects use `draft` status and `unlisted` visibility. The manifest declares the permanent slug,
+profile, maintainers, dates, preview image, and all four licenses.
 
 ```sh
-pnpm lab create
+pnpm lab create --manifest /path/to/manifest.json --dry-run --json
+pnpm lab create --manifest /path/to/manifest.json --json
+pnpm install
 ```
 
-Agents and scripts pass the complete command described in
-[Command reference](../reference/commands.md). Start with `--dry-run` when checking a slug or
-profile without writing files.
+The generator creates the selected Astro or React application, Worker routing, shared tooling
+configuration, documentation, and unit and browser tests. Existing directories are never replaced.
+Add the preview image declared by the manifest before publication.
 
 ### Inspect ownership
 
@@ -39,12 +39,10 @@ Run `pnpm check`, then inspect the app at its production path with `pnpm lab pre
 listed project appears on home only after its status changes from `draft` to `active` and the
 project Worker passes the public route check.
 
-Apply provisioning only after the dry run identifies the exact Worker, routes, GitHub settings, and
-secrets:
+Inspect the Worker deployment before publishing:
 
 ```sh
-pnpm lab provision <slug> --dry-run
-pnpm lab provision <slug> --apply
+pnpm run deploy --filter <slug> --dry-run
 ```
 
 Commit the generated app, docs, manifest, and provisioning metadata together.

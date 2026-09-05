@@ -1,0 +1,24 @@
+---
+import { formatSunset, lifecycleNotice, type LifecycleManifest } from '../lifecycle';
+import '../lifecycle.css';
+
+interface Props {
+  manifest: LifecycleManifest;
+}
+const notice = lifecycleNotice(Astro.props.manifest);
+---
+
+{
+  notice && (
+    <aside class="lvbt-lifecycle-notice" role="status">
+      <strong>{notice.status === 'deprecated' ? 'Deprecated' : 'Retired'}</strong>
+      <span>{notice.reason}</span>
+      {notice.sunset && (
+        <span>
+          Retires <time datetime={notice.sunset}>{formatSunset(notice.sunset)}</time>.
+        </span>
+      )}
+      {notice.successor && <a href={notice.successor.href}>{notice.successor.label}</a>}
+    </aside>
+  )
+}

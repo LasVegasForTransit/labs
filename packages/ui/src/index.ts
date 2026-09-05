@@ -1,1 +1,5 @@
-export { LifecycleNotice, type LifecycleNoticeProps } from './lifecycle-notice.js';
+export {
+  LabLifecycleNotice,
+  LifecycleNotice,
+  type LifecycleNoticeProps,
+} from './lifecycle-notice.js';

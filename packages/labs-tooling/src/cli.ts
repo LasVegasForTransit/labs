@@ -4,6 +4,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
+import { createLab } from './create.js';
+import { deprecateLab } from './deprecate.js';
 
 const commands = ['dev', 'preview', 'status'] as const;
 
@@ -77,6 +79,15 @@ function runProjectScript(slug: string, script: 'dev' | 'preview'): Promise<numb
 
 async function main(): Promise<void> {
   try {
+    if (process.argv[2] === 'deprecate') {
+      const result = await deprecateLab(process.cwd(), process.argv.slice(3));
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
+    if (process.argv[2] === 'create') {
+      await createLab(process.cwd(), process.argv.slice(3));
+      return;
+    }
     const parsed = parseLabCommand(process.argv.slice(2));
     if (parsed.slug === undefined) {
       throw new Error(`The ${parsed.command} command requires a lab slug.`);
@@ -96,14 +107,17 @@ async function main(): Promise<void> {
       return;
     }
 
-    if (parsed.command === 'dev' || parsed.command === 'preview') {
-      await loadManifest(root, parsed.slug);
-      process.exitCode = await runProjectScript(parsed.slug, parsed.command);
-      return;
-    }
+    await loadManifest(root, parsed.slug);
+    process.exitCode = await runProjectScript(parsed.slug, parsed.command);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`${message}\n`);
+    if (process.argv.includes('--json')) {
+      process.stdout.write(
+        `${JSON.stringify({ command: process.argv[2], ok: false, changed: false, errors: [message] })}\n`,
+      );
+    } else {
+      process.stderr.write(`${message}\n`);
+    }
     process.exitCode = 2;
   }
 }
