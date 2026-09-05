@@ -35,7 +35,7 @@ From the repository root, run the generator with that file's absolute path:
 
 ```sh
 pnpm lab create --manifest /path/to/curb-space-notes.json --dry-run --json
-pnpm lab create --manifest /path/to/curb-space-notes.json
+pnpm lab create --manifest /path/to/curb-space-notes.json --apply
 pnpm install
 ```
 

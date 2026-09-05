@@ -2,9 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { parseArgs } from 'node:util';
-
-import { LabManifestV1Schema } from './manifest.js';
+import { readCreateInput } from './create-input.js';
 
 async function writeProject(directory: string, files: Record<string, string>): Promise<void> {
   await mkdir(directory);
@@ -16,28 +14,6 @@ async function writeProject(directory: string, files: Record<string, string>): P
     cwd: path.join(directory, '../..'),
     stdio: 'pipe',
   });
-}
-
-async function readInput(args: string[]) {
-  const { values } = parseArgs({
-    args,
-    options: {
-      manifest: { type: 'string' },
-      'dry-run': { type: 'boolean' },
-      json: { type: 'boolean' },
-    },
-  });
-  if (!values.manifest)
-    throw new Error('Usage: pnpm lab create --manifest <manifest.json> [--dry-run] [--json]');
-  const manifest = LabManifestV1Schema.parse(JSON.parse(await readFile(values.manifest, 'utf8')));
-  if (
-    manifest.slug === 'home' ||
-    manifest.status !== 'draft' ||
-    manifest.visibility !== 'unlisted'
-  ) {
-    throw new Error('New labs require a unique slug, draft status, and unlisted visibility.');
-  }
-  return { values, manifest };
 }
 
 function assertAvailableSlug(root: string, slug: string): void {
@@ -110,7 +86,7 @@ test('opens at its permanent path', async ({ page }, testInfo) => {
 }
 
 export async function createLab(root: string, args: string[]): Promise<void> {
-  const { values, manifest } = await readInput(args);
+  const { apply, json, manifest } = await readCreateInput(args);
   assertAvailableSlug(root, manifest.slug);
   const directory = path.join(root, 'apps', manifest.slug);
   const site = manifest.profile === 'site';
@@ -174,10 +150,18 @@ export async function createLab(root: string, args: string[]): Promise<void> {
     files['src/main.tsx'] =
       `import { createRoot } from 'react-dom/client';\nimport { LabLifecycleNotice } from '@lvbt/ui';\nimport './styles.css';\nimport manifest from '../lab.config';\ndocument.title = manifest.title;\nconst root = document.getElementById('root');\nif (root) createRoot(root).render(<main><LabLifecycleNotice manifest={manifest} /><h1>{manifest.title}</h1><p>{manifest.summary}</p></main>);\n`;
   }
-  if (!values['dry-run']) {
+  if (apply) {
     await writeProject(directory, files);
   }
   process.stdout.write(
-    `${JSON.stringify({ ok: true, changed: !values['dry-run'], slug: manifest.slug, files: Object.keys(files) }, null, values.json ? 0 : 2)}\n`,
+    json
+      ? `${JSON.stringify({ command: 'create', ok: true, changed: apply, manifest, slug: manifest.slug, files: Object.keys(files) })}\n`
+      : `${apply ? 'Created' : 'Planned'} apps/${manifest.slug} (${manifest.profile}, draft, unlisted).\n${Object.keys(
+          files,
+        )
+          .map((name) => `  ${name}`)
+          .join(
+            '\n',
+          )}\n${apply ? 'Run pnpm install, then pnpm check.' : 'No files written. Add --apply to create this project.'}\n`,
   );
 }
