@@ -32,6 +32,17 @@ The generator creates the selected Astro or React application, Worker routing, s
 configuration, documentation, and unit and browser tests. Existing directories are never replaced.
 Add the preview image declared by the manifest before publication.
 
+### Recover from a failed creation
+
+Formatting runs in a temporary directory before the generator claims the project directory. A
+formatting failure leaves the slug available for retry. Publication failures remove unchanged files
+from that attempt and preserve conflicting or edited files.
+
+When the command reports incomplete cleanup, inspect the named directory before retrying. Preserve
+any work it contains, then move it out of `apps/` once its ownership is clear. Do not delete an
+existing project to make its slug available. After a forcibly stopped process, inspect both the
+project directory and any `.lvbt-create-*` directory before removing incomplete generated output.
+
 ### Inspect ownership
 
 Confirm that product behavior, assets, sources, and project docs live under the new app. Move
