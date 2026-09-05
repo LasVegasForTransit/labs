@@ -66,6 +66,10 @@ function workspaceAt(root: string, commit: string): WorkspaceProject[] {
           throw new Error(`Package name must match lab slug ${slug}.`);
         project.slug = slug;
         project.status = manifest.status;
+        if (manifest.status === 'retired') {
+          project.archive = true;
+          project.dependencies = ['@lvbt/labs-tooling'];
+        }
       }
       return project;
     });
