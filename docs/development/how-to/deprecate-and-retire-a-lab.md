@@ -46,6 +46,10 @@ helper in project suites so preparation verifies the files being stored rather t
 Preparation publishes an artifact only after the suite succeeds and the snapshot checksums remain
 unchanged. It leaves the app source in place for deployment verification and recovery.
 
+Retrying preparation rechecks the stored snapshot without rebuilding the app. Its manifest, source
+repository, and source commit must match the original retirement request. A checksum mismatch or
+failed browser suite stops the retry and preserves the existing artifact for inspection.
+
 Exercise every primary route and confirm that forms, account actions, writes, and live-data controls
 either disappear or become clear read-only output. Static JSON and other captured data remain
 readable. A successful page load alone does not verify the project workflow. Check the content or

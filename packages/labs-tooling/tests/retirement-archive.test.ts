@@ -83,3 +83,97 @@ test('a failing browser suite cannot publish an archive', async () => {
     await expect(access(path.join(app, 'package.json'))).resolves.toBeUndefined();
   });
 });
+
+test('resumes the stored archive without rebuilding or requiring old build output', async () => {
+  await fixture(async (root, app) => {
+    await prepareRetirementArchive(root, identity, async (script) => {
+      if (script === 'build:archive') {
+        await mkdir(path.join(app, 'dist-archive'));
+        await writeFile(path.join(app, 'dist-archive/index.html'), '<h1>Captured</h1>');
+      }
+    });
+    await rm(path.join(app, 'dist-archive'), { recursive: true });
+    const calls: string[] = [];
+    const result = await prepareRetirementArchive(root, identity, async (script, options) => {
+      calls.push(script);
+      if (script === 'build:archive') throw new Error('Must not rebuild an immutable archive');
+      const staged = options.archiveDirectory;
+      if (staged === undefined) throw new Error('Missing captured archive directory');
+      expect(await readFile(path.join(staged, 'index.html'), 'utf8')).toBe('<h1>Captured</h1>');
+    });
+    expect(result.changed).toBe(false);
+    expect(calls).toEqual(['test:archive']);
+  });
+});
+
+test.each(['corrupt', 'failed-suite', 'mutated-snapshot'] as const)(
+  'does not replace an existing archive when recovery encounters %s',
+  async (failure) => {
+    await fixture(async (root, app) => {
+      await prepareRetirementArchive(root, identity, async (script) => {
+        if (script === 'build:archive') {
+          await mkdir(path.join(app, 'dist-archive'));
+          await writeFile(path.join(app, 'dist-archive/index.html'), '<h1>Captured</h1>');
+        }
+      });
+      const site = path.join(root, 'retired/old-map/site/index.html');
+      if (failure === 'corrupt') await writeFile(site, 'corrupt');
+      const calls: string[] = [];
+      await expect(
+        prepareRetirementArchive(root, identity, async (script, options) => {
+          calls.push(script);
+          if (script === 'build:archive') throw new Error('Unexpected rebuild');
+          if (failure === 'failed-suite') throw new Error('Offline workflow failed');
+          if (options.archiveDirectory === undefined) throw new Error('Missing snapshot');
+          await writeFile(path.join(options.archiveDirectory, 'index.html'), 'changed');
+        }),
+      ).rejects.toThrow(
+        failure === 'corrupt'
+          ? /checksum/
+          : failure === 'failed-suite'
+            ? /Offline workflow failed/
+            : /changed during verification/,
+      );
+      expect(calls).toEqual(failure === 'corrupt' ? [] : ['test:archive']);
+      expect(await readFile(site, 'utf8')).toBe(
+        failure === 'corrupt' ? 'corrupt' : '<h1>Captured</h1>',
+      );
+      await expect(access(path.join(app, 'package.json'))).resolves.toBeUndefined();
+    });
+  },
+);
+
+test('rejects invalid provenance before executing project scripts', async () => {
+  await fixture(async (root) => {
+    const calls: string[] = [];
+    await expect(
+      prepareRetirementArchive(root, { ...identity, sourceCommit: 'not-a-commit' }, (script) => {
+        calls.push(script);
+        return Promise.resolve();
+      }),
+    ).rejects.toThrow();
+    expect(calls).toEqual([]);
+  });
+});
+
+test('rejects a different retirement identity before executing project scripts', async () => {
+  await fixture(async (root, app) => {
+    await prepareRetirementArchive(root, identity, async (script) => {
+      if (script === 'build:archive') {
+        await mkdir(path.join(app, 'dist-archive'));
+        await writeFile(path.join(app, 'dist-archive/index.html'), '<h1>Captured</h1>');
+      }
+    });
+    const calls: string[] = [];
+    await expect(
+      prepareRetirementArchive(root, { ...identity, sourceCommit: 'b'.repeat(40) }, (script) => {
+        calls.push(script);
+        return Promise.resolve();
+      }),
+    ).rejects.toThrow(/identity/);
+    expect(calls).toEqual([]);
+    expect(await readFile(path.join(root, 'retired/old-map/site/index.html'), 'utf8')).toBe(
+      '<h1>Captured</h1>',
+    );
+  });
+});
