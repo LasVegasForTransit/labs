@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
 import { githubDoctor } from '../src/doctor-github.js';
+import standard from '../../../.lvbt/web-platform/standards/ruleset.json' with { type: 'json' };
 
 const target = {
   repository: 'LasVegasForTransit/labs',
@@ -7,22 +8,11 @@ const target = {
   environment: 'production',
   accountId: 'account',
   zoneId: 'zone',
+  ruleset: standard,
 };
 const fixture: Record<string, unknown> = {
   '': { full_name: target.repository, private: false, archived: false, default_branch: 'main' },
-  '/rules/branches/main': [
-    {
-      type: 'required_status_checks',
-      parameters: {
-        strict_required_status_checks_policy: true,
-        required_status_checks: [{ context: 'Validate' }],
-      },
-    },
-    { type: 'pull_request', parameters: { required_review_thread_resolution: true } },
-    { type: 'required_linear_history' },
-    { type: 'non_fast_forward' },
-    { type: 'deletion' },
-  ],
+  '/rules/branches/main': structuredClone(standard.rules),
   '/environments/production': {
     deployment_branch_policy: { custom_branch_policies: true, protected_branches: false },
   },
@@ -80,7 +70,7 @@ test('rejects unrestricted production branches and a nonrequired Validate check'
   expect(result.find((check) => check.id === 'github.rules')?.status).toBe('fail');
 });
 
-test('requires resolved review discussions and linear history', async () => {
+test('requires the pinned pull-request and linear-history rules', async () => {
   const rules = fixture['/rules/branches/main'] as { type: string; parameters?: unknown }[];
   for (const type of ['pull_request', 'required_linear_history']) {
     const result = await githubDoctor(target, (endpoint) =>

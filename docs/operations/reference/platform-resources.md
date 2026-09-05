@@ -13,9 +13,9 @@ provisioning metadata and remain absent from prose documentation.
 | Environment          | `production`                   | Deployment secrets, variables, and protection |
 | Project repositories | `LasVegasForTransit/<project>` | Graduated source and deployment ownership     |
 
-Repository rules require pull requests, `Validate`, resolved conversations, and linear history.
-Workflow permissions stay read-only except for the jobs that publish previews, deployments, and
-lifecycle metadata.
+Repository rules follow the vendored `.lvbt/web-platform/standards/ruleset.json`, including pull
+requests, `Validate`, and linear history. Workflow permissions stay read-only except for the jobs
+that publish previews, deployments, and lifecycle metadata.
 
 ## Cloudflare
 
