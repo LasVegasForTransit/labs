@@ -55,6 +55,11 @@ Run `pnpm check`, then inspect the app at its production path with `pnpm lab pre
 listed project appears on home only after its status changes from `draft` to `active` and the
 project Worker passes the public route check.
 
+Run `pnpm exec turbo run test:archive --filter=@lvbt/lab-<slug>` to build and inspect the read-only
+archive with live services blocked. The generated suite checks the initial project content at
+desktop and mobile sizes. Extend it with the project's primary workflows as those workflows take
+shape. Archive tests use `playwright.archive.config.ts`; normal preview tests exclude that suite.
+
 Inspect the Worker deployment before publishing:
 
 ```sh

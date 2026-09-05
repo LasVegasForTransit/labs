@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { readCreateInput } from './create-input.js';
 import { writeProject } from './create-write.js';
+import { archiveTemplate } from './create-archive.js';
 
 function assertAvailableSlug(root: string, slug: string): void {
   const reserved = [
@@ -38,6 +39,7 @@ async function templatePackage(reference: string, slug: string, site: boolean) {
     : 'vite build --outDir dist-archive';
   pkg.scripts.dev = site ? 'astro dev --host 127.0.0.1' : 'vite --host 127.0.0.1';
   pkg.scripts.preview = 'pnpm build && wrangler dev';
+  pkg.scripts['test:archive'] = 'playwright test --config playwright.archive.config.ts';
   return pkg;
 }
 
@@ -86,6 +88,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
   const pkg = await templatePackage(reference, manifest.slug, site);
   const base = `/${manifest.slug}/`;
   const files: Record<string, string> = {
+    ...archiveTemplate(),
     'src/styles.css':
       "@import 'tailwindcss';\n@import '@lvbt/brand/tokens.css';\n@import '@lvbt/ui/lifecycle.css';\nbody { margin: 0; font-family: var(--font-sans); color: var(--color-on-surface); background: var(--color-surface); }\nmain { max-width: 64rem; margin-inline: auto; padding: 2rem 1.5rem; }\nh1 { font-size: 2rem; font-weight: 800; }\n",
     'package.json': JSON.stringify(pkg, null, 2),
@@ -119,7 +122,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
     ),
     'tests/manifest.test.ts': `import { expect, test } from 'vitest';\nimport { LabManifestV1Schema } from '@lvbt/labs-tooling/manifest';\nimport manifest from '../lab.config';\ntest('declares project ownership', () => { expect(LabManifestV1Schema.parse(manifest).slug).toBe(${JSON.stringify(manifest.slug)}); });\n`,
     'src/worker.ts': `export default { fetch(request: Request, env: { ASSETS: { fetch(request: Request): Promise<Response> } }) { const url = new URL(request.url); url.pathname = url.pathname.replace(/^\\/${manifest.slug}(?:\\/|$)/, '/'); return env.ASSETS.fetch(new Request(url, request)); } };\n`,
-    'playwright.config.ts': `import { defineConfig } from '@playwright/test';\nimport { sharedConfig } from '@lvbt/playwright-config';\nexport default defineConfig({ ...sharedConfig, use: { ...sharedConfig.use, baseURL: 'http://127.0.0.1:8899' }, webServer: { command: 'pnpm build && pnpm exec wrangler dev --port 8899', url: 'http://127.0.0.1:8899${base}', reuseExistingServer: false } });\n`,
+    'playwright.config.ts': `import { defineConfig } from '@playwright/test';\nimport { sharedConfig } from '@lvbt/playwright-config';\nexport default defineConfig({ ...sharedConfig, testIgnore: ['**/archive/**'], use: { ...sharedConfig.use, baseURL: 'http://127.0.0.1:8899' }, webServer: { command: 'pnpm build && pnpm exec wrangler dev --port 8899', url: 'http://127.0.0.1:8899${base}', reuseExistingServer: false } });\n`,
     'tests/e2e/home.spec.ts': browserTest(base),
   };
   for (const name of ['eslint.config.js', 'tsconfig.json', 'vitest.config.ts']) {
@@ -138,9 +141,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
     files['src/main.tsx'] =
       `import { createRoot } from 'react-dom/client';\nimport { LabLifecycleNotice } from '@lvbt/ui';\nimport './styles.css';\nimport manifest from '../lab.config';\ndocument.title = manifest.title;\nconst root = document.getElementById('root');\nif (root) createRoot(root).render(<main><LabLifecycleNotice manifest={manifest} /><h1>{manifest.title}</h1><p>{manifest.summary}</p></main>);\n`;
   }
-  if (apply) {
-    await writeProject(directory, files);
-  }
+  if (apply) await writeProject(directory, files);
   process.stdout.write(
     json
       ? `${JSON.stringify({ command: 'create', ok: true, changed: apply, manifest, slug: manifest.slug, files: Object.keys(files) })}\n`
