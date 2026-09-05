@@ -40,11 +40,17 @@ test('archive Worker serves captured pages without app code or write bindings', 
       source,
       () => Promise.resolve(),
     );
-    const bundle = await prepareArchiveWorker(stored.directory, path.join(root, 'worker'));
+    const bundle = await prepareArchiveWorker(
+      stored.directory,
+      path.join(root, 'worker'),
+      'b'.repeat(40),
+    );
     await rm(source, { recursive: true });
     await server.update({ workers: [{ configPath: bundle.config }] });
     const { url } = await server.listen();
     expect(Object.keys(await server.getWorker().getEnv())).toEqual(['ASSETS']);
+    expect((await server.fetch('/old-map/lvbt-release.json')).status).toBe(200);
+    expect(await (await server.fetch('/old-map/lvbt-release.json')).json()).toEqual(bundle.marker);
     const response = await page.goto(new URL('/old-map', url).href);
     await expect(page).toHaveURL(new URL('/old-map/', url).href);
     expect(response?.headers()['x-archived-rule']).toBeUndefined();

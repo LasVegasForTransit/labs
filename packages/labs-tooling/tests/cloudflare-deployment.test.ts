@@ -4,9 +4,110 @@ import path from 'node:path';
 import { expect, test } from 'vitest';
 import { cloudflareDeployment } from '../src/cloudflare-deployment.js';
 import { deployProjects } from '../src/deployment.js';
+import home from '../../../apps/home/lab.config.js';
+import { LabManifestV1Schema } from '../src/manifest.js';
+import { storeRetirementArchive, verifyStoredArchive } from '../src/archive-store.js';
 
 const oldVersion = '2ae50b24-3d42-48d2-a784-627b60841961';
 const newVersion = '1c4deaba-ee53-4c3f-ba65-176ae596cad5';
+
+test.each([false, true])(
+  'verifies archive deployment without source (retained secret: %s)',
+  async (retainedSecret) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'lab-retired-deploy-'));
+    try {
+      const source = path.join(root, 'build');
+      await mkdir(source);
+      await writeFile(path.join(source, 'index.html'), '<h1>Archived map</h1>');
+      const manifest = LabManifestV1Schema.parse({
+        ...home,
+        slug: 'map',
+        status: 'retired',
+        dates: { ...home.dates, retired: '2026-09-05' },
+        lifecycle: { reason: 'Ended' },
+      });
+      const stored = await storeRetirementArchive(
+        root,
+        {
+          manifest,
+          sourceCommit: 'a'.repeat(40),
+          sourceRepository: 'https://github.com/LasVegasForTransit/labs',
+        },
+        source,
+        () => Promise.resolve(),
+      );
+      await mkdir(path.join(root, 'catalog'));
+      await writeFile(path.join(root, 'catalog/map.json'), JSON.stringify(manifest));
+      await rm(source, { recursive: true });
+      let bundle = '';
+      let uploaded = false;
+      const result = await deployProjects(
+        { packages: [], deploy: ['map'] },
+        cloudflareDeployment(root, 'b'.repeat(40), ['map'], {
+          assertCheckout() {},
+          async run(args, cwd, env) {
+            expect(args[1]).not.toBe('turbo');
+            expect(cwd).not.toContain('/apps/');
+            bundle = cwd;
+            if (args[2] === 'versions')
+              return JSON.stringify({
+                id: newVersion,
+                resources: {
+                  bindings: [
+                    { name: 'ASSETS', type: 'assets' },
+                    ...(retainedSecret ? [{ name: 'TOKEN', type: 'secret_text' }] : []),
+                  ],
+                },
+              });
+            if (args[2] === 'deployments')
+              return JSON.stringify([
+                {
+                  created_on: '2026-09-05T06:03:00Z',
+                  versions: [{ version_id: uploaded ? newVersion : oldVersion, percentage: 100 }],
+                },
+              ]);
+            if (args[2] !== 'deploy' || !env?.WRANGLER_OUTPUT_FILE_PATH)
+              throw new Error('Unexpected command');
+            await writeFile(
+              env.WRANGLER_OUTPUT_FILE_PATH,
+              JSON.stringify({
+                type: 'deploy',
+                version: 1,
+                worker_name: 'lvbt-labs-map',
+                version_id: newVersion,
+              }),
+            );
+            uploaded = true;
+            return '';
+          },
+          async fetch(input) {
+            const url =
+              typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+            if (url.includes('lvbt-release.json')) {
+              const routes = JSON.parse(
+                await readFile(path.join(bundle, 'routes.json'), 'utf8'),
+              ) as Record<string, { asset: string }>;
+              const asset = routes['/map/lvbt-release.json'];
+              if (!asset) throw new Error('Missing marker route');
+              return new Response(
+                await readFile(path.join(bundle, 'assets', asset.asset.slice(1)), 'utf8'),
+              );
+            }
+            return new Response('<h1>Archived map</h1>');
+          },
+        }),
+      );
+      expect(result.ok).toBe(!retainedSecret);
+      if (retainedSecret) expect(result.results[0]?.error).toContain('without secrets');
+      expect(result.results[0]?.receipt?.previousVersion).toBe(oldVersion);
+      expect((await verifyStoredArchive(stored.directory)).site.has('lvbt-release.json')).toBe(
+        false,
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
 
 test('seals the build, journals rollback state before upload, and verifies the stable URL', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'lab-cloudflare-'));

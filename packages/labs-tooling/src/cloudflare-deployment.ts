@@ -2,14 +2,17 @@ import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { promisify } from 'node:util';
+import { isDeepStrictEqual, promisify } from 'node:util';
 import ts from 'typescript';
 import { z } from 'zod';
 
-import { activeVersion, uploadedVersion } from './cloudflare-release.js';
+import { activeVersion, uploadedVersion, verifyArchiveVersion } from './cloudflare-release.js';
 import { assertDeploymentCheckout } from './deployment-checkout.js';
 import type { DeploymentOperations } from './deployment.js';
 import { sealArtifact, verifyReleaseResponse, type ReleaseMarker } from './release-artifact.js';
+import { readCatalogRecords } from './catalog-records.js';
+import { prepareArchiveWorker } from './archive-worker.js';
+import type { LabManifestV1 } from './manifest.js';
 
 type Run = (args: string[], cwd: string, env?: NodeJS.ProcessEnv) => Promise<string>;
 interface DeploymentDependencies {
@@ -28,18 +31,66 @@ const run: Run = async (args, cwd, env) => {
 };
 const configSchema = z.object({ name: z.string(), assets: z.object({ directory: z.string() }) });
 
+function preparedWrangler(command: Run, directories: Map<string, string>) {
+  return (slug: string, args: string[], env?: NodeJS.ProcessEnv) => {
+    const directory = directories.get(slug);
+    if (directory === undefined) throw new Error(`No prepared deployment exists for ${slug}.`);
+    return command(['exec', 'wrangler', ...args], directory, env);
+  };
+}
+
+async function prepareRetired(root: string, commit: string, record: LabManifestV1) {
+  const { slug } = record;
+  if (record.status !== 'retired')
+    throw new Error(`Labs does not own deployment of graduated project ${slug}.`);
+  const parent = path.join(root, '.wrangler', 'archives');
+  await mkdir(parent, { recursive: true });
+  const bundle = await prepareArchiveWorker(
+    path.join(root, 'retired', slug),
+    path.join(parent, `${slug}-${randomUUID()}`),
+    commit,
+  );
+  if (!isDeepStrictEqual(bundle.manifest, record) || bundle.marker === undefined)
+    throw new Error(`Retired catalog record ${slug} does not match its archive.`);
+  return { directory: bundle.directory, marker: bundle.marker };
+}
+
+function deploymentJournal(journals: Map<string, string>) {
+  return async (slug: string, entry: unknown) => {
+    const file = journals.get(slug);
+    if (file === undefined) throw new Error(`No deployment journal exists for ${slug}.`);
+    await appendFile(file, `${JSON.stringify(entry)}\n`);
+  };
+}
+
 async function buildProjects(
-  context: { root: string; commit: string; slugs: string[]; command: Run },
+  context: {
+    root: string;
+    commit: string;
+    slugs: string[];
+    command: Run;
+    directories: Map<string, string>;
+  },
   packages: string[],
 ): Promise<Map<string, ReleaseMarker>> {
-  const { root, commit, slugs, command } = context;
-  await command(
-    ['exec', 'turbo', 'run', 'build', ...packages.map((name) => `--filter=${name}`)],
-    root,
-  );
+  const { root, commit, slugs, command, directories } = context;
+  if (packages.length > 0)
+    await command(
+      ['exec', 'turbo', 'run', 'build', ...packages.map((name) => `--filter=${name}`)],
+      root,
+    );
   const markers = new Map<string, ReleaseMarker>();
+  const records = await readCatalogRecords(root);
   for (const slug of slugs) {
+    const record = records.find((candidate) => candidate.slug === slug);
+    if (record !== undefined) {
+      const bundle = await prepareRetired(root, commit, record);
+      directories.set(slug, bundle.directory);
+      markers.set(slug, bundle.marker);
+      continue;
+    }
     const app = path.join(root, 'apps', slug);
+    directories.set(slug, app);
     const file = path.join(app, 'wrangler.jsonc');
     const parsed = ts.parseConfigFileTextToJson(file, await readFile(file, 'utf8'));
     if (parsed.error) throw new Error(`Invalid Worker configuration for ${slug}.`);
@@ -81,21 +132,16 @@ export function cloudflareDeployment(
   const request = dependencies.fetch ?? fetch;
   const assertCheckout = dependencies.assertCheckout ?? assertDeploymentCheckout;
   let markers = new Map<string, ReleaseMarker>();
+  const directories = new Map<string, string>();
   const journals = new Map<string, string>();
-  const appDirectory = (slug: string) => path.join(root, 'apps', slug);
-  const wrangler = (slug: string, args: string[], env?: NodeJS.ProcessEnv) =>
-    command(['exec', 'wrangler', ...args], appDirectory(slug), env);
+  const wrangler = preparedWrangler(command, directories);
   async function currentVersion(slug: string) {
     return activeVersion(JSON.parse(await wrangler(slug, ['deployments', 'list', '--json'])));
   }
-  async function journal(slug: string, entry: unknown) {
-    const file = journals.get(slug);
-    if (file === undefined) throw new Error(`No deployment journal exists for ${slug}.`);
-    await appendFile(file, `${JSON.stringify(entry)}\n`);
-  }
+  const journal = deploymentJournal(journals);
   return {
     async build(packages) {
-      markers = await buildProjects({ root, commit, slugs, command }, packages);
+      markers = await buildProjects({ root, commit, slugs, command, directories }, packages);
       assertCheckout(root, commit);
     },
     async deploy(slug) {
@@ -146,6 +192,11 @@ export function cloudflareDeployment(
       if (expected === undefined) throw new Error(`No sealed build exists for ${slug}.`);
       if ((await currentVersion(slug)) !== receipt.version)
         throw new Error(`The active version changed for ${slug}.`);
+      if (directories.get(slug) !== path.join(root, 'apps', slug))
+        verifyArchiveVersion(
+          JSON.parse(await wrangler(slug, ['versions', 'view', receipt.version, '--json'])),
+          receipt.version,
+        );
       await verifyPublicArtifact(request, expected);
       await journal(slug, { phase: 'verified', ...receipt });
     },

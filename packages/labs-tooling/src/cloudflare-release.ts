@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
+export function verifyArchiveVersion(input: unknown, version: string): void {
+  const schema = z.object({
+    id: z.literal(version),
+    resources: z.object({
+      bindings: z.tuple([z.object({ name: z.literal('ASSETS'), type: z.literal('assets') })]),
+    }),
+  });
+  if (!schema.safeParse(input).success)
+    throw new Error('The archive version must expose only its ASSETS binding, without secrets.');
+}
+
 const deployments = z.array(
   z.object({
     created_on: z.iso.datetime({ offset: true }),

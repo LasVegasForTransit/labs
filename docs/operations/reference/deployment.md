@@ -83,6 +83,16 @@ smoke checks. Home deploys after all new catalog targets succeed.
 GitHub records the source commit, Worker version, route set, and verification result as the
 deployment artifact.
 
+Retired catalog records remain deployable after their source packages leave the workspace. Changes
+to their archive or catalog record select the archived Worker and home; deployment-tooling changes
+also select archives. Archived dependencies and shared brand changes do not rebuild captured sites.
+Graduated projects remain outside Labs deployment ownership.
+
+Archive deployments prepare new bundles from verified stored bytes without changing the stored
+archive. A deployment-specific release marker identifies the commit and captured content hash.
+Verification compares that marker at the stable URL and inspects the uploaded version's bindings;
+unexpected bindings or retained secrets fail verification and withhold home deployment.
+
 ## Analytics and headers
 
 One Cloudflare Web Analytics property covers the Labs hostname. Production home and project builds

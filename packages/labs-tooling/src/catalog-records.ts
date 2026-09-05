@@ -2,6 +2,13 @@ import { lstat, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
 
+export function validateCatalogRecord(input: unknown, slug: string): LabManifestV1 {
+  const manifest = validateManifestForDirectory(input, slug);
+  if (slug === 'home' || !['retired', 'graduated'].includes(manifest.status))
+    throw new Error(`Catalog record ${slug} must describe a retired or graduated lab, not home.`);
+  return manifest;
+}
+
 export async function readCatalogRecords(root: string): Promise<LabManifestV1[]> {
   const directory = path.join(root, 'catalog');
   let stat;
@@ -18,12 +25,10 @@ export async function readCatalogRecords(root: string): Promise<LabManifestV1[]>
     if (!entry.name.endsWith('.json')) continue;
     if (!entry.isFile()) throw new Error(`Catalog record ${entry.name} must be a regular file.`);
     const slug = entry.name.slice(0, -'.json'.length);
-    const manifest = validateManifestForDirectory(
+    const manifest = validateCatalogRecord(
       JSON.parse(await readFile(path.join(directory, entry.name), 'utf8')),
       slug,
     );
-    if (slug === 'home' || !['retired', 'graduated'].includes(manifest.status))
-      throw new Error(`Catalog record ${slug} must describe a retired or graduated lab, not home.`);
     records.push(manifest);
   }
   return records.sort((a, b) => a.slug.localeCompare(b.slug));

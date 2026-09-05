@@ -4,6 +4,7 @@ export interface WorkspaceProject {
   dependencies: string[];
   slug?: string;
   status?: string;
+  archive?: boolean;
 }
 
 function documentation(file: string): boolean {
@@ -17,8 +18,13 @@ function documentation(file: string): boolean {
 function fileOwners(projects: WorkspaceProject[], file: string): WorkspaceProject[] {
   if (documentation(file)) return [];
   const home = projects.filter((project) => project.slug === 'home');
-  if (file.startsWith('catalog/') || file.startsWith('retired/')) return home;
   const owners = projects.filter((project) => file.startsWith(`${project.directory}/`));
+  if (file.startsWith('catalog/'))
+    return [
+      ...home,
+      ...projects.filter((project) => project.archive && file === `catalog/${project.slug}.json`),
+    ];
+  if (file.startsWith('retired/')) return [...home, ...owners];
   if (!owners.length) return projects;
   return /^apps\/[^/]+\/lab\.config\.ts$/.test(file) ? [...owners, ...home] : owners;
 }
@@ -48,10 +54,13 @@ export function affectedProjects(
   const projects = current.filter((project) => affected.has(project.name));
   const apps = projects.filter((project) => project.slug !== undefined);
   const deploy = apps.filter(
-    (project) => project.status === 'active' || project.status === 'deprecated',
+    (project) => project.status === 'active' || project.status === 'deprecated' || project.archive,
   );
   return {
-    packages: projects.map((project) => project.name).sort(),
+    packages: projects
+      .filter((project) => !project.archive)
+      .map((project) => project.name)
+      .sort(),
     apps: apps.map((project) => project.slug ?? '').sort(),
     deploy: deploy
       .map((project) => project.slug ?? '')

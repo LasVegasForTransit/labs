@@ -67,3 +67,11 @@ test('a documentation-only plan performs no build or deployment', async () => {
   expect((await deployProjects({ packages: [], deploy: [] }, operations(events))).ok).toBe(true);
   expect(events).toEqual([]);
 });
+
+test('deploys an archive-only plan without a workspace build package', async () => {
+  const events: string[] = [];
+  expect((await deployProjects({ packages: [], deploy: ['map'] }, operations(events))).ok).toBe(
+    true,
+  );
+  expect(events).toEqual(['build:', 'deploy:map', 'verify:map']);
+});

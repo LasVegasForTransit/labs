@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { affectedProjects, type WorkspaceProject } from './affected.js';
 import { parseManifestSource } from './manifest-source.js';
+import { validateCatalogRecord } from './catalog-records.js';
 
 function git(root: string, args: string[]): string {
   return execFileSync('git', args, {
@@ -26,7 +27,7 @@ const packageSchema = z.object({
 });
 
 function workspaceAt(root: string, commit: string): WorkspaceProject[] {
-  const entries = git(root, ['ls-tree', '-rz', commit, '--', 'apps', 'packages'])
+  const entries = git(root, ['ls-tree', '-rz', commit, '--', 'apps', 'packages', 'catalog'])
     .split('\0')
     .filter(Boolean);
   const blobs = new Map(
@@ -43,7 +44,7 @@ function workspaceAt(root: string, commit: string): WorkspaceProject[] {
     return git(root, ['cat-file', 'blob', entry[2] ?? '']);
   }
   const names = new Set<string>();
-  return [...blobs.keys()]
+  const projects = [...blobs.keys()]
     .filter((file) => /^(apps|packages)\/[^/]+\/package\.json$/.test(file))
     .sort()
     .map((file) => {
@@ -68,6 +69,26 @@ function workspaceAt(root: string, commit: string): WorkspaceProject[] {
       }
       return project;
     });
+  for (const file of [...blobs.keys()]
+    .filter((file) => /^catalog\/[^/]+\.json$/.test(file))
+    .sort()) {
+    const slug = file.slice('catalog/'.length, -'.json'.length);
+    const manifest = validateCatalogRecord(JSON.parse(read(file)), slug);
+    if (projects.some((project) => project.slug === slug))
+      throw new Error(`Duplicate app and catalog ownership for ${slug}.`);
+    if (manifest.status !== 'retired') continue;
+    if (names.has(`@lvbt/lab-${slug}`))
+      throw new Error(`Duplicate deployment identity for ${slug}.`);
+    projects.push({
+      name: `@lvbt/lab-${slug}`,
+      directory: `retired/${slug}`,
+      dependencies: ['@lvbt/labs-tooling'],
+      slug,
+      status: 'retired',
+      archive: true,
+    });
+  }
+  return projects;
 }
 
 export function deploymentPlan(root: string, refs: { base?: string; head?: string }) {
