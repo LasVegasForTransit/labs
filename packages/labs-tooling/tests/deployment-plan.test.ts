@@ -120,3 +120,46 @@ test('deploys retired archives after source removal without inventing a build pa
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('deploys the archive before removing retired project source', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lab-retirement-handoff-'));
+  try {
+    execFileSync('git', ['init', '--quiet'], { cwd: root });
+    const base = commit(root, {
+      ...files,
+      'packages/labs-tooling/package.json': JSON.stringify({ name: '@lvbt/labs-tooling' }),
+    });
+    const manifest = {
+      ...home,
+      slug: 'map',
+      status: 'retired',
+      dates: { ...home.dates, retired: '2026-09-05' },
+      lifecycle: { reason: 'Ended' },
+    };
+    const head = commit(
+      root,
+      {
+        'apps/map/lab.config.ts': `export default ${JSON.stringify(manifest)} as const;`,
+        'retired/map/site/index.html': '<h1>Archived map</h1>',
+      },
+      base,
+    );
+    const plan = deploymentPlan(root, { base, head });
+    expect(plan.deploy).toEqual(['map', 'home']);
+    expect(plan.packages).not.toContain('@lvbt/lab-map');
+    const update = commit(
+      root,
+      { 'retired/map/site/index.html': '<h1>Updated archive</h1>' },
+      head,
+    );
+    expect(deploymentPlan(root, { base: head, head: update }).deploy).toEqual(['map', 'home']);
+    const runtime = commit(
+      root,
+      { 'packages/labs-tooling/src/archive-worker.ts': '// Updated' },
+      update,
+    );
+    expect(deploymentPlan(root, { base: update, head: runtime }).deploy).toEqual(['map']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

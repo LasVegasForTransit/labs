@@ -13,6 +13,7 @@ import { sealArtifact, verifyReleaseResponse, type ReleaseMarker } from './relea
 import { readCatalogRecords } from './catalog-records.js';
 import { prepareArchiveWorker } from './archive-worker.js';
 import type { LabManifestV1 } from './manifest.js';
+import { parseManifestSource } from './manifest-source.js';
 
 type Run = (args: string[], cwd: string, env?: NodeJS.ProcessEnv) => Promise<string>;
 interface DeploymentDependencies {
@@ -76,6 +77,18 @@ function deploymentMessage(
     : `Archive ${marker.commit} ${marker.artifactHash}`;
 }
 
+async function retiredApp(root: string, slug: string) {
+  let source: string;
+  try {
+    source = await readFile(path.join(root, 'apps', slug, 'lab.config.ts'), 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
+  const { manifest } = parseManifestSource(source, slug);
+  return manifest.status === 'retired' ? manifest : undefined;
+}
+
 async function buildProjects(
   context: {
     root: string;
@@ -95,7 +108,8 @@ async function buildProjects(
   const markers = new Map<string, ReleaseMarker>();
   const records = await readCatalogRecords(root);
   for (const slug of slugs) {
-    const record = records.find((candidate) => candidate.slug === slug);
+    const record =
+      records.find((candidate) => candidate.slug === slug) ?? (await retiredApp(root, slug));
     if (record !== undefined) {
       const bundle = await prepareRetired(root, commit, record);
       directories.set(slug, bundle.directory);

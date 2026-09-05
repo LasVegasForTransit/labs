@@ -24,7 +24,14 @@ function fileOwners(projects: WorkspaceProject[], file: string): WorkspaceProjec
       ...home,
       ...projects.filter((project) => project.archive && file === `catalog/${project.slug}.json`),
     ];
-  if (file.startsWith('retired/')) return [...home, ...owners];
+  if (file.startsWith('retired/'))
+    return [
+      ...home,
+      ...owners,
+      ...projects.filter(
+        (project) => project.archive && file.startsWith(`retired/${project.slug}/`),
+      ),
+    ];
   if (!owners.length) return projects;
   return /^apps\/[^/]+\/lab\.config\.ts$/.test(file) ? [...owners, ...home] : owners;
 }

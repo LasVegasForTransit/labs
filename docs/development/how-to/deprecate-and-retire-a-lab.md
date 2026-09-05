@@ -65,5 +65,11 @@ The command stores the archive under `retired/<slug>`, deploys it through the ex
 removes write-capable bindings, verifies the original path, and moves the catalog entry into the
 archive.
 
+During the handoff, a retired manifest in `apps/<slug>` selects the matching stored archive for
+deployment. The deployment does not rebuild that app or use its original Worker configuration.
+Source remains available until verification succeeds; afterward, its metadata-only catalog record
+selects the same archive and Worker. Archive changes and shared archive-runtime changes select that
+Worker on either side of the handoff.
+
 A tombstone requires `--tombstone`, an exception category, and a durable reason in project docs.
 Security, legal, and technical impossibility are the accepted categories.

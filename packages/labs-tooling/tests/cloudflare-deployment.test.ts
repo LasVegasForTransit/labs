@@ -11,9 +11,13 @@ import { storeRetirementArchive, verifyStoredArchive } from '../src/archive-stor
 const oldVersion = '2ae50b24-3d42-48d2-a784-627b60841961';
 const newVersion = '1c4deaba-ee53-4c3f-ba65-176ae596cad5';
 
-test.each(['verified', 'retained-secret', 'superseded'])(
-  'verifies archive deployment without source (%s)',
-  async (outcome) => {
+test.each(
+  ['verified', 'retained-secret', 'superseded'].flatMap((outcome) =>
+    [false, true].map((sourceRetained) => ({ outcome, sourceRetained })),
+  ),
+)(
+  'verifies archive deployment ($outcome, source retained: $sourceRetained)',
+  async ({ outcome, sourceRetained }) => {
     const retainedSecret = outcome === 'retained-secret';
     const root = await mkdtemp(path.join(os.tmpdir(), 'lab-retired-deploy-'));
     try {
@@ -37,8 +41,16 @@ test.each(['verified', 'retained-secret', 'superseded'])(
         source,
         () => Promise.resolve(),
       );
-      await mkdir(path.join(root, 'catalog'));
-      await writeFile(path.join(root, 'catalog/map.json'), JSON.stringify(manifest));
+      if (sourceRetained) {
+        await mkdir(path.join(root, 'apps/map'), { recursive: true });
+        await writeFile(
+          path.join(root, 'apps/map/lab.config.ts'),
+          `export default ${JSON.stringify(manifest)} as const;`,
+        );
+      } else {
+        await mkdir(path.join(root, 'catalog'));
+        await writeFile(path.join(root, 'catalog/map.json'), JSON.stringify(manifest));
+      }
       await rm(source, { recursive: true });
       let bundle = '';
       let uploaded = false;
@@ -113,6 +125,10 @@ test.each(['verified', 'retained-secret', 'superseded'])(
       expect((await verifyStoredArchive(stored.directory)).site.has('lvbt-release.json')).toBe(
         false,
       );
+      if (sourceRetained)
+        expect(await readFile(path.join(root, 'apps/map/lab.config.ts'), 'utf8')).toContain(
+          'retired',
+        );
     } finally {
       await rm(root, { recursive: true, force: true });
     }
