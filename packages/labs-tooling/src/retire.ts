@@ -9,6 +9,7 @@ import { LabManifestV1Schema, type LabManifestV1 } from './manifest.js';
 import { parseManifestSource } from './manifest-source.js';
 import { prepareRetirementArchive } from './retirement-archive.js';
 import { verifyRetirementDeployment } from './retirement-deployment.js';
+import { finalizeRetirement } from './retirement-finalize.js';
 
 type RetirementFields = Record<
   'slug' | 'reason' | 'commit' | 'version' | 'previousVersion',
@@ -47,6 +48,7 @@ function retirementFlags(args: string[]) {
       'dry-run': { type: 'boolean' },
       json: { type: 'boolean' },
       verify: { type: 'boolean' },
+      finalize: { type: 'boolean' },
       commit: { type: 'string' },
       version: { type: 'string' },
       'previous-version': { type: 'string' },
@@ -55,13 +57,15 @@ function retirementFlags(args: string[]) {
   if (values.apply && values['dry-run'])
     throw new Error('--apply and --dry-run cannot be used together.');
   if (values.verify && values.apply) throw new Error('--verify is read-only; omit --apply.');
+  if (values.verify && values.finalize) throw new Error('Choose --verify or --finalize, not both.');
   if (positionals.length > 1 || (positionals.length > 0 && values.slug !== undefined))
     throw new Error('Provide one lab slug.');
   if (
     !values.verify &&
+    !values.finalize &&
     [values.commit, values.version, values['previous-version']].some((value) => value !== undefined)
   )
-    throw new Error('Deployment commit and version flags require --verify.');
+    throw new Error('Deployment commit and version flags require --verify or --finalize.');
   return { values, positionals };
 }
 
@@ -75,18 +79,20 @@ async function retirementInput(args: string[]) {
       version: values.version,
       previousVersion: values['previous-version'],
     },
-    values.verify === true,
+    values.verify === true || values.finalize === true,
     values.json === true,
   );
   if (slug === undefined || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
     throw new Error('Provide a lowercase kebab-case slug.');
   const retirementReason = reason?.trim() ?? '';
-  if (!values.verify && !retirementReason) throw new Error('--reason is required.');
+  if (!values.verify && !values.finalize && !retirementReason)
+    throw new Error('--reason is required.');
   return {
     slug,
     reason: retirementReason,
     apply: values.apply === true,
     verify: values.verify === true,
+    finalize: values.finalize === true,
     commit,
     version,
     previousVersion,
@@ -185,6 +191,17 @@ export async function retireLab(
   date = new Date().toISOString().slice(0, 10),
 ) {
   const input = await retirementInput(args);
+  if (input.finalize)
+    return finalizeRetirement(
+      root,
+      {
+        slug: input.slug,
+        commit: input.commit ?? '',
+        version: input.version ?? '',
+        previousVersion: input.previousVersion ?? '',
+      },
+      input.apply,
+    );
   if (input.verify) {
     const deployment = await verifyRetirementDeployment(root, {
       slug: input.slug,

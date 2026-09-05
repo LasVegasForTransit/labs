@@ -59,6 +59,8 @@ Review the generated file inventory and checksums before applying retirement.
 
 ## Retire
 
+### Prepare the archive
+
 ```sh
 pnpm lab retire <slug> \
   --reason "The underlying program ended on 2027-06-30" \
@@ -81,6 +83,8 @@ manifest into `catalog/<slug>.json`. A failed preparation preserves source and a
 inspect both before retrying. JSON failures during `--apply` report `changed: null` because a
 verified archive can exist even when the manifest update fails.
 
+### Check the deployment
+
 Check the deployed archive using the deployment commit and the current and previous Worker version
 IDs from the production deployment journal:
 
@@ -97,6 +101,31 @@ archive, requires an asset-only Worker, compares its release provenance and ever
 confirms that the recorded rollback version remains available. A `deployment-verified` result does
 not remove source or activate another version. Keep the browser acceptance and rollback procedure
 alongside this result; provider version availability alone does not prove a successful rollback.
+
+### Finalize the catalog
+
+After browser acceptance succeeds, finalize the catalog handoff with the same deployment identity:
+
+```sh
+pnpm lab retire <slug> --finalize \
+  --commit <deployment-commit> \
+  --version <archive-worker-version> \
+  --previous-version <rollback-worker-version> \
+  --apply --json
+```
+
+Without `--apply`, finalization checks the local state and live deployment but writes nothing. The
+applied command repeats live verification, checks for source changes, and writes
+`catalog/<slug>.json` before moving the app out of `apps/`. Commit the resulting source removals and
+catalog record through review. The app directory, including ignored local files, remains in the
+returned recovery directory under Git's local `lvbt-retirements` directory. Its `handoff.json`
+records the deployment identity; this recovery copy is local, not a published artifact.
+
+To undo an uncommitted handoff, move the recovery directory's `source` back to the original app path
+only when that path is absent, then remove the matching catalog record. This restores local source
+only; it does not change the live Worker. Use the deployment rollback procedure for the public site.
+Repeating finalization after a completed handoff rechecks the deployment without moving or
+overwriting files.
 
 During the handoff, a retired manifest in `apps/<slug>` selects the matching stored archive for
 deployment. The deployment does not rebuild that app or use its original Worker configuration.
