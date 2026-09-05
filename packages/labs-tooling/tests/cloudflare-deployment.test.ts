@@ -11,9 +11,10 @@ import { storeRetirementArchive, verifyStoredArchive } from '../src/archive-stor
 const oldVersion = '2ae50b24-3d42-48d2-a784-627b60841961';
 const newVersion = '1c4deaba-ee53-4c3f-ba65-176ae596cad5';
 
-test.each([false, true])(
-  'verifies archive deployment without source (retained secret: %s)',
-  async (retainedSecret) => {
+test.each(['verified', 'retained-secret', 'superseded'])(
+  'verifies archive deployment without source (%s)',
+  async (outcome) => {
+    const retainedSecret = outcome === 'retained-secret';
     const root = await mkdtemp(path.join(os.tmpdir(), 'lab-retired-deploy-'));
     try {
       const source = path.join(root, 'build');
@@ -41,6 +42,7 @@ test.each([false, true])(
       await rm(source, { recursive: true });
       let bundle = '';
       let uploaded = false;
+      let superseded = false;
       const result = await deployProjects(
         { packages: [], deploy: ['map'] },
         cloudflareDeployment(root, 'b'.repeat(40), ['map'], {
@@ -63,7 +65,12 @@ test.each([false, true])(
               return JSON.stringify([
                 {
                   created_on: '2026-09-05T06:03:00Z',
-                  versions: [{ version_id: uploaded ? newVersion : oldVersion, percentage: 100 }],
+                  versions: [
+                    {
+                      version_id: uploaded && !superseded ? newVersion : oldVersion,
+                      percentage: 100,
+                    },
+                  ],
                 },
               ]);
             if (args[2] !== 'deploy' || !env?.WRANGLER_OUTPUT_FILE_PATH)
@@ -93,12 +100,15 @@ test.each([false, true])(
                 await readFile(path.join(bundle, 'assets', asset.asset.slice(1)), 'utf8'),
               );
             }
+            superseded = outcome === 'superseded';
             return new Response('<h1>Archived map</h1>');
           },
         }),
       );
-      expect(result.ok).toBe(!retainedSecret);
+      expect(result.ok).toBe(outcome === 'verified');
       if (retainedSecret) expect(result.results[0]?.error).toContain('without secrets');
+      if (outcome === 'superseded')
+        expect(result.results[0]?.error).toContain('active version changed');
       expect(result.results[0]?.receipt?.previousVersion).toBe(oldVersion);
       expect((await verifyStoredArchive(stored.directory)).site.has('lvbt-release.json')).toBe(
         false,
