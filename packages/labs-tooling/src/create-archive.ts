@@ -10,7 +10,7 @@ export default defineConfig({
 });
 `,
     'tests/e2e/archive/read-only.spec.ts': `import { expect, test } from '@playwright/test';
-import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/labs-tooling/archive';
+import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
 import manifest from '../../../lab.config';
 
 test('reads the archived project without live services', async ({ browser, viewport }, testInfo) => {

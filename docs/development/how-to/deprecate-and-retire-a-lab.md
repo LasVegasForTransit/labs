@@ -31,8 +31,8 @@ project runs through `pnpm exec turbo run test:archive --filter=<project-package
 
 Archive tests live under `tests/e2e/archive/` and use a separate `playwright.archive.config.ts`
 without a preview server. Import `readProjectArchiveFiles` and `createArchiveContext` from
-`@lvbt/labs-tooling/archive`, read the archive, and create the isolated context with the lab slug
-and the test's viewport. The context serves captured files directly: no upstream server receives
+`@lvbt/lab-runtime/archive`, read the archive, and create the isolated context with the lab slug and
+the test's viewport. The context serves captured files directly: no upstream server receives
 requests. Uncaptured paths, external requests, writes, and WebSockets are denied; service workers
 are blocked. Assert that `archive.failures` is empty after the workflow, and close `archive.context`
 in a `finally` block.

@@ -1,7 +1,1 @@
-{
-  "src/manifest.ts": {
-    "sonarjs/cognitive-complexity": {
-      "count": 1
-    }
-  }
-}
+{}

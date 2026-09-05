@@ -1,34 +1,28 @@
 {
-  "name": "@lvbt/labs-tooling",
-  "version": "0.1.0",
+  "name": "@lvbt/lab-runtime",
   "private": true,
   "type": "module",
   "exports": {
-    "./archive": "./src/archive-browser.ts",
     "./manifest": "./src/manifest.ts",
-    "./catalog": "./src/catalog.ts"
+    "./archive": "./src/archive-browser.ts",
+    "./archive-files": "./src/archive-files.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
-    "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@lvbt/lab-runtime": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@lvbt/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
-    "@lvbt/playwright-config": "file:../../.lvbt/web-platform/packages/playwright-config",
     "@lvbt/typescript-config": "file:../../.lvbt/web-platform/packages/typescript-config",
     "@lvbt/vitest-config": "file:../../.lvbt/web-platform/packages/vitest-config",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
     "eslint": "catalog:",
-    "tsx": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "wrangler": "catalog:"
+    "vitest": "catalog:"
   }
 }

@@ -21,7 +21,7 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@lvbt/labs-tooling": "workspace:*",
+    "@lvbt/lab-runtime": "workspace:*",
     "@lvbt/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
     "@lvbt/playwright-config": "file:../../.lvbt/web-platform/packages/playwright-config",
     "@lvbt/typescript-config": "file:../../.lvbt/web-platform/packages/typescript-config",
