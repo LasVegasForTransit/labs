@@ -84,7 +84,10 @@ function printRollbackResult(result: Awaited<ReturnType<typeof rollbackLab>>) {
 function printCommandError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (process.argv.includes('--json')) {
-    const changed = process.argv[2] === 'retire' && process.argv.includes('--apply') ? null : false;
+    const changed =
+      ['retire', 'migrate'].includes(process.argv[2] ?? '') && process.argv.includes('--apply')
+        ? null
+        : false;
     process.stdout.write(
       `${JSON.stringify({ command: process.argv[2], ok: false, changed, errors: [message] })}\n`,
     );
@@ -96,6 +99,12 @@ function printCommandError(error: unknown) {
 
 async function main(): Promise<void> {
   try {
+    if (process.argv[2] === 'migrate') {
+      const { migrateLab } = await import('./migrate.js');
+      const result = await migrateLab(process.cwd(), process.argv.slice(3));
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
     if (process.argv[2] === 'retire') {
       const { retireLab } = await import('./retire.js');
       const result = await retireLab(process.cwd(), process.argv.slice(3));

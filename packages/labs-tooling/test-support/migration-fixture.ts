@@ -64,6 +64,8 @@ export async function withMigrationFixture(run: (root: string) => void | Promise
       input: Buffer.concat([...chunks, Buffer.from('\n')]),
     });
     execFileSync('git', ['symbolic-ref', 'HEAD', 'refs/heads/fixture'], { cwd: root });
+    execFileSync('git', ['read-tree', 'HEAD'], { cwd: root });
+    execFileSync('git', ['checkout-index', '--all'], { cwd: root });
     execFileSync('git', ['remote', 'add', 'origin', 'https://github.com/LasVegasForTransit/labs'], {
       cwd: root,
     });
