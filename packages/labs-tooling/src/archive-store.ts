@@ -21,6 +21,21 @@ function retiredManifest(input: unknown) {
   return manifest;
 }
 
+export function retirementIdentity(identity: {
+  manifest: LabManifestV1;
+  sourceCommit: string;
+  sourceRepository: string;
+}) {
+  const manifest = retiredManifest(identity.manifest);
+  const provenance = provenanceSchema.parse({
+    formatVersion: 1,
+    sourceCommit: identity.sourceCommit,
+    sourceRepository: identity.sourceRepository,
+    sourcePath: `apps/${manifest.slug}`,
+  });
+  return { manifest, provenance };
+}
+
 export async function verifyStoredArchive(directory: string) {
   const files = await readArchiveFiles(directory);
   const checksums = files.get('checksums.sha256')?.toString('utf8');
@@ -54,13 +69,7 @@ export async function storeRetirementArchive(
   sourceDirectory: string,
   verify: (stagedSite: string) => Promise<void>,
 ) {
-  const manifest = retiredManifest(identity.manifest);
-  const provenance = provenanceSchema.parse({
-    formatVersion: 1,
-    sourceCommit: identity.sourceCommit,
-    sourceRepository: identity.sourceRepository,
-    sourcePath: `apps/${manifest.slug}`,
-  });
+  const { manifest, provenance } = retirementIdentity(identity);
   const site = await readArchiveFiles(sourceDirectory);
   if (site.has('index.html') === site.has(`${manifest.slug}/index.html`))
     throw new Error('Expected one root or slug-prefixed archive index.');
