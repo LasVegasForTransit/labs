@@ -136,3 +136,13 @@ test('detects edited, added, and removed files in stored artifacts', async () =>
     await expect(verifyStoredArchive(directory)).rejects.toThrow(/checksum/);
   });
 });
+
+test('returns verified site bytes that do not change with the stored files', async () => {
+  await fixture(async (root, source) => {
+    const stored = await storeRetirementArchive(root, identity, source, () => Promise.resolve());
+    const snapshot = await verifyStoredArchive(stored.directory);
+    await writeFile(path.join(stored.directory, 'site/index.html'), 'changed after verification');
+    expect(snapshot.site.get('index.html')?.toString()).toContain('Archived map');
+    expect(snapshot.site.has('manifest.json')).toBe(false);
+  });
+});

@@ -40,7 +40,12 @@ export async function verifyStoredArchive(directory: string) {
     path.basename(directory) !== manifest.slug
   )
     throw new Error('Archive metadata does not match its permanent slug.');
-  return { manifest, provenance };
+  const site = new Map(
+    [...files]
+      .filter(([name]) => name.startsWith('site/'))
+      .map(([name, bytes]) => [name.slice(5), bytes]),
+  );
+  return { manifest, provenance, site };
 }
 
 export async function storeRetirementArchive(
