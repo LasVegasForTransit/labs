@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
@@ -48,7 +49,10 @@ export async function doctor(root: string, args: string[]) {
   const workers = labs
     .filter((lab) => lab.status !== 'draft')
     .map((lab) => ({ slug: lab.slug, name: `lvbt-labs-${lab.slug}` }));
-  const github = await githubDoctor(target, githubReader(root));
+  const ruleset: unknown = JSON.parse(
+    await readFile(path.join(root, '.lvbt/web-platform/standards/ruleset.json'), 'utf8'),
+  );
+  const github = await githubDoctor({ ...target, ruleset }, githubReader(root));
   let cloudflare;
   try {
     cloudflare = authenticatedCloudflareReader(root);

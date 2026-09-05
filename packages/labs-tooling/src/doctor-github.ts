@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { doctorCheck } from './doctor-check.js';
+import { matchesPinnedRules } from './ruleset.js';
 
 interface GitHubTarget {
   repository: string;
@@ -7,34 +8,12 @@ interface GitHubTarget {
   environment: string;
   accountId: string;
   zoneId: string;
+  ruleset: unknown;
 }
 
 const variables = z.object({
   variables: z.array(z.object({ name: z.string(), value: z.string() })),
 });
-
-function validRules(input: unknown) {
-  const rules = z
-    .array(z.object({ type: z.string(), parameters: z.unknown().optional() }))
-    .parse(input);
-  const required = z
-    .object({
-      strict_required_status_checks_policy: z.literal(true),
-      required_status_checks: z.array(z.object({ context: z.string() })),
-    })
-    .safeParse(rules.find((rule) => rule.type === 'required_status_checks')?.parameters);
-  const review = z
-    .object({ required_review_thread_resolution: z.literal(true) })
-    .safeParse(rules.find((rule) => rule.type === 'pull_request')?.parameters);
-  return (
-    required.success &&
-    review.success &&
-    required.data.required_status_checks.some((check) => check.context === 'Validate') &&
-    ['required_linear_history', 'non_fast_forward', 'deletion'].every((type) =>
-      rules.some((rule) => rule.type === type),
-    )
-  );
-}
 
 async function productionPolicy(
   read: (endpoint: string) => Promise<unknown>,
@@ -86,9 +65,12 @@ export async function githubDoctor(
     ),
     await check(
       'rules',
-      'Pull requests, resolved discussions, linear history, and an up-to-date Validate check protect the production branch.',
+      'Effective production-branch rules match the pinned organization ruleset.',
       async () =>
-        validRules(await read(`${base}/rules/branches/${encodeURIComponent(target.branch)}`)),
+        matchesPinnedRules(
+          await read(`${base}/rules/branches/${encodeURIComponent(target.branch)}`),
+          target.ruleset,
+        ),
     ),
     await check('production', 'The production environment accepts only the main branch.', () =>
       productionPolicy(read, environment, target.branch),
