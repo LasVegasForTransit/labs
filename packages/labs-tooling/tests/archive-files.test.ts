@@ -2,7 +2,11 @@ import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { expect, test } from 'vitest';
-import { readArchiveFiles, archiveChecksums } from '../src/archive-files.js';
+import {
+  readArchiveFiles,
+  readProjectArchiveFiles,
+  archiveChecksums,
+} from '../src/archive-files.js';
 
 test('captures binary assets and stable checksums independently of directory order', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-archive-files-'));
@@ -43,3 +47,18 @@ test.each(['../escape', '/absolute', 'a\\b', 'a\nb', 'a/../b'])(
     expect(() => archiveChecksums(new Map([[name, Buffer.from('data')]]))).toThrow(/path/);
   },
 );
+
+test('project suites read the selected snapshot instead of their build directory', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-archive-snapshot-'));
+  try {
+    await writeFile(path.join(root, 'index.html'), 'captured content');
+    const files = await readProjectArchiveFiles({ LVBT_ARCHIVE_DIRECTORY: root });
+    expect(files.get('index.html')?.toString()).toBe('captured content');
+    expect(() => readProjectArchiveFiles({ LVBT_ARCHIVE_DIRECTORY: '' })).toThrow(/absolute/);
+    expect(() => readProjectArchiveFiles({ LVBT_ARCHIVE_DIRECTORY: '../build' })).toThrow(
+      /absolute/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

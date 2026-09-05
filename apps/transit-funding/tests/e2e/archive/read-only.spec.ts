@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createArchiveContext, readArchiveFiles } from '@lvbt/labs-tooling/archive';
+import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/labs-tooling/archive';
 
 test('reads the funding story with all live services unavailable', async ({
   browser,
@@ -7,7 +7,7 @@ test('reads the funding story with all live services unavailable', async ({
 }, testInfo) => {
   const archive = await createArchiveContext(browser, {
     slug: 'transit-funding',
-    files: await readArchiveFiles('dist-archive'),
+    files: await readProjectArchiveFiles(),
     viewport: viewport ?? undefined,
   });
   try {
