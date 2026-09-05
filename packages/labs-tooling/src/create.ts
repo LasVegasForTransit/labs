@@ -1,20 +1,8 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { readCreateInput } from './create-input.js';
-
-async function writeProject(directory: string, files: Record<string, string>): Promise<void> {
-  await mkdir(directory);
-  for (const [name, content] of Object.entries(files)) {
-    await mkdir(path.dirname(path.join(directory, name)), { recursive: true });
-    await writeFile(path.join(directory, name), content);
-  }
-  execFileSync('pnpm', ['exec', 'prettier', '--write', directory], {
-    cwd: path.join(directory, '../..'),
-    stdio: 'pipe',
-  });
-}
+import { writeProject } from './create-write.js';
 
 function assertAvailableSlug(root: string, slug: string): void {
   const reserved = [

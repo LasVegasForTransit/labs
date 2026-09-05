@@ -91,3 +91,11 @@ acceptance checkout generated an Astro project; all 12 targeted tasks passed, in
 archive build, and two Worker browser tests. Both desktop and mobile screenshots were inspected.
 Root `pnpm check` passes with 74 tooling tests. Creation failure recovery and broader lifecycle
 acceptance remain open.
+
+Creation now stages and formats files before claiming the final directory. Six filesystem tests
+cover formatting failure and retry, publication failure, reserved-directory races, conflicts, and
+already-removed files during recovery. Cleanup removes only unchanged generated files; conflicts
+remain for inspection. Forced termination still requires the documented manual recovery procedure.
+The staged formatter generated a Vite/React app in the disposable checkout. Its 12 targeted tasks
+passed, including both builds and desktop/mobile Worker browser tests. Both screenshots were
+inspected. Root checks pass with 80 tooling tests. No test project was published.
