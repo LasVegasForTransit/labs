@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/labs-tooling/archive';
+import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
 
 test('reads the funding story with all live services unavailable', async ({
   browser,

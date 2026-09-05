@@ -26,7 +26,7 @@ async function templatePackage(reference: string, slug: string, site: boolean) {
     scripts: Record<string, string>;
   };
   pkg.name = `@lvbt/lab-${slug}`;
-  pkg.dependencies['@lvbt/labs-tooling'] = 'workspace:*';
+  pkg.dependencies['@lvbt/lab-runtime'] = 'workspace:*';
   pkg.dependencies['@lvbt/brand'] = 'workspace:*';
   pkg.dependencies['@lvbt/ui'] = 'workspace:*';
   for (const name of Object.keys(pkg.devDependencies).filter((name) => name.startsWith('@lvbt/'))) {
@@ -45,7 +45,7 @@ async function templatePackage(reference: string, slug: string, site: boolean) {
 
 function browserTest(base: string): string {
   return `import { expect, test } from '@playwright/test';
-import { LabManifestV1Schema } from '@lvbt/labs-tooling/manifest';
+import { LabManifestV1Schema } from '@lvbt/lab-runtime/manifest';
 import config from '../../lab.config';
 const manifest = LabManifestV1Schema.parse(config);
 test('opens at its permanent path', async ({ page }, testInfo) => {
@@ -120,7 +120,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
       null,
       2,
     ),
-    'tests/manifest.test.ts': `import { expect, test } from 'vitest';\nimport { LabManifestV1Schema } from '@lvbt/labs-tooling/manifest';\nimport manifest from '../lab.config';\ntest('declares project ownership', () => { expect(LabManifestV1Schema.parse(manifest).slug).toBe(${JSON.stringify(manifest.slug)}); });\n`,
+    'tests/manifest.test.ts': `import { expect, test } from 'vitest';\nimport { LabManifestV1Schema } from '@lvbt/lab-runtime/manifest';\nimport manifest from '../lab.config';\ntest('declares project ownership', () => { expect(LabManifestV1Schema.parse(manifest).slug).toBe(${JSON.stringify(manifest.slug)}); });\n`,
     'src/worker.ts': `export default { fetch(request: Request, env: { ASSETS: { fetch(request: Request): Promise<Response> } }) { const url = new URL(request.url); url.pathname = url.pathname.replace(/^\\/${manifest.slug}(?:\\/|$)/, '/'); return env.ASSETS.fetch(new Request(url, request)); } };\n`,
     'playwright.config.ts': `import { defineConfig } from '@playwright/test';\nimport { sharedConfig } from '@lvbt/playwright-config';\nexport default defineConfig({ ...sharedConfig, testIgnore: ['**/archive/**'], use: { ...sharedConfig.use, baseURL: 'http://127.0.0.1:8899' }, webServer: { command: 'pnpm build && pnpm exec wrangler dev --port 8899', url: 'http://127.0.0.1:8899${base}', reuseExistingServer: false } });\n`,
     'tests/e2e/home.spec.ts': browserTest(base),
