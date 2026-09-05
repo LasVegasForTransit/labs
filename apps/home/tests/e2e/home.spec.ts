@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
+import { discoverLabs } from '@lvbt/labs-tooling/manifest';
+import { isListedLab } from '@lvbt/labs-tooling/catalog';
 
 test('presents the Labs projects clearly without overflowing', async ({ page }) => {
   await page.goto('/');
@@ -22,8 +25,10 @@ test('presents the Labs projects clearly without overflowing', async ({ page }) 
   await expect(page.getByRole('heading', { level: 2, name: 'Projects' })).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 2, name: 'Transit Funding' })).toHaveCount(0);
   await expect(page.getByRole('heading', { level: 2, name: 'TransitMapper' })).toBeVisible();
-  await expect(page.locator('.project-card')).toHaveCount(1);
-  await expect(page.locator('.project-card a')).toHaveCount(1);
+  const records = await discoverLabs(fileURLToPath(new URL('../../../../', import.meta.url)));
+  const expectedProjects = 1 + records.filter(isListedLab).length;
+  await expect(page.locator('.project-card')).toHaveCount(expectedProjects);
+  await expect(page.locator('.project-card-link')).toHaveCount(expectedProjects);
   await expect(page.locator('.project-card-link').first()).toHaveAttribute(
     'href',
     'https://map.lasvegasfortransit.org/',
@@ -90,7 +95,7 @@ test('presents the Labs projects clearly without overflowing', async ({ page }) 
     footerHeight: document.querySelector('.site-footer')!.getBoundingClientRect().height,
     viewportHeight: window.innerHeight,
   }));
-  const wide = page.viewportSize()!.width >= 1200;
+  const wide = (await page.evaluate(() => window.innerWidth)) >= 1200;
   expect(structure.shellDisplay).toBe(wide ? 'grid' : 'block');
   expect(structure.sidebarPosition).toBe(wide ? 'sticky' : 'static');
   if (wide) expect(structure.footerBottom).toBeGreaterThanOrEqual(structure.viewportHeight);

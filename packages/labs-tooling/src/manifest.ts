@@ -1,8 +1,6 @@
-import { readdir } from 'node:fs/promises';
-import path from 'node:path';
-import { pathToFileURL } from 'node:url';
-
 import { z } from 'zod';
+
+export { discoverLabs } from './discovery.js';
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const date = z.iso.date();
@@ -143,23 +141,4 @@ export function validateManifestForDirectory(input: unknown, directoryName: stri
     );
   }
   return manifest;
-}
-
-export async function discoverLabs(root: string): Promise<LabManifestV1[]> {
-  const appsDirectory = path.join(root, 'apps');
-  const entries = await readdir(appsDirectory, { withFileTypes: true });
-  const appDirectories = entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort((left, right) => left.localeCompare(right));
-
-  return Promise.all(
-    appDirectories.map(async (directoryName) => {
-      const configPath = path.join(appsDirectory, directoryName, 'lab.config.ts');
-      const module = (await import(/* @vite-ignore */ pathToFileURL(configPath).href)) as {
-        default?: unknown;
-      };
-      return validateManifestForDirectory(module.default, directoryName);
-    }),
-  );
 }
