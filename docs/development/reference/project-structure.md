@@ -6,10 +6,9 @@ other.
 
 ```text
 apps/                 independently owned lab projects
-packages/             shared brand and foundational UI
+packages/             shared brand, UI, runtime, and repository tooling
 catalog/              records for source outside the active workspace
 retired/              reproducible read-only retirement artifacts
-tooling/              lifecycle, provisioning, and validation tooling
 tests/                repository-level browser and routing coverage
 docs/                 repository documentation
 .github/               collaboration and CI configuration
@@ -26,6 +25,12 @@ attribution. Brand establishes identity without imposing an application layout.
 
 `packages/ui` owns accessible foundational controls for Astro and React. Navigation, state,
 workflows, and domain behavior remain project concerns.
+
+### Runtime
+
+`packages/lab-runtime` owns the public manifest schema and archive acceptance utilities. Independent
+apps depend on this package instead of the Labs management CLI. Its source and tests contain no app
+imports, so it travels with a project during migration alongside brand and UI dependencies.
 
 ## Applications
 
@@ -67,12 +72,18 @@ dependencies never affect current builds.
 catalog/<slug>.json
 retired/<slug>/
   manifest.json
+  provenance.json
   checksums.sha256
   site/
 ```
 
+`manifest.json` matches the retired catalog record. `provenance.json` records the source repository,
+full commit hash, and original application path. `checksums.sha256` covers both metadata files and
+every file under `site/`; it excludes itself. The site contains exactly one root or slug-prefixed
+`index.html`.
+
 ### Tooling and automation
 
-`tooling` owns `pnpm lab`, generators, validation, lifecycle transitions, provisioning, and
-diagnostics. `.github` owns contribution templates and the GitHub Actions workflows that run those
-interfaces.
+`packages/labs-tooling` owns `pnpm lab`, generators, validation, lifecycle transitions,
+provisioning, and diagnostics. `.github` owns contribution templates and the GitHub Actions
+workflows that run those interfaces.

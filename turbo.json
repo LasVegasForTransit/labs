@@ -1,7 +1,8 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalEnv": ["CI"],
+  "globalDependencies": ["catalog/**", "retired/**", "apps/*/lab.config.ts"],
+  "globalEnv": ["CI", "GITHUB_REF", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -19,6 +20,11 @@
     },
     "test:e2e": {
       "dependsOn": ["build"],
+      "cache": false,
+      "outputs": ["playwright-report/**", "test-results/**"]
+    },
+    "test:archive": {
+      "dependsOn": ["build:archive"],
       "cache": false,
       "outputs": ["playwright-report/**", "test-results/**"]
     },

@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./astro/lifecycle-notice": "./src/astro/LabLifecycleNotice.astro",
+    "./lifecycle.css": "./src/lifecycle.css"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -15,9 +17,9 @@
     "react": "catalog:"
   },
   "devDependencies": {
-    "@lvbt/eslint-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/eslint-config",
-    "@lvbt/typescript-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/typescript-config",
-    "@lvbt/vitest-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/vitest-config",
+    "@lvbt/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
+    "@lvbt/typescript-config": "file:../../.lvbt/web-platform/packages/typescript-config",
+    "@lvbt/vitest-config": "file:../../.lvbt/web-platform/packages/vitest-config",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "eslint": "catalog:",

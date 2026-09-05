@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate
+  checks:
+    name: Repository checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -35,6 +35,9 @@ jobs:
 
       - name: Check
         run: pnpm check
+
+      - name: Production builds
+        run: pnpm build
 
       - name: Dependency audit
         run: pnpm audit --audit-level=high
@@ -64,3 +67,18 @@ jobs:
 
       - name: Browser tests
         run: pnpm test:e2e
+
+      - name: Isolated archive tests
+        run: pnpm test:archive
+
+  validate:
+    name: Validate
+    if: always()
+    needs: [checks, end-to-end]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require repository and browser acceptance
+        env:
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          BROWSER_RESULT: ${{ needs.end-to-end.result }}
+        run: test "$CHECKS_RESULT" = success && test "$BROWSER_RESULT" = success

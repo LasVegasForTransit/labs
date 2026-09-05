@@ -38,6 +38,17 @@ Worker code unless the application declares route handling.
 Secrets never appear in Wrangler configuration. Non-secret environment values live under `vars`;
 resource bindings match the owning project manifest.
 
+Retirement replaces the application configuration with an asset-only bundle. Its handler accepts GET
+and HEAD for captured URLs, redirects the bare slug to its trailing-slash URL, and rejects
+uncaptured paths. The bundle uses one `ASSETS` binding and no application entry point, Node
+compatibility flag, or application resource bindings.
+
+Archive bytes use content-hashed storage names. Captured `_headers` and `_redirects` files remain
+data rather than executable hosting configuration. The handler sets content types and the standard
+MIME, referrer, permissions, and frame headers. Deployment verification checks remote bindings and
+secrets separately; the absence of a binding in generated configuration does not prove its removal
+from an existing deployment.
+
 ### Discovery endpoints
 
 Home serves the hostname `robots.txt` and sitemap index. Each project serves `/<slug>/sitemap.xml`
@@ -71,6 +82,16 @@ smoke checks. Home deploys after all new catalog targets succeed.
 
 GitHub records the source commit, Worker version, route set, and verification result as the
 deployment artifact.
+
+Retired catalog records remain deployable after their source packages leave the workspace. Changes
+to their archive or catalog record select the archived Worker and home; deployment-tooling changes
+also select archives. Archived dependencies and shared brand changes do not rebuild captured sites.
+Graduated projects remain outside Labs deployment ownership.
+
+Archive deployments prepare new bundles from verified stored bytes without changing the stored
+archive. A deployment-specific release marker identifies the commit and captured content hash.
+Verification compares that marker at the stable URL and inspects the uploaded version's bindings;
+unexpected bindings or retained secrets fail verification and withhold home deployment.
 
 ## Analytics and headers
 

@@ -1,9 +1,5 @@
 # Platform resources
 
-> **Planned.** `pnpm provision` and `pnpm doctor` are defined by the platform contract but not
-> implemented yet; the steps below describe the intended behavior. Today `pnpm lab` offers `dev`,
-> `preview`, and `status`.
-
 Resource names derive from repository and project identity. Provider-generated IDs live in
 provisioning metadata and remain absent from prose documentation.
 
@@ -17,9 +13,9 @@ provisioning metadata and remain absent from prose documentation.
 | Environment          | `production`                   | Deployment secrets, variables, and protection |
 | Project repositories | `LasVegasForTransit/<project>` | Graduated source and deployment ownership     |
 
-Repository rules require pull requests, `Validate`, resolved conversations, and linear history.
-Workflow permissions stay read-only except for the jobs that publish previews, deployments, and
-lifecycle metadata.
+Repository rules follow the vendored `.lvbt/web-platform/standards/ruleset.json`, including pull
+requests, `Validate`, and linear history. Workflow permissions stay read-only except for the jobs
+that publish previews, deployments, and lifecycle metadata.
 
 ## Cloudflare
 
@@ -37,6 +33,7 @@ and appear in the owning project's operations reference.
 
 ## Reconciliation
 
-`pnpm provision` owns GitHub and Cloudflare configuration. `pnpm doctor` checks the same resource
-graph without changing it. A provider dashboard edit appears as drift on the next run and returns to
-the repository-defined state after reviewed application.
+`pnpm provision` owns GitHub and Cloudflare configuration. `pnpm run doctor` compares provider
+configuration with `.lvbt/infrastructure.config.ts` without changing it. A provider dashboard edit
+appears as drift on the next run and returns to the repository-defined state after reviewed
+application.

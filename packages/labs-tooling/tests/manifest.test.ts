@@ -8,6 +8,7 @@ import {
   LabManifestV1Schema,
   validateManifestForDirectory,
 } from '../src/manifest.js';
+import { isListedLab } from '../src/catalog.js';
 
 const activeManifest = {
   manifestVersion: 1,
@@ -78,10 +79,27 @@ describe('validateManifestForDirectory', () => {
 });
 
 describe('discoverLabs', () => {
-  it('loads every active app manifest in slug order', async () => {
+  it('includes the home catalog and returns the repository records in slug order', async () => {
     const root = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
     const manifests = await discoverLabs(root);
 
-    expect(manifests.map((manifest) => manifest.slug)).toEqual(['home', 'transit-funding']);
+    const slugs = manifests.map((manifest) => manifest.slug);
+    expect(slugs).toContain('home');
+    expect(slugs).toEqual([...slugs].sort());
+  });
+});
+
+describe('isListedLab', () => {
+  it.each(['active', 'deprecated', 'retired', 'graduated'] as const)(
+    'keeps listed %s records visible',
+    (status) => {
+      expect(isListedLab({ ...LabManifestV1Schema.parse(activeManifest), status })).toBe(true);
+    },
+  );
+  it('excludes drafts, unlisted projects, and the catalog itself', () => {
+    const manifest = LabManifestV1Schema.parse(activeManifest);
+    expect(isListedLab({ ...manifest, status: 'draft' })).toBe(false);
+    expect(isListedLab({ ...manifest, visibility: 'unlisted' })).toBe(false);
+    expect(isListedLab({ ...manifest, slug: 'home' })).toBe(false);
   });
 });

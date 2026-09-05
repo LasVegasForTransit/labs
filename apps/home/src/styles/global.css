@@ -289,6 +289,8 @@ main {
 }
 
 .project-card {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   container-name: project-card;
   container-type: inline-size;
@@ -296,7 +298,7 @@ main {
 
 .project-card-link {
   display: flex;
-  height: 100%;
+  flex: 1;
   flex-direction: column;
   border: 1px solid var(--color-outline);
   background: var(--color-surface);

@@ -1,0 +1,28 @@
+{
+  "name": "@lvbt/lab-runtime",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./manifest": "./src/manifest.ts",
+    "./archive": "./src/archive-browser.ts",
+    "./archive-files": "./src/archive-files.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@lvbt/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
+    "@lvbt/typescript-config": "file:../../.lvbt/web-platform/packages/typescript-config",
+    "@lvbt/vitest-config": "file:../../.lvbt/web-platform/packages/vitest-config",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

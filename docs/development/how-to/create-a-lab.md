@@ -1,9 +1,5 @@
 # Create a lab
 
-> **Planned.** `pnpm lab create` is defined by the platform contract but not implemented yet; the
-> steps below describe the intended behavior. Today `pnpm lab` offers `dev`, `preview`, and
-> `status`.
-
 Create a lab after its permanent slug, audience, public summary, framework profile, owner, and
 licenses are known.
 
@@ -17,15 +13,35 @@ optional Worker code; profile choice describes the default application shape.
 
 ### Run the generator
 
-Interactive creation prompts for every manifest field:
+Run `pnpm lab create` for guided input. It asks for the project's name, permanent slug, profile,
+maintainers, preview image, and licenses, then lists the files without writing them. Add `--apply`
+to create the project. Supplied flags skip their corresponding questions.
+
+For automation, prepare a JSON manifest matching the
+[project contract](../reference/project-contract.md). New projects use `draft` status and `unlisted`
+visibility. The manifest declares the permanent slug, profile, maintainers, dates, preview image,
+and all four licenses.
 
 ```sh
-pnpm lab create
+pnpm lab create --manifest /path/to/manifest.json --dry-run --json
+pnpm lab create --manifest /path/to/manifest.json --apply --json
+pnpm install
 ```
 
-Agents and scripts pass the complete command described in
-[Command reference](../reference/commands.md). Start with `--dry-run` when checking a slug or
-profile without writing files.
+The generator creates the selected Astro or React application, Worker routing, shared tooling
+configuration, documentation, and unit and browser tests. Existing directories are never replaced.
+Add the preview image declared by the manifest before publication.
+
+### Recover from a failed creation
+
+Formatting runs in a temporary directory before the generator claims the project directory. A
+formatting failure leaves the slug available for retry. Publication failures remove unchanged files
+from that attempt and preserve conflicting or edited files.
+
+When the command reports incomplete cleanup, inspect the named directory before retrying. Preserve
+any work it contains, then move it out of `apps/` once its ownership is clear. Do not delete an
+existing project to make its slug available. After a forcibly stopped process, inspect both the
+project directory and any `.lvbt-create-*` directory before removing incomplete generated output.
 
 ### Inspect ownership
 
@@ -39,12 +55,15 @@ Run `pnpm check`, then inspect the app at its production path with `pnpm lab pre
 listed project appears on home only after its status changes from `draft` to `active` and the
 project Worker passes the public route check.
 
-Apply provisioning only after the dry run identifies the exact Worker, routes, GitHub settings, and
-secrets:
+Run `pnpm exec turbo run test:archive --filter=@lvbt/lab-<slug>` to build and inspect the read-only
+archive with live services blocked. The generated suite checks the initial project content at
+desktop and mobile sizes. Extend it with the project's primary workflows as those workflows take
+shape. Archive tests use `playwright.archive.config.ts`; normal preview tests exclude that suite.
+
+Inspect the Worker deployment before publishing:
 
 ```sh
-pnpm lab provision <slug> --dry-run
-pnpm lab provision <slug> --apply
+pnpm run deploy --filter <slug> --dry-run
 ```
 
 Commit the generated app, docs, manifest, and provisioning metadata together.
