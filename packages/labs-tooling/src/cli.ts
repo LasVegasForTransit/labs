@@ -85,7 +85,8 @@ function printCommandError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (process.argv.includes('--json')) {
     const changed =
-      ['retire', 'migrate'].includes(process.argv[2] ?? '') && process.argv.includes('--apply')
+      ['retire', 'migrate', 'provision'].includes(process.argv[2] ?? '') &&
+      process.argv.includes('--apply')
         ? null
         : false;
     process.stdout.write(
@@ -97,15 +98,22 @@ function printCommandError(error: unknown) {
   process.exitCode = 2;
 }
 
+async function runInfrastructureCommand() {
+  const command = process.argv[2];
+  if (command !== 'provision' && command !== 'doctor') return false;
+  const run =
+    command === 'provision'
+      ? (await import('./provision.js')).provision
+      : (await import('./doctor.js')).doctor;
+  const result = await run(process.cwd(), process.argv.slice(3));
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  if (!result.ok) process.exitCode = 1;
+  return true;
+}
+
 async function main(): Promise<void> {
   try {
-    if (process.argv[2] === 'doctor') {
-      const { doctor } = await import('./doctor.js');
-      const result = await doctor(process.cwd(), process.argv.slice(3));
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-      if (!result.ok) process.exitCode = 1;
-      return;
-    }
+    if (await runInfrastructureCommand()) return;
     if (process.argv[2] === 'migrate') {
       const { migrateLab } = await import('./migrate.js');
       const result = await migrateLab(process.cwd(), process.argv.slice(3));

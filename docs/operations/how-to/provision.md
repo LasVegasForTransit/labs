@@ -51,6 +51,12 @@ The operation creates or reconciles:
 Provisioning is idempotent. Matching resources produce no change; drift creates an explicit update.
 Resources outside the manifest remain untouched.
 
+Use `pnpm --silent run provision --dry-run --json` for a machine-readable plan. The `managed` field
+identifies resources handled by the command, and `remaining` lists failed or inaccessible
+infrastructure checks. A verified write does not imply a complete installation: exit code `1`
+indicates unresolved configuration even when some operations succeeded. `changed: null` indicates an
+unconfirmed write; inspect provider state before retrying.
+
 ## Provision one project
 
 `pnpm lab provision <slug> --apply` reconciles one project Worker, routes, bindings, and GitHub

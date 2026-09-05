@@ -62,7 +62,7 @@ export function cloudflareReader(
   return { get: async (endpoint: string) => (await get(endpoint)).result, list };
 }
 
-export function authenticatedCloudflareReader(root: string) {
+export function cloudflareCredential(root: string) {
   try {
     const output = execFileSync('pnpm', ['exec', 'wrangler', 'auth', 'token', '--json'], {
       cwd: root,
@@ -74,10 +74,14 @@ export function authenticatedCloudflareReader(root: string) {
     const credential = z
       .object({ type: z.enum(['oauth', 'api_token']), token: z.string().min(1) })
       .parse(JSON.parse(output));
-    return cloudflareReader(credential.token);
+    return credential.token;
   } catch {
     throw new Error(
       'Cloudflare credentials unavailable. Authenticate Wrangler or provide CLOUDFLARE_API_TOKEN through the environment.',
     );
   }
+}
+
+export function authenticatedCloudflareReader(root: string) {
+  return cloudflareReader(cloudflareCredential(root));
 }
