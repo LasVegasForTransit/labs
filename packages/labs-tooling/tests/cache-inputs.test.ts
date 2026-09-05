@@ -53,6 +53,11 @@ test('catalog records and app manifests invalidate home builds and catalog valid
     expect(manifestChanged.every((task, index) => task.hash !== catalogChanged[index]?.hash)).toBe(
       true,
     );
+    await mkdir(path.join(root, 'retired'));
+    await writeFile(path.join(root, 'retired/checksum-probe'), 'changed');
+    expect(hashes(root).every((task, index) => task.hash !== manifestChanged[index]?.hash)).toBe(
+      true,
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }
