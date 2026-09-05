@@ -81,8 +81,27 @@ function printRollbackResult(result: Awaited<ReturnType<typeof rollbackLab>>) {
   if (!result.ok) process.exitCode = 1;
 }
 
+function printCommandError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (process.argv.includes('--json')) {
+    const changed = process.argv[2] === 'retire' && process.argv.includes('--apply') ? null : false;
+    process.stdout.write(
+      `${JSON.stringify({ command: process.argv[2], ok: false, changed, errors: [message] })}\n`,
+    );
+  } else {
+    process.stderr.write(`${message}\n`);
+  }
+  process.exitCode = 2;
+}
+
 async function main(): Promise<void> {
   try {
+    if (process.argv[2] === 'retire') {
+      const { retireLab } = await import('./retire.js');
+      const result = await retireLab(process.cwd(), process.argv.slice(3));
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
     if (process.argv[2] === 'rollback') {
       const { rollbackLab } = await import('./rollback-command.js');
       printRollbackResult(await rollbackLab(process.cwd(), process.argv.slice(3)));
@@ -124,15 +143,7 @@ async function main(): Promise<void> {
     await loadManifest(root, parsed.slug);
     process.exitCode = await runProjectScript(parsed.slug, parsed.command);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (process.argv.includes('--json')) {
-      process.stdout.write(
-        `${JSON.stringify({ command: process.argv[2], ok: false, changed: false, errors: [message] })}\n`,
-      );
-    } else {
-      process.stderr.write(`${message}\n`);
-    }
-    process.exitCode = 2;
+    printCommandError(error);
   }
 }
 
