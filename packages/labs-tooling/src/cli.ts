@@ -4,9 +4,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { discoverLabs, validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
-import { createLab } from './create.js';
-import { deprecateLab } from './deprecate.js';
-import { rollbackLab } from './rollback-command.js';
+import type { rollbackLab } from './rollback-command.js';
 
 const commands = ['dev', 'preview', 'status'] as const;
 
@@ -86,15 +84,18 @@ function printRollbackResult(result: Awaited<ReturnType<typeof rollbackLab>>) {
 async function main(): Promise<void> {
   try {
     if (process.argv[2] === 'rollback') {
+      const { rollbackLab } = await import('./rollback-command.js');
       printRollbackResult(await rollbackLab(process.cwd(), process.argv.slice(3)));
       return;
     }
     if (process.argv[2] === 'deprecate') {
+      const { deprecateLab } = await import('./deprecate.js');
       const result = await deprecateLab(process.cwd(), process.argv.slice(3));
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
       return;
     }
     if (process.argv[2] === 'create') {
+      const { createLab } = await import('./create.js');
       await createLab(process.cwd(), process.argv.slice(3));
       return;
     }
