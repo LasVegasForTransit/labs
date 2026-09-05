@@ -81,6 +81,23 @@ manifest into `catalog/<slug>.json`. A failed preparation preserves source and a
 inspect both before retrying. JSON failures during `--apply` report `changed: null` because a
 verified archive can exist even when the manifest update fails.
 
+Check the deployed archive using the deployment commit and the current and previous Worker version
+IDs from the production deployment journal:
+
+```sh
+pnpm lab retire <slug> --verify \
+  --commit <deployment-commit> \
+  --version <archive-worker-version> \
+  --previous-version <rollback-worker-version> \
+  --json
+```
+
+Verification is read-only. It checks the active version before and after requesting the public
+archive, requires an asset-only Worker, compares its release provenance and every captured file, and
+confirms that the recorded rollback version remains available. A `deployment-verified` result does
+not remove source or activate another version. Keep the browser acceptance and rollback procedure
+alongside this result; provider version availability alone does not prove a successful rollback.
+
 During the handoff, a retired manifest in `apps/<slug>` selects the matching stored archive for
 deployment. The deployment does not rebuild that app or use its original Worker configuration.
 Source remains available until verification succeeds; afterward, its metadata-only catalog record
