@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { discoverLabs, validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
 import { createLab } from './create.js';
 import { deprecateLab } from './deprecate.js';
+import { rollbackLab } from './rollback-command.js';
 
 const commands = ['dev', 'preview', 'status'] as const;
 
@@ -77,8 +78,17 @@ function runProjectScript(slug: string, script: 'dev' | 'preview'): Promise<numb
   });
 }
 
+function printRollbackResult(result: Awaited<ReturnType<typeof rollbackLab>>) {
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  if (!result.ok) process.exitCode = 1;
+}
+
 async function main(): Promise<void> {
   try {
+    if (process.argv[2] === 'rollback') {
+      printRollbackResult(await rollbackLab(process.cwd(), process.argv.slice(3)));
+      return;
+    }
     if (process.argv[2] === 'deprecate') {
       const result = await deprecateLab(process.cwd(), process.argv.slice(3));
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

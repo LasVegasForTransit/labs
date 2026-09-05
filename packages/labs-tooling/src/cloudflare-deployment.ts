@@ -63,6 +63,19 @@ function deploymentJournal(journals: Map<string, string>) {
   };
 }
 
+function deploymentMessage(
+  root: string,
+  slug: string,
+  directories: Map<string, string>,
+  markers: Map<string, ReleaseMarker>,
+) {
+  const marker = markers.get(slug);
+  if (marker === undefined) throw new Error(`No sealed build exists for ${slug}.`);
+  return directories.get(slug) === path.join(root, 'apps', slug)
+    ? `Commit ${marker.commit}`
+    : `Archive ${marker.commit} ${marker.artifactHash}`;
+}
+
 async function buildProjects(
   context: {
     root: string;
@@ -145,7 +158,7 @@ export function cloudflareDeployment(
       assertCheckout(root, commit);
     },
     async deploy(slug) {
-      if (!markers.has(slug)) throw new Error(`No sealed build exists for ${slug}.`);
+      const message = deploymentMessage(root, slug, directories, markers);
       const previousVersion = await currentVersion(slug);
       const directory = path.join(
         root,
@@ -168,7 +181,7 @@ export function cloudflareDeployment(
             '--tag',
             commit.slice(0, 12),
             '--message',
-            `Commit ${commit}`,
+            message,
           ],
           { WRANGLER_OUTPUT_FILE_PATH: output },
         );

@@ -30,18 +30,41 @@ assets, headers, and browser smoke test agree on the source commit.
 List retained versions:
 
 ```sh
-pnpm lab status <slug> --json
+pnpm exec wrangler deployments list --name lvbt-labs-<slug> --json
+pnpm exec wrangler versions list --name lvbt-labs-<slug> --json
 ```
 
 Select the last verified version and inspect the operation:
 
 ```sh
-pnpm lab rollback <slug> --version <version-id> --dry-run
-pnpm lab rollback <slug> --version <version-id> --apply
+pnpm lab rollback <slug> \
+  --version <version-to-restore> \
+  --expected-version <currently-active-version> \
+  --commit <full-source-commit-to-restore> \
+  --reason "Restore working route labels" \
+  --dry-run --json
 ```
 
-The rollback changes one Worker, then repeats route and browser smoke checks. Home remains untouched
-unless its own output caused the incident.
+Use the source commit from the selected version's verified deployment record. Targets require
+standard version provenance; versions without it are rejected before activation. Archive targets
+also carry their captured content hash, so retirement cannot roll back into active application code.
+Omit flags in a terminal to enter the values through guided prompts. Dry runs inspect provider state
+without changing deployments or writing a journal.
+
+Replace `--dry-run` with `--apply` after reviewing the target. Applying requires a clean checkout of
+current remote `main`. The command rechecks the active version before activation, directs all
+traffic to the selected version, and verifies both the public release marker and project page.
+Retired labs reject rollback targets with bindings other than static assets. Secret
+incompatibilities stop the operation; rollback never forces a changed-secret override.
+
+The journal under `.wrangler/rollbacks/` records preparation, activation, and verification. A failed
+command with `changed: null` means the provider outcome is unconfirmed, not that nothing happened.
+Inspect the active deployment before retrying. An identical retry verifies the already-restored
+version without activating it again.
+
+Exercise the restored project's primary workflow in a browser before closing the incident. HTTP and
+release-marker checks do not establish application behavior or data compatibility. Home remains
+untouched unless its own output caused the incident.
 
 ## Roll back home
 
