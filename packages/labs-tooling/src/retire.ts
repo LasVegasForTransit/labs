@@ -8,8 +8,35 @@ import { verifyStoredArchive } from './archive-store.js';
 import { LabManifestV1Schema, type LabManifestV1 } from './manifest.js';
 import { parseManifestSource } from './manifest-source.js';
 import { prepareRetirementArchive } from './retirement-archive.js';
+import { verifyRetirementDeployment } from './retirement-deployment.js';
 
-async function retirementInput(args: string[]) {
+type RetirementFields = Record<
+  'slug' | 'reason' | 'commit' | 'version' | 'previousVersion',
+  string | undefined
+>;
+
+async function promptRetirement(fields: RetirementFields, verify: boolean, json: boolean) {
+  if (!process.stdin.isTTY || json) return fields;
+  const labels = {
+    slug: 'Lab slug: ',
+    reason: 'Reason for retirement: ',
+    commit: 'Deployment commit: ',
+    version: 'Archive Worker version: ',
+    previousVersion: 'Previous Worker version: ',
+  };
+  const keys: (keyof RetirementFields)[] = verify
+    ? ['slug', 'commit', 'version', 'previousVersion']
+    : ['slug', 'reason'];
+  const prompt = createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    for (const key of keys) fields[key] ??= await prompt.question(labels[key]);
+  } finally {
+    prompt.close();
+  }
+  return fields;
+}
+
+function retirementFlags(args: string[]) {
   const { values, positionals } = parseArgs({
     args,
     allowPositionals: true,
@@ -19,27 +46,51 @@ async function retirementInput(args: string[]) {
       apply: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
       json: { type: 'boolean' },
+      verify: { type: 'boolean' },
+      commit: { type: 'string' },
+      version: { type: 'string' },
+      'previous-version': { type: 'string' },
     },
   });
   if (values.apply && values['dry-run'])
     throw new Error('--apply and --dry-run cannot be used together.');
+  if (values.verify && values.apply) throw new Error('--verify is read-only; omit --apply.');
   if (positionals.length > 1 || (positionals.length > 0 && values.slug !== undefined))
     throw new Error('Provide one lab slug.');
-  let slug = values.slug ?? positionals[0];
-  let reason = values.reason;
-  if (process.stdin.isTTY && !values.json) {
-    const prompt = createInterface({ input: process.stdin, output: process.stderr });
-    try {
-      slug ??= await prompt.question('Lab slug: ');
-      reason ??= await prompt.question('Reason for retirement: ');
-    } finally {
-      prompt.close();
-    }
-  }
+  if (
+    !values.verify &&
+    [values.commit, values.version, values['previous-version']].some((value) => value !== undefined)
+  )
+    throw new Error('Deployment commit and version flags require --verify.');
+  return { values, positionals };
+}
+
+async function retirementInput(args: string[]) {
+  const { values, positionals } = retirementFlags(args);
+  const { slug, reason, commit, version, previousVersion } = await promptRetirement(
+    {
+      slug: values.slug ?? positionals[0],
+      reason: values.reason,
+      commit: values.commit,
+      version: values.version,
+      previousVersion: values['previous-version'],
+    },
+    values.verify === true,
+    values.json === true,
+  );
   if (slug === undefined || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
     throw new Error('Provide a lowercase kebab-case slug.');
-  if (!reason?.trim()) throw new Error('--reason is required.');
-  return { slug, reason: reason.trim(), apply: values.apply === true };
+  const retirementReason = reason?.trim() ?? '';
+  if (!values.verify && !retirementReason) throw new Error('--reason is required.');
+  return {
+    slug,
+    reason: retirementReason,
+    apply: values.apply === true,
+    verify: values.verify === true,
+    commit,
+    version,
+    previousVersion,
+  };
 }
 
 function retiredManifest(manifest: LabManifestV1, reason: string, date: string) {
@@ -134,6 +185,21 @@ export async function retireLab(
   date = new Date().toISOString().slice(0, 10),
 ) {
   const input = await retirementInput(args);
+  if (input.verify) {
+    const deployment = await verifyRetirementDeployment(root, {
+      slug: input.slug,
+      commit: input.commit ?? '',
+      version: input.version ?? '',
+      previousVersion: input.previousVersion ?? '',
+    });
+    return {
+      command: 'retire',
+      ok: true,
+      changed: false,
+      phase: 'deployment-verified',
+      deployment,
+    };
+  }
   const { file, original, parsed, manifest, sourceCommit, identity, checkSource } =
     await preparationContext(root, input, date);
   if (!input.apply)

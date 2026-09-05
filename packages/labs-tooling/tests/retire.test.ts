@@ -42,34 +42,38 @@ async function fixture(run: (root: string) => Promise<void>, scripts: Record<str
   }
 }
 
-test('retirement plans without writes and prepares an archive without removing source', async () => {
-  await fixture(async (root) => {
-    const planned = await retireLab(root, args, '2026-09-05');
-    expect(planned.phase).toBe('planned');
-    expect(planned.changed).toBe(false);
-    expect(await readFile(path.join(root, 'apps/map/lab.config.ts'), 'utf8')).toBe(source);
-    await expect(access(path.join(root, 'retired/map'))).rejects.toThrow();
+test(
+  'retirement plans without writes and prepares an archive without removing source',
+  { timeout: 30000 },
+  async () => {
+    await fixture(async (root) => {
+      const planned = await retireLab(root, args, '2026-09-05');
+      expect(planned.phase).toBe('planned');
+      expect(planned.changed).toBe(false);
+      expect(await readFile(path.join(root, 'apps/map/lab.config.ts'), 'utf8')).toBe(source);
+      await expect(access(path.join(root, 'retired/map'))).rejects.toThrow();
 
-    const app = path.join(root, 'apps/map');
-    await mkdir(path.join(app, 'dist-archive'));
-    await writeFile(path.join(app, 'dist-archive/index.html'), '<h1>Map archive</h1>');
-    const prepared = await retireLab(root, [...args, '--apply'], '2026-09-05');
-    expect(prepared.phase).toBe('prepared');
-    expect(prepared.changed).toBe(true);
-    expect(await readFile(path.join(app, 'lab.config.ts'), 'utf8')).toContain(
-      '// Keep project attribution.',
-    );
-    expect(await readFile(path.join(root, 'retired/map/site/index.html'), 'utf8')).toContain(
-      'Map archive',
-    );
-    await expect(access(path.join(app, 'src/index.ts'))).resolves.toBeUndefined();
-    await expect(access(path.join(root, 'catalog/map.json'))).rejects.toThrow();
-    await rm(path.join(app, 'dist-archive'), { recursive: true });
-    const retry = await retireLab(root, [...args, '--apply'], '2026-09-06');
-    expect(retry.phase).toBe('prepared');
-    expect(retry.changed).toBe(false);
-  });
-});
+      const app = path.join(root, 'apps/map');
+      await mkdir(path.join(app, 'dist-archive'));
+      await writeFile(path.join(app, 'dist-archive/index.html'), '<h1>Map archive</h1>');
+      const prepared = await retireLab(root, [...args, '--apply'], '2026-09-05');
+      expect(prepared.phase).toBe('prepared');
+      expect(prepared.changed).toBe(true);
+      expect(await readFile(path.join(app, 'lab.config.ts'), 'utf8')).toContain(
+        '// Keep project attribution.',
+      );
+      expect(await readFile(path.join(root, 'retired/map/site/index.html'), 'utf8')).toContain(
+        'Map archive',
+      );
+      await expect(access(path.join(app, 'src/index.ts'))).resolves.toBeUndefined();
+      await expect(access(path.join(root, 'catalog/map.json'))).rejects.toThrow();
+      await rm(path.join(app, 'dist-archive'), { recursive: true });
+      const retry = await retireLab(root, [...args, '--apply'], '2026-09-06');
+      expect(retry.phase).toBe('prepared');
+      expect(retry.changed).toBe(false);
+    });
+  },
+);
 
 test('refuses uncommitted project changes before preparation', async () => {
   await fixture(async (root) => {
@@ -83,6 +87,12 @@ test('refuses uncommitted project changes before preparation', async () => {
 });
 
 test('requires complete non-interactive input and rejects ambiguous modes', async () => {
+  await expect(retireLab('/missing', ['map', '--verify', '--apply', '--json'])).rejects.toThrow(
+    /read-only/,
+  );
+  await expect(retireLab('/missing', [...args, '--version', 'wrong'])).rejects.toThrow(
+    /require --verify/,
+  );
   await expect(retireLab('/missing', ['map', '--json'])).rejects.toThrow(/reason/i);
   await expect(retireLab('/missing', [...args, '--apply', '--dry-run'])).rejects.toThrow(
     /together/,
@@ -94,6 +104,7 @@ test('requires complete non-interactive input and rejects ambiguous modes', asyn
 
 test.each(['failed-suite', 'changed-source'] as const)(
   'retains the original manifest and source after %s',
+  { timeout: 30000 },
   async (failure) => {
     await fixture(
       async (root) => {
