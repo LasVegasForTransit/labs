@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./archive": "./src/archive-browser.ts",
     "./manifest": "./src/manifest.ts",
     "./catalog": "./src/catalog.ts"
   },

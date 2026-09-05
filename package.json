@@ -17,6 +17,7 @@
     "check-types": "turbo run check-types",
     "test": "turbo run test",
     "test:e2e": "turbo run test:e2e --concurrency=1",
+    "test:archive": "turbo run test:archive --concurrency=1",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "pnpm standards:check && pnpm format:check && markdownlint-cli2 && lvbt check && turbo run lint check-types test",

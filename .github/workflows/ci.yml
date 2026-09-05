@@ -68,6 +68,9 @@ jobs:
       - name: Browser tests
         run: pnpm test:e2e
 
+      - name: Isolated archive tests
+        run: pnpm test:archive
+
   validate:
     name: Validate
     if: always()
