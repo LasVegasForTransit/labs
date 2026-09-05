@@ -67,9 +67,15 @@ dependencies never affect current builds.
 catalog/<slug>.json
 retired/<slug>/
   manifest.json
+  provenance.json
   checksums.sha256
   site/
 ```
+
+`manifest.json` matches the retired catalog record. `provenance.json` records the source repository,
+full commit hash, and original application path. `checksums.sha256` covers both metadata files and
+every file under `site/`; it excludes itself. The site contains exactly one root or slug-prefixed
+`index.html`.
 
 ### Tooling and automation
 

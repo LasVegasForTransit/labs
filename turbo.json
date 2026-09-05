@@ -1,7 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalDependencies": ["catalog/**", "apps/*/lab.config.ts"],
+  "globalDependencies": ["catalog/**", "retired/**", "apps/*/lab.config.ts"],
   "globalEnv": ["CI", "GITHUB_REF", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"],
   "tasks": {
     "build": {

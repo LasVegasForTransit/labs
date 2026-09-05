@@ -67,7 +67,7 @@ async function publishProject(directory: string, staged: string, names: string[]
 
 export async function writeProject(
   directory: string,
-  files: Record<string, string>,
+  files: Record<string, string | Buffer>,
   format: (directory: string) => void | Promise<void> = (target) => {
     execFileSync('pnpm', ['exec', 'prettier', '--write', target], {
       cwd: path.join(directory, '../..'),
