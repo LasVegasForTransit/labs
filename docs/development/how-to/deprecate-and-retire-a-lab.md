@@ -65,9 +65,21 @@ pnpm lab retire <slug> \
   --apply
 ```
 
-The command stores the archive under `retired/<slug>`, deploys it through the existing Worker,
-removes write-capable bindings, verifies the original path, and moves the catalog entry into the
-archive.
+Run preparation from the repository root with committed source. Omit `--apply` to inspect the
+retirement request without running project scripts or writing files. In a terminal, omitted slug and
+reason flags prompt for input; `--json` requires complete flags.
+
+The command stores the verified archive under `retired/<slug>` and changes the app manifest to
+`retired`. Its `prepared` result is a local handoff, not a completed production retirement. Review
+and commit those files through the repository's pull-request workflow. The archive records the
+source commit and origin repository; unrelated source changes stop preparation so the artifact does
+not claim provenance from different code.
+
+Production deployment uses the existing Worker with asset-only bindings. Verify the original path
+and retain the previous Worker version for rollback before removing app source or moving its
+manifest into `catalog/<slug>.json`. A failed preparation preserves source and any stored artifact;
+inspect both before retrying. JSON failures during `--apply` report `changed: null` because a
+verified archive can exist even when the manifest update fails.
 
 During the handoff, a retired manifest in `apps/<slug>` selects the matching stored archive for
 deployment. The deployment does not rebuild that app or use its original Worker configuration.
