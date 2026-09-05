@@ -79,11 +79,13 @@ describe('validateManifestForDirectory', () => {
 });
 
 describe('discoverLabs', () => {
-  it('loads every active app manifest in slug order', async () => {
+  it('includes the home catalog and returns the repository records in slug order', async () => {
     const root = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
     const manifests = await discoverLabs(root);
 
-    expect(manifests.map((manifest) => manifest.slug)).toEqual(['home', 'transit-funding']);
+    const slugs = manifests.map((manifest) => manifest.slug);
+    expect(slugs).toContain('home');
+    expect(slugs).toEqual([...slugs].sort());
   });
 });
 

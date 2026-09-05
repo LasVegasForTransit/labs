@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
+import { discoverLabs, validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
 import { createLab } from './create.js';
 import { deprecateLab } from './deprecate.js';
 
@@ -95,7 +95,10 @@ async function main(): Promise<void> {
 
     const root = process.cwd();
     if (parsed.command === 'status') {
-      const manifest = await loadManifest(root, parsed.slug);
+      const manifest = (await discoverLabs(root)).find(
+        (candidate) => candidate.slug === parsed.slug,
+      );
+      if (manifest === undefined) throw new Error(`No lab exists with slug ${parsed.slug}.`);
       const result = {
         command: 'status',
         ok: true,

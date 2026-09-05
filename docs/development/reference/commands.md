@@ -30,8 +30,9 @@ The full list, exit codes, and hooks are in the
 | `pnpm lab status <slug>`    | Print the lab's validated manifest (`--json` for one line)                                 |
 | `pnpm lab deprecate <slug>` | Preview deprecation metadata; `--apply` writes the manifest                                |
 
-A slug is the directory under `apps/`; the command validates `apps/<slug>/lab.config.ts` before it
-runs anything and exits with status 2 on a usage error.
+A slug identifies an app under `apps/` or a retired or graduated record at `catalog/<slug>.json`.
+`status` reads both locations; development and preview commands require app source. Commands exit
+with status 2 on a usage error. Duplicate ownership between an app and a catalog record is invalid.
 
 ### Creation
 
