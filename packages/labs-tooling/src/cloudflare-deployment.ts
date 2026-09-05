@@ -135,6 +135,15 @@ async function verifyPublicArtifact(request: typeof fetch, marker: ReleaseMarker
   if (page.status !== 200) throw new Error(`The project page returned HTTP ${page.status}.`);
 }
 
+async function verifyActiveVersion(
+  current: (slug: string) => Promise<string | null>,
+  slug: string,
+  expected: string,
+) {
+  if ((await current(slug)) !== expected)
+    throw new Error(`The active version changed for ${slug}.`);
+}
+
 export function cloudflareDeployment(
   root: string,
   commit: string,
@@ -203,14 +212,14 @@ export function cloudflareDeployment(
     async verify(slug, receipt) {
       const expected = markers.get(slug);
       if (expected === undefined) throw new Error(`No sealed build exists for ${slug}.`);
-      if ((await currentVersion(slug)) !== receipt.version)
-        throw new Error(`The active version changed for ${slug}.`);
+      await verifyActiveVersion(currentVersion, slug, receipt.version);
       if (directories.get(slug) !== path.join(root, 'apps', slug))
         verifyArchiveVersion(
           JSON.parse(await wrangler(slug, ['versions', 'view', receipt.version, '--json'])),
           receipt.version,
         );
       await verifyPublicArtifact(request, expected);
+      await verifyActiveVersion(currentVersion, slug, receipt.version);
       await journal(slug, { phase: 'verified', ...receipt });
     },
   };
