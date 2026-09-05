@@ -38,6 +38,17 @@ Worker code unless the application declares route handling.
 Secrets never appear in Wrangler configuration. Non-secret environment values live under `vars`;
 resource bindings match the owning project manifest.
 
+Retirement replaces the application configuration with an asset-only bundle. Its handler accepts GET
+and HEAD for captured URLs, redirects the bare slug to its trailing-slash URL, and rejects
+uncaptured paths. The bundle uses one `ASSETS` binding and no application entry point, Node
+compatibility flag, or application resource bindings.
+
+Archive bytes use content-hashed storage names. Captured `_headers` and `_redirects` files remain
+data rather than executable hosting configuration. The handler sets content types and the standard
+MIME, referrer, permissions, and frame headers. Deployment verification checks remote bindings and
+secrets separately; the absence of a binding in generated configuration does not prove its removal
+from an existing deployment.
+
 ### Discovery endpoints
 
 Home serves the hostname `robots.txt` and sitemap index. Each project serves `/<slug>/sitemap.xml`

@@ -36,7 +36,7 @@ const contentTypes: Record<string, string> = {
   '.pdf': 'application/pdf',
 };
 
-function archiveRoutes(slug: string, files: ReadonlyMap<string, Buffer>) {
+export function archiveRoutes(slug: string, files: ReadonlyMap<string, Buffer>) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug === 'home')
     throw new Error('An archive requires a non-home lab slug.');
   const rootIndex = files.has('index.html');
