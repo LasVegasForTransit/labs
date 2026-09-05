@@ -74,6 +74,7 @@ export async function writeProject(
       stdio: 'pipe',
     });
   },
+  stagingParent = path.join(directory, '../..'),
 ): Promise<void> {
   const names = Object.keys(files);
   if (
@@ -83,7 +84,7 @@ export async function writeProject(
     )
   )
     throw new Error('Generated files must use relative paths inside the project.');
-  const staged = await mkdtemp(path.join(directory, '../../.lvbt-create-'));
+  const staged = await mkdtemp(path.join(stagingParent, '.lvbt-create-'));
   try {
     for (const [name, content] of Object.entries(files)) {
       await mkdir(path.dirname(path.join(staged, name)), { recursive: true });
