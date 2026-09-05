@@ -33,3 +33,10 @@ export async function readArchiveFiles(directory: string): Promise<Map<string, B
   await visit('');
   return new Map([...files].sort(([left], [right]) => left.localeCompare(right)));
 }
+
+export function readProjectArchiveFiles(environment: NodeJS.ProcessEnv = process.env) {
+  const directory = environment.LVBT_ARCHIVE_DIRECTORY;
+  if (directory !== undefined && (!path.isAbsolute(directory) || directory.trim() === ''))
+    throw new Error('LVBT_ARCHIVE_DIRECTORY must name an absolute snapshot directory.');
+  return readArchiveFiles(directory ?? 'dist-archive');
+}

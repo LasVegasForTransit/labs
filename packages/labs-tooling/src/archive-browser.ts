@@ -2,7 +2,7 @@ import type { Browser } from '@playwright/test';
 import path from 'node:path';
 import { validateArchivePath } from './archive-files.js';
 
-export { readArchiveFiles, archiveChecksums } from './archive-files.js';
+export { readArchiveFiles, readProjectArchiveFiles, archiveChecksums } from './archive-files.js';
 
 export type ArchiveFailure =
   | { kind: 'request'; url: string; method: string }

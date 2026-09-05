@@ -30,15 +30,21 @@ Run `pnpm test:archive` to build archives and run each declared retirement brows
 project runs through `pnpm exec turbo run test:archive --filter=<project-package>`.
 
 Archive tests live under `tests/e2e/archive/` and use a separate `playwright.archive.config.ts`
-without a preview server. Import `readArchiveFiles` and `createArchiveContext` from
-`@lvbt/labs-tooling/archive`, capture `dist-archive`, and create the isolated context with the lab
-slug and the test's viewport. The context serves captured files directly: no upstream server
-receives requests. Uncaptured paths, external requests, writes, and WebSockets are denied; service
-workers are blocked. Assert that `archive.failures` is empty after the workflow, and close
-`archive.context` in a `finally` block.
+without a preview server. Import `readProjectArchiveFiles` and `createArchiveContext` from
+`@lvbt/labs-tooling/archive`, read the archive, and create the isolated context with the lab slug
+and the test's viewport. The context serves captured files directly: no upstream server receives
+requests. Uncaptured paths, external requests, writes, and WebSockets are denied; service workers
+are blocked. Assert that `archive.failures` is empty after the workflow, and close `archive.context`
+in a `finally` block.
 
 The page cannot open WebRTC or WebTransport connections. This harness verifies offline behavior; it
 is not a security sandbox for untrusted code.
+
+`readProjectArchiveFiles()` reads `dist-archive` during ordinary test runs. During retirement
+preparation, `LVBT_ARCHIVE_DIRECTORY` selects the absolute path of the captured snapshot. Keep this
+helper in project suites so preparation verifies the files being stored rather than a later build.
+Preparation publishes an artifact only after the suite succeeds and the snapshot checksums remain
+unchanged. It leaves the app source in place for deployment verification and recovery.
 
 Exercise every primary route and confirm that forms, account actions, writes, and live-data controls
 either disappear or become clear read-only output. Static JSON and other captured data remain
