@@ -1,8 +1,5 @@
 # Respond to an incident
 
-> **Planned.** `pnpm doctor` is defined by the platform contract but not implemented yet; the steps
-> below describe the intended behavior. Today `pnpm lab` offers `dev`, `preview`, and `status`.
-
 Start by finding the smallest broken ownership boundary. Labs isolates project runtimes, so a single
 failed route rarely requires a platform-wide response.
 
@@ -11,7 +8,7 @@ failed route rarely requires a platform-wide response.
 Record the failing URL, time, response status, browser symptoms, and source of the report. Then run:
 
 ```sh
-pnpm doctor
+pnpm run doctor
 pnpm lab status <slug>
 ```
 
@@ -48,5 +45,5 @@ Record the affected route, source commit, Worker versions, root cause, stabiliza
 and durable corrective action. Add a regression test at the layer that first had enough information
 to detect the failure.
 
-Run `pnpm doctor` again after corrective deployment. Closure requires clean route, TLS, Worker,
-header, analytics, and browser checks.
+Run `pnpm run doctor` again after corrective deployment. Closure also requires clean route, TLS,
+Worker, header, analytics, and browser checks.

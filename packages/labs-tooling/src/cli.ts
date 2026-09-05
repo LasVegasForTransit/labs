@@ -99,6 +99,13 @@ function printCommandError(error: unknown) {
 
 async function main(): Promise<void> {
   try {
+    if (process.argv[2] === 'doctor') {
+      const { doctor } = await import('./doctor.js');
+      const result = await doctor(process.cwd(), process.argv.slice(3));
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      if (!result.ok) process.exitCode = 1;
+      return;
+    }
     if (process.argv[2] === 'migrate') {
       const { migrateLab } = await import('./migrate.js');
       const result = await migrateLab(process.cwd(), process.argv.slice(3));

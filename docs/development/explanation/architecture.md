@@ -158,8 +158,9 @@ Production secrets exist only in scoped GitHub environments and Cloudflare secre
 generates binding types from configuration, preventing handwritten environment definitions from
 drifting away from deployed resources.
 
-Structured logs identify the project, environment, and deployment version. `pnpm doctor` (planned)
-checks GitHub, Workers, DNS, TLS, routes, and analytics without changing them.
+Structured logs identify the project, environment, and deployment version. `pnpm run doctor` checks
+provider configuration without changing it. Live route, TLS, header, preview, and rollback
+acceptance establish production behavior separately.
 
 ### Testing
 

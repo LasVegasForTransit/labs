@@ -6,6 +6,7 @@
   "scripts": {
     "bootstrap": "lvbt bootstrap",
     "preflight": "lvbt preflight",
+    "doctor": "tsx packages/labs-tooling/src/cli.ts doctor",
     "standards:update": "node .lvbt/web-platform/standards/web-platform-cli.ts update",
     "standards:check": "node .lvbt/web-platform/standards/web-platform-cli.ts check",
     "build": "turbo run build",

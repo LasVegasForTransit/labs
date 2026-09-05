@@ -1,9 +1,5 @@
 # Secrets
 
-> **Planned.** `pnpm doctor` and `pnpm provision` are defined by the platform contract but not
-> implemented yet; the steps below describe the intended behavior. Today `pnpm lab` offers `dev`,
-> `preview`, and `status`.
-
 Secrets stay in scoped GitHub environments and Cloudflare secret stores. The repository records
 names, owners, and recovery procedures without recording values.
 
@@ -26,7 +22,7 @@ environment. A project never reads another project's secret.
 
 Create a replacement with the same narrow permissions, update the production environment, run a
 credentialed deployment dry run, deploy one unchanged Worker version, and revoke the old token.
-Finish with `pnpm doctor`.
+Finish with `pnpm run doctor` and a verified production deployment.
 
 ### Analytics token
 
