@@ -1,9 +1,5 @@
 # Provision Labs
 
-> **Planned.** `pnpm provision` and `pnpm doctor` are defined by the platform contract but not
-> implemented yet; the steps below describe the intended behavior. Today `pnpm lab` offers `dev`,
-> `preview`, and `status`.
-
 Provisioning reconciles GitHub, Cloudflare, DNS, routes, TLS, analytics, secrets, and variables from
 repository state. Dashboard-only setup is drift, not an accepted installation step.
 
@@ -20,12 +16,21 @@ Run a read-only comparison:
 
 ```sh
 pnpm provision --dry-run
-pnpm doctor
+pnpm run doctor
 ```
 
 The result names the GitHub organization and repository, Cloudflare account and zone, required
 resources, existing identifiers, and every proposed change. Stop when either command selects an
 unexpected account or hostname.
+
+`pnpm run doctor` audits provider configuration against `.lvbt/infrastructure.config.ts` and
+published manifests. `pass` confirms a match, `fail` identifies missing or mismatched configuration,
+and `unknown` means the provider could not be inspected or returned an unrecognized response.
+Unknown results never count as success. Draft projects do not acquire production routes.
+
+Use `pnpm --silent run doctor --json` to capture only the structured report. The `run` keyword is
+required because pnpm reserves `doctor` for its own package-manager diagnostics. Infrastructure
+configuration checks do not replace live URL, TLS, header, preview, or rollback acceptance.
 
 ## Apply repository resources
 
@@ -41,7 +46,7 @@ The operation creates or reconciles:
 - the home and project Workers;
 - the Labs custom domain, exact project routes, DNS, and TLS;
 - the shared Cloudflare Web Analytics property;
-- repository metadata consumed by `pnpm doctor`.
+- repository metadata consumed by `pnpm run doctor`.
 
 Provisioning is idempotent. Matching resources produce no change; drift creates an explicit update.
 Resources outside the manifest remain untouched.
