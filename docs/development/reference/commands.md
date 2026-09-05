@@ -13,6 +13,7 @@ on one lab and `pnpm preview` for the shared catalog origin.
 | `pnpm check:fix`     | Apply formatting and lint fixes                                             |
 | `pnpm build`         | Production build of every lab                                               |
 | `pnpm build:archive` | Read-only archive build of every lab into `dist-archive/`                   |
+| `pnpm test:archive`  | Build archives and run declared browser suites with live services blocked   |
 | `pnpm test`          | Unit tests for every package                                                |
 | `pnpm test:e2e`      | Browser tests for every lab, then the shared preview navigation test        |
 | `pnpm run deploy`    | Build, then `wrangler deploy` every lab with a wrangler config              |

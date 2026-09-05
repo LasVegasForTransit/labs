@@ -23,6 +23,11 @@
       "cache": false,
       "outputs": ["playwright-report/**", "test-results/**"]
     },
+    "test:archive": {
+      "dependsOn": ["build:archive"],
+      "cache": false,
+      "outputs": ["playwright-report/**", "test-results/**"]
+    },
     "dev": {
       "cache": false,
       "persistent": true

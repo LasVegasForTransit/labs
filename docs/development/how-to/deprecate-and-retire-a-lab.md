@@ -26,9 +26,24 @@ still works and the successor link has a visible keyboard focus indicator before
 
 ## Verify the archive
 
-Run `pnpm --filter <project-package> build:archive`, then execute the retirement browser suite with
-external and API requests denied. Exercise every primary route and confirm that forms, account
-actions, writes, and live-data controls either disappear or become clear read-only output.
+Run `pnpm test:archive` to build archives and run each declared retirement browser suite. A single
+project runs through `pnpm exec turbo run test:archive --filter=<project-package>`.
+
+Archive tests live under `tests/e2e/archive/` and use a separate `playwright.archive.config.ts`
+without a preview server. Import `readArchiveFiles` and `createArchiveContext` from
+`@lvbt/labs-tooling/archive`, capture `dist-archive`, and create the isolated context with the lab
+slug and the test's viewport. The context serves captured files directly: no upstream server
+receives requests. Uncaptured paths, external requests, writes, and WebSockets are denied; service
+workers are blocked. Assert that `archive.failures` is empty after the workflow, and close
+`archive.context` in a `finally` block.
+
+The page cannot open WebRTC or WebTransport connections. This harness verifies offline behavior; it
+is not a security sandbox for untrusted code.
+
+Exercise every primary route and confirm that forms, account actions, writes, and live-data controls
+either disappear or become clear read-only output. Static JSON and other captured data remain
+readable. A successful page load alone does not verify the project workflow. Check the content or
+visualization after each interaction and after reload.
 
 Review the generated file inventory and checksums before applying retirement.
 

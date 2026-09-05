@@ -154,6 +154,9 @@ test('matches the organization footer interactions and hands off the sticky bran
     const footer = document.querySelector('.site-footer')!.getBoundingClientRect();
     window.scrollBy(0, footer.top - window.innerHeight + 100);
   });
+  await expect
+    .poll(() => page.locator('.brand').evaluate((brand) => brand.getBoundingClientRect().bottom))
+    .toBeGreaterThan(0);
   const beforeWordmark = await page.evaluate(() => ({
     brandBottom: document.querySelector('.brand')!.getBoundingClientRect().bottom,
     wordmarkTop: document.querySelector('.footer-wordmark')!.getBoundingClientRect().top,
