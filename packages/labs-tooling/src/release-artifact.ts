@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 
@@ -44,7 +44,7 @@ export async function sealArtifact(
   const prefixedIndex = files.some(([name]) => name === `${identity.slug}/index.html`);
   if (rootIndex === prefixedIndex)
     throw new Error('Expected one unambiguous root or slug-prefixed index.html.');
-  const markerPath = `${rootIndex ? '' : `${identity.slug}/`}lvbt-release.json`;
+  const markerPath = `${identity.slug === 'home' ? '' : `${identity.slug}/`}lvbt-release.json`;
   const marker: ReleaseMarker = {
     formatVersion: 1,
     ...identity,
@@ -52,7 +52,8 @@ export async function sealArtifact(
       .update(JSON.stringify(files.filter(([name]) => name !== markerPath)))
       .digest('hex'),
   };
-  const destination = path.join(directory, rootIndex ? '' : identity.slug, 'lvbt-release.json');
+  const destination = path.join(directory, markerPath);
+  await mkdir(path.dirname(destination), { recursive: true });
   const temporary = `${destination}.${randomUUID()}.tmp`;
   try {
     await writeFile(temporary, `${JSON.stringify(marker)}\n`, { flag: 'wx' });

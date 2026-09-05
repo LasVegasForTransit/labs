@@ -27,9 +27,9 @@ test('seals assets deterministically and detects changed bytes', async () => {
     await writeFile(path.join(directory, 'index.html'), '<h1>Map</h1>');
     const first = await sealArtifact(directory, identity);
     expect(await sealArtifact(directory, identity)).toEqual(first);
-    expect(JSON.parse(await readFile(path.join(directory, 'lvbt-release.json'), 'utf8'))).toEqual(
-      first,
-    );
+    expect(
+      JSON.parse(await readFile(path.join(directory, 'map/lvbt-release.json'), 'utf8')),
+    ).toEqual(first);
     await writeFile(path.join(directory, 'index.html'), '<h1>Updated map</h1>');
     expect((await sealArtifact(directory, identity)).artifactHash).not.toBe(first.artifactHash);
   } finally {
