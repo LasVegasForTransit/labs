@@ -22,16 +22,35 @@ The full list, exit codes, and hooks are in the
 
 ## `pnpm lab`
 
-| Command                             | Behavior                                                                     |
-| ----------------------------------- | ---------------------------------------------------------------------------- |
-| `pnpm lab create --manifest <file>` | Generate a draft lab from a JSON manifest; supports `--dry-run` and `--json` |
-| `pnpm lab dev <slug>`               | Run the selected lab's development server                                    |
-| `pnpm lab preview <slug>`           | Serve the selected lab's production artifact                                 |
-| `pnpm lab status <slug>`            | Print the lab's validated manifest (`--json` for one line)                   |
-| `pnpm lab deprecate <slug>`         | Preview deprecation metadata; `--apply` writes the manifest                  |
+| Command                     | Behavior                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------ |
+| `pnpm lab create`           | Plan a draft lab using guided input, flags, or `--manifest <file>`; `--apply` writes files |
+| `pnpm lab dev <slug>`       | Run the selected lab's development server                                                  |
+| `pnpm lab preview <slug>`   | Serve the selected lab's production artifact                                               |
+| `pnpm lab status <slug>`    | Print the lab's validated manifest (`--json` for one line)                                 |
+| `pnpm lab deprecate <slug>` | Preview deprecation metadata; `--apply` writes the manifest                                |
 
 A slug is the directory under `apps/`; the command validates `apps/<slug>/lab.config.ts` before it
 runs anything and exits with status 2 on a usage error.
+
+### Creation
+
+`pnpm lab create` prompts for missing fields in an interactive terminal. `--json` requires complete
+input and returns structured output without prompting. Creation is a dry run unless `--apply` is
+present; `--apply` and `--dry-run` are mutually exclusive.
+
+Provide either `--manifest <json-file>` or the individual fields below. These input forms cannot be
+combined. New projects are draft and unlisted, and their code license is MIT.
+
+| Flags                                                    | Values                                                                |
+| -------------------------------------------------------- | --------------------------------------------------------------------- |
+| `--slug`, `--title`, `--summary`                         | Permanent lowercase kebab-case slug, project name, and public summary |
+| `--profile`                                              | `site` or `app`                                                       |
+| `--kind`                                                 | `tool`, `visualization`, or `publication`                             |
+| `--maintainers`                                          | Comma-separated GitHub usernames                                      |
+| `--preview-image`, `--preview-alt`                       | Public image path and image description                               |
+| `--content-license`, `--data-license`, `--asset-license` | Explicit license declarations                                         |
+| `--created`                                              | Optional `YYYY-MM-DD` date; defaults to the current UTC date          |
 
 ### Deprecation
 

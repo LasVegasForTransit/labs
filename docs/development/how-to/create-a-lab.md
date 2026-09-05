@@ -13,13 +13,18 @@ optional Worker code; profile choice describes the default application shape.
 
 ### Run the generator
 
-Prepare a JSON manifest matching the [project contract](../reference/project-contract.md). New
-projects use `draft` status and `unlisted` visibility. The manifest declares the permanent slug,
-profile, maintainers, dates, preview image, and all four licenses.
+Run `pnpm lab create` for guided input. It asks for the project's name, permanent slug, profile,
+maintainers, preview image, and licenses, then lists the files without writing them. Add `--apply`
+to create the project. Supplied flags skip their corresponding questions.
+
+For automation, prepare a JSON manifest matching the
+[project contract](../reference/project-contract.md). New projects use `draft` status and `unlisted`
+visibility. The manifest declares the permanent slug, profile, maintainers, dates, preview image,
+and all four licenses.
 
 ```sh
 pnpm lab create --manifest /path/to/manifest.json --dry-run --json
-pnpm lab create --manifest /path/to/manifest.json --json
+pnpm lab create --manifest /path/to/manifest.json --apply --json
 pnpm install
 ```
 
