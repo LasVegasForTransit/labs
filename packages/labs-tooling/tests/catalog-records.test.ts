@@ -4,7 +4,7 @@ import path from 'node:path';
 import { expect, test } from 'vitest';
 import home from '../../../apps/home/lab.config.js';
 import { discoverLabs } from '../src/manifest.js';
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const retired = {
@@ -81,7 +81,7 @@ test('rejects symbolic links instead of reading catalog data outside the reposit
 test('the status command reads a catalog-only lab without starting its old app', async () => {
   await fixture(async (root) => {
     await writeFile(path.join(root, 'catalog/old-map.json'), JSON.stringify(retired));
-    const output = execFileSync(
+    const output = spawnSync(
       process.execPath,
       [
         '--import',
@@ -91,9 +91,17 @@ test('the status command reads a catalog-only lab without starting its old app',
         'old-map',
         '--json',
       ],
-      { cwd: root, encoding: 'utf8' },
+      {
+        cwd: root,
+        encoding: 'utf8',
+        timeout: 5000,
+        env: { ...process.env, NODE_DEBUG: 'module' },
+      },
     );
-    const result: unknown = JSON.parse(output);
+    expect(output.error).toBeUndefined();
+    expect(output.status).toBe(0);
+    expect(output.stderr.includes('/typescript/lib/typescript.js')).toBe(false);
+    const result: unknown = JSON.parse(output.stdout);
     expect(result).toMatchObject({ ok: true, results: [{ manifest: retired }] });
   });
 });
