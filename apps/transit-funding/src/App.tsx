@@ -1,4 +1,6 @@
 import { ActOne } from './story/ActOne.tsx';
+import { LabLifecycleNotice } from '@lvbt/ui';
+import manifest from '../lab.config';
 
 export function App() {
   return (
@@ -16,6 +18,7 @@ export function App() {
         <span className="lab-project">Transit Funding</span>
       </header>
       <main>
+        <LabLifecycleNotice manifest={manifest} />
         <ActOne />
       </main>
     </>

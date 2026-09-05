@@ -99,11 +99,12 @@ async function waitForWorker(target: PreviewTarget, child: ChildProcess): Promis
       throw new Error(`The ${target.slug} preview exited before becoming ready.`);
     }
     try {
-      await fetch(url);
-      return;
+      const response = await fetch(url);
+      if (response.ok) return;
     } catch {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // The Worker can accept connections before its assets are ready.
     }
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`The ${target.slug} preview did not become ready within 60 seconds.`);
 }
@@ -150,7 +151,13 @@ async function main(): Promise<void> {
   };
 
   try {
-    await Promise.all(targets.map((target, index) => waitForWorker(target, workers[index]!)));
+    await Promise.all(
+      targets.map((target, index) => {
+        const worker = workers[index];
+        if (worker === undefined) throw new Error(`No preview process for ${target.slug}.`);
+        return waitForWorker(target, worker);
+      }),
+    );
     const server = createServer((request, response) => proxyRequest(request, response, targets));
     await new Promise<void>((resolve, reject) => {
       server.once('error', reject);

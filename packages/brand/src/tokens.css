@@ -29,7 +29,7 @@
   --on-ember-container-dark: #ffd9c7;
 }
 
-@theme {
+@theme static {
   --font-sans: 'Public Sans Variable', ui-sans-serif, system-ui, sans-serif;
 
   --color-surface: var(--paper);

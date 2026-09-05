@@ -20,10 +20,10 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@lvbt/eslint-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/eslint-config",
-    "@lvbt/playwright-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/playwright-config",
-    "@lvbt/typescript-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/typescript-config",
-    "@lvbt/vitest-config": "github:LasVegasForTransit/repository-tooling#v0.2.3&path:/packages/vitest-config",
+    "@lvbt/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
+    "@lvbt/playwright-config": "file:../../.lvbt/web-platform/packages/playwright-config",
+    "@lvbt/typescript-config": "file:../../.lvbt/web-platform/packages/typescript-config",
+    "@lvbt/vitest-config": "file:../../.lvbt/web-platform/packages/vitest-config",
     "@playwright/test": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@types/react": "catalog:",

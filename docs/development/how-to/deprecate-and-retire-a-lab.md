@@ -1,9 +1,5 @@
 # Deprecate and retire a lab
 
-> **Planned.** `pnpm lab deprecate` and `pnpm lab retire` are defined by the platform contract but
-> not implemented yet; the steps below describe the intended behavior. Today `pnpm lab` offers
-> `dev`, `preview`, and `status`.
-
 Deprecation communicates an ending while the project still works. Retirement preserves its last safe
 read-only form at the same public path.
 
@@ -16,11 +12,17 @@ pnpm lab deprecate <slug> \
   --reason "Replaced by a maintained regional model" \
   --sunset 2027-06-30 \
   --successor https://labs.lasvegasfortransit.org/replacement \
+  --successor-label "Open the maintained replacement" \
   --apply
 ```
 
-The shared lifecycle banner presents the reason and date without covering project content. Home
-marks the catalog entry as deprecated after the project route verifies.
+Omit `--apply` to inspect the change first. Running the command without complete flags prompts for
+the slug, reason, and sunset date. Use `--json` with complete flags for automation.
+
+Run `pnpm format`, `pnpm check`, `pnpm build`, and `pnpm test:e2e`, then inspect the lab preview.
+The shared lifecycle notice presents the reason, sunset date, and successor without replacing
+project content. Listed deprecated projects remain in the home catalog. Confirm the primary workflow
+still works and the successor link has a visible keyboard focus indicator before deployment.
 
 ## Verify the archive
 

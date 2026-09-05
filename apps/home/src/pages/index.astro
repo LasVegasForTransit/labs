@@ -1,13 +1,12 @@
 ---
 import path from 'node:path';
 import { discoverLabs } from '@lvbt/labs-tooling/manifest';
+import { isListedLab } from '@lvbt/labs-tooling/catalog';
+import LabLifecycleNotice from '@lvbt/ui/astro/lifecycle-notice';
 import BaseLayout from '../layouts/BaseLayout.astro';
 
 const root = path.resolve(process.cwd(), '../..');
-const labs = (await discoverLabs(root)).filter(
-  (manifest) =>
-    manifest.slug !== 'home' && manifest.status === 'active' && manifest.visibility === 'listed',
-);
+const labs = (await discoverLabs(root)).filter(isListedLab);
 
 const projects = [
   {
@@ -19,8 +18,10 @@ const projects = [
     imageAlt: 'TransitMapper interface showing a sample Las Vegas transit network on a street map.',
     action: 'Open project',
     schemaType: 'SoftwareApplication',
+    manifest: undefined,
   },
   ...labs.map((manifest) => ({
+    manifest,
     title: manifest.title,
     summary: manifest.summary,
     href: `/${manifest.slug}/`,
@@ -171,6 +172,7 @@ const structuredData = [
                       </span>
                     </div>
                   </a>
+                  {project.manifest && <LabLifecycleNotice manifest={project.manifest} />}
                 </article>
               ))
             }
