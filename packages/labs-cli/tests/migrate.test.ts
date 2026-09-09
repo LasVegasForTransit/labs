@@ -7,6 +7,7 @@ import { expect, test } from 'vitest';
 import { migrateLab, migrationInput } from '../src/migrate.js';
 import type {
   MigrationPauseOperations,
+  MigrationRollbackOperations,
   MigrationVerificationOperations,
 } from '../src/migration-handoff.js';
 import { withMigrationFixture } from '../test-support/migration-fixture.js';
@@ -208,6 +209,25 @@ test('verification input relies on the committed handoff record', async () => {
   });
 });
 
+test('finalization accepts an explicit graduation date', async () => {
+  expect(
+    await migrationInput(['example', '--finalize', '--graduated', '2026-09-10', '--json']),
+  ).toEqual({
+    phase: 'finalize',
+    slug: 'example',
+    graduated: '2026-09-10',
+    apply: false,
+  });
+});
+
+test('rollback input relies on the committed handoff record', async () => {
+  expect(await migrationInput(['example', '--rollback', '--json'])).toEqual({
+    phase: 'rollback',
+    slug: 'example',
+    apply: false,
+  });
+});
+
 test('transfer connects the committed pause to the destination deployment', async () => {
   await withMigrationFixture(async (root) => {
     const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -277,5 +297,67 @@ test('verification connects the stable deployment proof to the handoff record', 
       verificationOperations: () => operations,
     });
     expect(result).toMatchObject({ changed: false, phase: 'verification-planned' });
+  });
+});
+
+test('finalization connects the verified handoff to recoverable source removal', async () => {
+  await withMigrationFixture(async (root) => {
+    const result = await migrateLab(
+      root,
+      ['migration-example', '--finalize', '--graduated', '2026-09-10', '--json'],
+      {
+        finalize: (_root, input) =>
+          Promise.resolve({
+            command: 'migrate' as const,
+            ok: true as const,
+            changed: false,
+            phase: 'finalization-planned' as const,
+            recovery: null,
+            input,
+          }),
+      },
+    );
+    expect(result).toMatchObject({
+      changed: false,
+      phase: 'finalization-planned',
+      input: { slug: 'migration-example', graduated: '2026-09-10', apply: false },
+    });
+  });
+});
+
+test('rollback connects the committed handoff to provider recovery', async () => {
+  await withMigrationFixture(async (root) => {
+    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf8',
+    }).trim();
+    const handoff = {
+      formatVersion: 1 as const,
+      slug: 'migration-example',
+      repository: 'LasVegasForTransit/example',
+      sourceCommit,
+      destinationCommit: 'b'.repeat(40),
+      previousVersion: '11111111-1111-4111-8111-111111111111',
+      phase: 'labs-paused' as const,
+    };
+    const operations: MigrationRollbackOperations = {
+      read: () => Promise.resolve(handoff),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: handoff.destinationCommit,
+          deploymentOwner: true,
+          validate: 'failure',
+        }),
+      guard: () => Promise.resolve(),
+      setDestinationOwner: () => Promise.resolve(),
+      restore: () => Promise.resolve(),
+      verifyRestored: () => Promise.resolve(),
+      removeHandoff: () => Promise.resolve(),
+      journal: () => Promise.resolve(),
+    };
+    const result = await migrateLab(root, ['migration-example', '--rollback', '--json'], {
+      rollbackOperations: () => operations,
+    });
+    expect(result).toMatchObject({ changed: false, phase: 'rollback-planned' });
   });
 });

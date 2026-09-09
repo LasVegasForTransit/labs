@@ -84,6 +84,17 @@ export interface MigrationVerificationOperations {
   writeVerified(record: MigrationVerifiedHandoffV1): Promise<void>;
 }
 
+export interface MigrationRollbackOperations {
+  read(): Promise<MigrationHandoffV1 | null>;
+  inspectDestination(): Promise<DestinationState>;
+  guard(): void | Promise<void>;
+  setDestinationOwner(enabled: boolean): Promise<void>;
+  restore(handoff: MigrationHandoffV1): Promise<void>;
+  verifyRestored(handoff: MigrationHandoffV1): Promise<void>;
+  removeHandoff(handoff: MigrationHandoffV1): Promise<void>;
+  journal(phase: string, details?: unknown): Promise<void>;
+}
+
 async function inspectedHandoff(
   input: z.infer<typeof pauseInputSchema>,
   operations: MigrationPauseOperations,
@@ -317,6 +328,89 @@ export async function transferMigration(
       changed: enabled ? null : false,
       wouldChange: false,
       phase: enabled ? 'transfer-unconfirmed' : 'transfer-failed',
+      handoff,
+      errors,
+    };
+  }
+}
+
+function rollbackDestination(handoff: MigrationHandoffV1, raw: DestinationState) {
+  const destination = destinationSchema.parse(raw);
+  if (destination.commit !== handoff.destinationCommit)
+    throw new Error('The destination commit changed after the Labs ownership pause.');
+  return destination;
+}
+
+export async function rollbackMigration(
+  raw: { slug: string; apply: boolean },
+  operations: MigrationRollbackOperations,
+) {
+  const input = z
+    .object({
+      slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      apply: z.boolean(),
+    })
+    .strict()
+    .parse(raw);
+  const stored = await operations.read();
+  if (stored === null) throw new Error('No migration handoff exists for rollback.');
+  const handoff = parseMigrationHandoff(stored, input.slug);
+  const destination = rollbackDestination(handoff, await operations.inspectDestination());
+  if (!input.apply)
+    return {
+      command: 'migrate',
+      ok: true,
+      changed: false,
+      wouldChange: true,
+      phase: 'rollback-planned',
+      handoff,
+      errors: [],
+    };
+  let changed = false;
+  try {
+    await operations.guard();
+    const confirmed = rollbackDestination(handoff, await operations.inspectDestination());
+    if (confirmed.deploymentOwner !== destination.deploymentOwner)
+      throw new Error('Destination ownership changed during rollback preparation.');
+    await operations.journal('prepared', handoff);
+    if (confirmed.deploymentOwner) {
+      await operations.setDestinationOwner(false);
+      changed = true;
+      const disabled = rollbackDestination(handoff, await operations.inspectDestination());
+      if (disabled.deploymentOwner)
+        throw new Error('The destination ownership disable was not confirmed.');
+      await operations.journal('destination-disabled', handoff);
+    }
+    await operations.restore(handoff);
+    changed = true;
+    await operations.verifyRestored(handoff);
+    await operations.removeHandoff(handoff);
+    await operations.journal('rolled-back', handoff);
+    return {
+      command: 'migrate',
+      ok: true,
+      changed,
+      wouldChange: false,
+      phase: 'rolled-back',
+      handoff,
+      errors: [],
+    };
+  } catch (error) {
+    const errors = [message(error)];
+    try {
+      await operations.journal(changed ? 'rollback-unconfirmed' : 'rollback-failed', {
+        handoff,
+        errors,
+      });
+    } catch (journalError) {
+      errors.push(`Migration journal failed: ${message(journalError)}`);
+    }
+    return {
+      command: 'migrate',
+      ok: false,
+      changed: changed ? null : false,
+      wouldChange: false,
+      phase: changed ? 'rollback-unconfirmed' : 'rollback-failed',
       handoff,
       errors,
     };

@@ -114,10 +114,31 @@ before completing graduation.
 
 ## Complete and recover
 
-Complete graduation only from a committed `destination-verified` record. Replace `apps/<slug>` with
-a graduated catalog record that names the canonical source repository. Home keeps the project
-visible according to its manifest.
+Complete graduation only from a committed `destination-verified` record:
 
-If handoff verification fails, restore Labs deployment ownership and redeploy the retained Worker
-version. Re-run the dry run after correcting the standalone tree; never create a second Worker or
-temporary public slug as a handoff workaround.
+```sh
+pnpm lab migrate <slug> --finalize --graduated YYYY-MM-DD --dry-run
+pnpm lab migrate <slug> --finalize --graduated YYYY-MM-DD --apply
+```
+
+Finalization repeats live verification, replaces `apps/<slug>` with a graduated catalog record, and
+moves the source plus handoff record under Git's `lvbt-migrations` recovery directory. The catalog
+names the destination repository and preserves the project's Labs URL and visibility. Commit the
+catalog transition through the normal review workflow.
+
+If transfer or destination verification fails before finalization, plan and apply rollback:
+
+```sh
+pnpm lab migrate <slug> --rollback --dry-run
+pnpm lab migrate <slug> --rollback --apply
+```
+
+Rollback disables destination deployment ownership first, reactivates the exact Labs Worker version
+retained by the pause record, checks its release marker and stable project page, and then removes
+the handoff record. Commit that removal so Labs resumes normal deployment ownership. An unconfirmed
+result indicates that at least one remote mutation occurred; inspect the migration journal and both
+repositories before retrying.
+
+After a finalized graduation reaches `main`, use the ordinary Worker rollback command for immediate
+traffic recovery and revert the graduation commit to restore Labs source ownership. Never create a
+second Worker or temporary public slug as a handoff workaround.

@@ -94,6 +94,14 @@ remains validated, the active Worker version names that commit, and the stable L
 resolve correctly. Add `--apply` to replace the pause record with the exact verified version and
 artifact hash. Graduation requires that committed verification record.
 
+`pnpm lab migrate <slug> --finalize --graduated YYYY-MM-DD` repeats verification and plans the
+graduated catalog record. Add `--apply` to move app source and the handoff into recoverable Git
+storage and publish the metadata-only record in the working tree.
+
+`pnpm lab migrate <slug> --rollback` plans recovery before graduation. Add `--apply` to disable the
+destination owner, reactivate and verify the retained Labs Worker version, and remove the handoff
+record. Provider mutations and uncertain failures are journaled under `.wrangler/migrations/`.
+
 ## Deployment planning
 
 `pnpm deploy:plan --base <commit> --head <commit> --json` compares committed Git trees and prints

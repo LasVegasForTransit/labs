@@ -2,6 +2,7 @@ import { expect, test } from 'vitest';
 import {
   parseMigrationHandoff,
   pauseMigration,
+  rollbackMigration,
   transferMigration,
   verifyMigration,
 } from '../src/migration-handoff.js';
@@ -310,4 +311,90 @@ test('verification refuses a destination that does not own deployment', async ()
       },
     ),
   ).rejects.toThrow(/does not own/);
+});
+
+test('rollback disables the destination before restoring the retained Labs version', async () => {
+  const events: string[] = [];
+  let owner = true;
+  const result = await rollbackMigration(
+    { slug: handoff.slug, apply: true },
+    {
+      read: () => Promise.resolve(handoff),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: handoff.destinationCommit,
+          deploymentOwner: owner,
+          validate: 'success',
+        }),
+      guard: () => {
+        events.push('guard');
+        return Promise.resolve();
+      },
+      setDestinationOwner: (enabled) => {
+        events.push(`owner:${enabled}`);
+        owner = enabled;
+        return Promise.resolve();
+      },
+      restore: (record) => {
+        events.push(`restore:${record.previousVersion}`);
+        return Promise.resolve();
+      },
+      verifyRestored: () => {
+        events.push('verify');
+        return Promise.resolve();
+      },
+      removeHandoff: () => {
+        events.push('remove');
+        return Promise.resolve();
+      },
+      journal: (phase) => {
+        events.push(`journal:${phase}`);
+        return Promise.resolve();
+      },
+    },
+  );
+  expect(result).toMatchObject({ ok: true, changed: true, phase: 'rolled-back' });
+  expect(events).toEqual([
+    'guard',
+    'journal:prepared',
+    'owner:false',
+    'journal:destination-disabled',
+    `restore:${handoff.previousVersion}`,
+    'verify',
+    'remove',
+    'journal:rolled-back',
+  ]);
+});
+
+test('rollback dry run leaves both deployment owners unchanged', async () => {
+  let mutated = false;
+  const result = await rollbackMigration(
+    { slug: handoff.slug, apply: false },
+    {
+      read: () => Promise.resolve(handoff),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: handoff.destinationCommit,
+          deploymentOwner: true,
+          validate: 'success',
+        }),
+      guard: () => Promise.resolve(),
+      setDestinationOwner: () => {
+        mutated = true;
+        return Promise.resolve();
+      },
+      restore: () => {
+        mutated = true;
+        return Promise.resolve();
+      },
+      verifyRestored: () => Promise.resolve(),
+      removeHandoff: () => {
+        mutated = true;
+        return Promise.resolve();
+      },
+      journal: () => Promise.resolve(),
+    },
+  );
+  expect(result).toMatchObject({ changed: false, wouldChange: true, phase: 'rollback-planned' });
+  expect(mutated).toBe(false);
 });
