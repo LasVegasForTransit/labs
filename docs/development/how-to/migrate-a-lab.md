@@ -46,12 +46,36 @@ Run `pnpm bootstrap`, `pnpm check`, `pnpm build`, `pnpm test:e2e`, and `pnpm tes
 standalone directory. Resolve failures there before transferring ownership. An `exported` result
 confirms source preparation, not application acceptance or graduation.
 
+Commit and push the standalone repository, provision it with `LVBT_DEPLOYMENT_OWNER=false`, and let
+its exact `main` commit pass the required `Validate` check. Keep the Labs checkout at the source
+commit reported by preparation. Then plan the ownership pause:
+
+```sh
+pnpm lab migrate <slug> --pause \
+  --repository LasVegasForTransit/<repository> \
+  --source-commit <full-labs-commit> --dry-run
+```
+
+The pause reads the destination's current `main` commit, required check, and deployment-owner
+variable. It also records the active Labs Worker version as the rollback target. Apply only when the
+reported destination commit is the reviewed standalone release:
+
+```sh
+pnpm lab migrate <slug> --pause \
+  --repository LasVegasForTransit/<repository> \
+  --source-commit <full-labs-commit> --apply
+```
+
+Commit the generated `migrations/<slug>.json` through the normal pull request workflow. The
+deployment planner continues to build the app but excludes that slug from Labs uploads once the
+record reaches `main`. Other labs remain unaffected.
+
 ## Transfer deployment ownership
 
-Provision the public GitHub repository, required `Validate` check, production environment,
-variables, and secrets. Keep the destination's `LVBT_DEPLOYMENT_OWNER` variable disabled while Labs
-owns production deployment. Pause Labs ownership for the slug only after the standalone preview
-passes, then enable ownership in the destination. Retain the previous Worker version for rollback.
+The public GitHub repository contains the required `Validate` check, production environment,
+variables, and secrets before handoff. Its `LVBT_DEPLOYMENT_OWNER` variable stays disabled while
+Labs owns production deployment. Enable ownership in the destination only after the pause record is
+merged into Labs. The record retains the previous Worker version for rollback.
 
 The new repository deploys to the existing Worker and routes. Diagnostics check the stable Labs URL
 before the local app source leaves the workspace.

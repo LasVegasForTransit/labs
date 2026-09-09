@@ -163,3 +163,35 @@ test('deploys the archive before removing retired project source', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('a committed migration handoff pauses only that lab deployment', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lab-migration-handoff-'));
+  try {
+    execFileSync('git', ['init', '--quiet'], { cwd: root });
+    const base = commit(root, files);
+    const head = commit(
+      root,
+      {
+        'migrations/map.json': JSON.stringify({
+          formatVersion: 1,
+          slug: 'map',
+          repository: 'LasVegasForTransit/map',
+          sourceCommit: base,
+          destinationCommit: 'b'.repeat(40),
+          previousVersion: '11111111-1111-4111-8111-111111111111',
+          phase: 'labs-paused',
+        }),
+      },
+      base,
+    );
+
+    expect(deploymentPlan(root, { base, head })).toMatchObject({
+      files: ['migrations/map.json'],
+      packages: ['@lvbt/lab-map'],
+      apps: ['map'],
+      deploy: [],
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

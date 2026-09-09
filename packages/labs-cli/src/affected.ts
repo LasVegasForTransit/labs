@@ -5,6 +5,7 @@ export interface WorkspaceProject {
   slug?: string;
   status?: string;
   archive?: boolean;
+  deploymentOwner?: 'labs' | 'standalone';
 }
 
 function documentation(file: string): boolean {
@@ -17,6 +18,8 @@ function documentation(file: string): boolean {
 
 function fileOwners(projects: WorkspaceProject[], file: string): WorkspaceProject[] {
   if (documentation(file)) return [];
+  const migration = /^migrations\/([^/]+)\.json$/.exec(file);
+  if (migration !== null) return projects.filter((project) => project.slug === migration[1]);
   const home = projects.filter((project) => project.slug === 'home');
   const owners = projects.filter((project) => file.startsWith(`${project.directory}/`));
   if (file.startsWith('catalog/'))
@@ -61,7 +64,9 @@ export function affectedProjects(
   const projects = current.filter((project) => affected.has(project.name));
   const apps = projects.filter((project) => project.slug !== undefined);
   const deploy = apps.filter(
-    (project) => project.status === 'active' || project.status === 'deprecated' || project.archive,
+    (project) =>
+      project.deploymentOwner !== 'standalone' &&
+      (project.status === 'active' || project.status === 'deprecated' || project.archive),
   );
   return {
     packages: projects

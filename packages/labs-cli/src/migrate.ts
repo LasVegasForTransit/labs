@@ -5,6 +5,8 @@ import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { migrationTree } from './migration-tree.js';
 import { exportMigration, initializeMigrationRepository } from './migration-export.js';
+import { pauseMigration, type MigrationPauseOperations } from './migration-handoff.js';
+import { migrationPauseOperations } from './migration-handoff-operations.js';
 
 function migrationFlags(args: string[]) {
   const { values, positionals } = parseArgs({
@@ -15,54 +17,101 @@ function migrationFlags(args: string[]) {
       repository: { type: 'string' },
       output: { type: 'string' },
       prepare: { type: 'boolean' },
+      pause: { type: 'boolean' },
+      'source-commit': { type: 'string' },
       apply: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
       json: { type: 'boolean' },
     },
   });
   if (values.apply && values['dry-run']) throw new Error('Choose --apply or --dry-run.');
-  if (values.apply && !values.prepare)
-    throw new Error(
-      'Ownership transfer is unavailable. Use --prepare --apply to export source only.',
-    );
+  if ([values.prepare, values.pause].filter(Boolean).length !== 1)
+    throw new Error('Choose exactly one migration phase: --prepare or --pause.');
   if (positionals.length > 1 || (positionals.length > 0 && values.slug !== undefined))
     throw new Error('Provide one lab slug.');
   return { values, positionals };
 }
 
-export async function migrationInput(args: string[], ask?: (label: string) => Promise<string>) {
-  const { values, positionals } = migrationFlags(args);
-  const fields = {
-    slug: values.slug ?? positionals[0],
-    repository: values.repository,
-    output: values.output,
-  };
+type Question = (label: string) => Promise<string>;
+
+async function promptedMigrationFields(
+  fields: {
+    slug: string | undefined;
+    repository: string | undefined;
+    output: string | undefined;
+    sourceCommit: string | undefined;
+  },
+  phase: 'prepare' | 'pause',
+  ask?: Question,
+) {
+  const prompt =
+    ask === undefined
+      ? createInterface({ input: process.stdin, output: process.stderr })
+      : undefined;
+  const question = ask ?? prompt?.question.bind(prompt);
   const labels = {
     slug: 'Lab slug: ',
     repository: 'Destination GitHub repository (owner/name): ',
     output: 'Standalone directory outside Labs: ',
+    sourceCommit: 'Exported Labs source commit: ',
   };
-  if (!values.json && (ask !== undefined || process.stdin.isTTY)) {
-    const prompt =
-      ask === undefined
-        ? createInterface({ input: process.stdin, output: process.stderr })
-        : undefined;
-    try {
-      const question = ask ?? prompt?.question.bind(prompt);
-      if (question !== undefined)
-        for (const key of ['slug', 'repository', 'output'] as const)
-          fields[key] ??= await question(labels[key]);
-    } finally {
-      prompt?.close();
-    }
+  try {
+    if (question !== undefined)
+      for (const key of [
+        'slug',
+        'repository',
+        phase === 'prepare' ? 'output' : 'sourceCommit',
+      ] as const)
+        fields[key] ??= await question(labels[key]);
+  } finally {
+    prompt?.close();
   }
-  const { slug, repository, output } = fields;
-  if (!slug || !repository || !output)
-    throw new Error('Provide --slug, --repository, and --output.');
-  return { slug, repository, output, apply: values.apply === true };
+  return fields;
 }
 
-export async function migrateLab(root: string, args: string[]) {
+function validateMigrationFields(
+  phase: 'prepare' | 'pause',
+  fields: Awaited<ReturnType<typeof promptedMigrationFields>>,
+  apply: boolean,
+) {
+  const { slug, repository, output, sourceCommit } = fields;
+  if (!slug || !repository) throw new Error('Provide --slug and --repository.');
+  if (phase === 'prepare') {
+    if (!output) throw new Error('Provide --output for migration preparation.');
+    return { phase, slug, repository, output, apply } as const;
+  }
+  if (!sourceCommit) throw new Error('Provide --source-commit for migration pause.');
+  return { phase, slug, repository, sourceCommit, apply } as const;
+}
+
+export async function migrationInput(args: string[], ask?: Question) {
+  const { values, positionals } = migrationFlags(args);
+  const phase: 'prepare' | 'pause' = values.pause ? 'pause' : 'prepare';
+  const fields = {
+    slug: values.slug ?? positionals[0],
+    repository: values.repository,
+    output: values.output,
+    sourceCommit: values['source-commit'],
+  };
+  const completed =
+    !values.json && (ask !== undefined || process.stdin.isTTY)
+      ? await promptedMigrationFields(fields, phase, ask)
+      : fields;
+  return validateMigrationFields(phase, completed, values.apply === true);
+}
+
+interface MigrationDependencies {
+  pauseOperations?: (
+    root: string,
+    input: { slug: string; repository: string; sourceCommit: string },
+  ) => MigrationPauseOperations;
+}
+
+export async function migrateLab(
+  root: string,
+  args: string[],
+  dependencies: MigrationDependencies = {},
+) {
   const input = await migrationInput(args);
   const git = (arguments_: string[]) =>
     execFileSync('git', arguments_, {
@@ -79,6 +128,22 @@ export async function migrateLab(root: string, args: string[]) {
       throw new Error('Migration requires a clean committed source tree.');
   };
   clean();
+  if (input.phase === 'pause') {
+    const current = git(['rev-parse', 'HEAD']);
+    if (current !== input.sourceCommit)
+      throw new Error('Re-export the current Labs commit before pausing deployment ownership.');
+    migrationTree(root, input.slug, input.repository);
+    clean();
+    return pauseMigration(
+      {
+        slug: input.slug,
+        repository: input.repository,
+        sourceCommit: input.sourceCommit,
+        apply: input.apply,
+      },
+      (dependencies.pauseOperations ?? migrationPauseOperations)(root, input),
+    );
+  }
   const requested = path.resolve(root, input.output);
   const output = path.join(await realpath(path.dirname(requested)), path.basename(requested));
   if (output === sourceRoot || output.startsWith(`${sourceRoot}${path.sep}`))

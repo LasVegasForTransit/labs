@@ -74,3 +74,29 @@ test('cycles terminate and include each dependent once', () => {
   );
   expect(affectedProjects(cycle, ['packages/ui/src/control.tsx']).deploy).toEqual(['map', 'home']);
 });
+
+test('a paused migration remains buildable but is not deployed by Labs', () => {
+  const paused: WorkspaceProject[] = [
+    {
+      name: '@lvbt/lab-example',
+      directory: 'apps/example',
+      dependencies: [],
+      slug: 'example',
+      status: 'active',
+      deploymentOwner: 'standalone',
+    },
+    {
+      name: '@lvbt/lab-home',
+      directory: 'apps/home',
+      dependencies: [],
+      slug: 'home',
+      status: 'active',
+    },
+  ];
+
+  expect(affectedProjects(paused, ['migrations/example.json'])).toEqual({
+    packages: ['@lvbt/lab-example'],
+    apps: ['example'],
+    deploy: [],
+  });
+});

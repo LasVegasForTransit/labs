@@ -30,6 +30,8 @@ The full list, exit codes, and hooks are in the
 | `pnpm lab preview <slug>`   | Serve the selected lab's production artifact                                               |
 | `pnpm lab status <slug>`    | Print the lab's validated manifest (`--json` for one line)                                 |
 | `pnpm lab deprecate <slug>` | Preview deprecation metadata; `--apply` writes the manifest                                |
+| `pnpm lab migrate <slug>`   | Prepare a standalone repository or pause Labs deployment ownership                         |
+| `pnpm lab retire <slug>`    | Prepare, verify, and finalize a read-only retirement archive                               |
 
 A slug identifies an app under `apps/` or a retired or graduated record at `catalog/<slug>.json`.
 `status` reads both locations; development and preview commands require app source. Commands exit
@@ -67,6 +69,19 @@ active and deprecated labs accept this transition; the home catalog does not. Th
 precede deprecation. The command edits literal TypeScript manifests without executing them and
 rejects computed fields rather than replacing project-owned logic. Run `pnpm format` and
 `pnpm check` before committing the change.
+
+### Migration
+
+`pnpm lab migrate <slug> --prepare --repository <owner/name> --output <directory>` plans a
+standalone export. Add `--apply` to create it. The exported repository carries the pinned standard,
+project source, transitive shared packages, CI, deployment configuration, documentation, licenses,
+and exact provenance.
+
+`pnpm lab migrate <slug> --pause --repository <owner/name> --source-commit <commit>` verifies the
+destination's current main commit, required `Validate` result, disabled deployment-owner variable,
+and the active Labs Worker version. Add `--apply` to write `migrations/<slug>.json`. Once committed,
+that record excludes only the migrating slug from Labs production deployment. Both phases support
+guided prompts, complete non-interactive flags, `--dry-run`, and `--json`.
 
 ## Deployment planning
 
