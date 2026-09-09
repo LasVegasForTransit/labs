@@ -2,12 +2,19 @@ import { z } from 'zod';
 
 const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
+export interface PreviewTarget {
+  slug: string;
+  worker: string;
+  mode: 'version' | 'temporary' | 'staging';
+  cleanup: boolean;
+}
+
 export function previewTargets(
   pullRequest: number,
   slugs: string[],
   deployedWorkers: string[],
   statefulSlugs: string[] = [],
-) {
+): PreviewTarget[] {
   z.number().int().positive().parse(pullRequest);
   z.array(slugSchema).parse(slugs);
   if (new Set(slugs).size !== slugs.length)

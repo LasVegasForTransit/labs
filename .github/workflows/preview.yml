@@ -1,0 +1,89 @@
+# Publishes isolated Worker previews for same-repository pull requests.
+# Fork pull requests run validation without receiving deployment credentials.
+name: Preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy previews
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      vars.CLOUDFLARE_PREVIEWS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: preview
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout proposed commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Node + pnpm
+        uses: ./.github/actions/setup-node-pnpm
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser acceptance
+        run: pnpm test:e2e
+
+      - name: Build, publish, and verify previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .wrangler/previews
+          pnpm preview:deploy \
+            --pull-request "$PULL_REQUEST" \
+            --repository "$GITHUB_REPOSITORY" \
+            --base "$BASE_SHA" \
+            --head "$HEAD_SHA" \
+            --account-id "$CLOUDFLARE_ACCOUNT_ID" \
+            --apply --json > .wrangler/previews/result.json
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GH_TOKEN: ${{ github.token }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PREVIEW_API_TOKEN }}
+
+      - name: Format preview report
+        if: always() && hashFiles('.wrangler/previews/result.json') != ''
+        run:
+          pnpm exec tsx packages/labs-cli/src/pr-preview-comment.ts .wrangler/previews/result.json >
+          .wrangler/previews/comment.md
+
+      - name: Update pull request
+        if: always() && hashFiles('.wrangler/previews/comment.md') != ''
+        run:
+          gh pr comment "$PULL_REQUEST" --edit-last --create-if-none --body-file
+          .wrangler/previews/comment.md
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+
+      - name: Preserve preview receipts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: preview-receipts-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: .wrangler/previews/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 30

@@ -67,12 +67,12 @@ steps.
 
 ### Preview lifecycle
 
-Existing Workers receive version previews and a stable pull-request alias. A new project receives a
-temporary Worker because no production Worker identity exists before merge. The pull request comment
-lists every affected preview and its slug path.
+Existing Workers receive immutable version preview URLs. A new project receives a temporary Worker
+because no production Worker identity exists before merge. The pull request comment lists every
+verified preview and its slug path.
 
-The close workflow deletes temporary Workers and aliases. Durable Object projects deploy to their
-dedicated staging Worker instead of a version preview.
+The close workflow deletes temporary Workers. Durable Object projects deploy to their dedicated
+staging Worker instead of a version preview.
 
 ### Production
 
