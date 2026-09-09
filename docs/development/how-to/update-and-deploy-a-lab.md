@@ -27,9 +27,10 @@ pnpm --filter @lvbt/lab-<slug> exec playwright test --update-snapshots
 ```
 
 Inspect every changed desktop and mobile image, then rerun the same suite without
-`--update-snapshots`. Baseline filenames identify the Playwright project but not the host operating
-system, so local and Linux CI runs compare the same reviewed files. When retirement output changes,
-update and verify the archive suite separately with its `playwright.archive.config.ts`.
+`--update-snapshots`. Baseline filenames identify the Playwright project and rendering platform.
+Inspect each platform's output before accepting it so browser-engine and font-rendering differences
+remain visible in review. When retirement output changes, update and verify the archive suite
+separately with its `playwright.archive.config.ts`.
 
 Run `pnpm preview` when a change touches home, shared packages, route behavior, or more than one
 lab. Open the catalog at `http://127.0.0.1:8797`, follow its project links, and refresh each project
