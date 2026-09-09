@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { cloudflareReader } from '../src/cloudflare-read.js';
+import { cloudflareReader } from '../src/cloudflare-read.ts';
 
 test('reads every page with GET and never follows redirects', async () => {
   const calls: URL[] = [];

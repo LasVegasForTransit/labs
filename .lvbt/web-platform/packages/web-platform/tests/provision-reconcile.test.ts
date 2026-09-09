@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { reconcileResources, type ProvisionResource } from '../src/provision-reconcile.js';
+import { reconcileResources, type ProvisionResource } from '../src/provision-reconcile.ts';
 
 function resource(
   id: string,

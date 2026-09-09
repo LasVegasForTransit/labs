@@ -1,6 +1,6 @@
 import { z } from 'zod';
+import { reconcileResources } from '@lvbt/web-platform/provision';
 import { previewTargets } from './pr-preview-plan.js';
-import { reconcileResources } from './provision-reconcile.js';
 
 const identitySchema = z.object({
   repository: z.string().regex(/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/),

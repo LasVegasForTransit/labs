@@ -1,11 +1,11 @@
 import { expect, test } from 'vitest';
-import { publishPreviews } from '../src/pr-preview.js';
-import { previewTargets } from '../src/pr-preview-plan.js';
+import { publishPreviews } from '../src/pr-preview.ts';
+
+const targets = (slugs: string[]) => slugs.map((slug) => ({ slug }));
 
 test('builds everything before uploading and keeps receipts for failed verification', async () => {
   const events: string[] = [];
-  const targets = previewTargets(2, ['map', 'home'], ['lvbt-labs-home']);
-  const result = await publishPreviews(targets, {
+  const result = await publishPreviews(targets(['map', 'home']), {
     build: () => {
       events.push('build');
       return Promise.resolve();
@@ -39,7 +39,7 @@ test('builds everything before uploading and keeps receipts for failed verificat
 
 test('failed builds do not upload anything', async () => {
   let uploads = 0;
-  const result = await publishPreviews(previewTargets(2, ['home'], []), {
+  const result = await publishPreviews(targets(['home']), {
     build: () => Promise.reject(new Error('failed')),
     assertCurrent: () => Promise.resolve(),
     record: () => Promise.resolve(),
@@ -55,7 +55,7 @@ test('failed builds do not upload anything', async () => {
 
 test('superseded PR head stops uploads before any provider mutation', async () => {
   const events: string[] = [];
-  const result = await publishPreviews(previewTargets(2, ['map', 'home'], []), {
+  const result = await publishPreviews(targets(['map', 'home']), {
     build: () => Promise.resolve(),
     assertCurrent: () => Promise.reject(new Error('head changed')),
     record: (entry) => {

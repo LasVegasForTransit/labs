@@ -6,10 +6,18 @@ import { isDeepStrictEqual, promisify } from 'node:util';
 import ts from 'typescript';
 import { z } from 'zod';
 
-import { activeVersion, uploadedVersion, verifyArchiveVersion } from './cloudflare-release.js';
-import { assertDeploymentCheckout } from './deployment-checkout.js';
+import {
+  activeVersion,
+  uploadedVersion,
+  verifyArchiveVersion,
+} from '@lvbt/web-platform/cloudflare';
+import {
+  assertDeploymentCheckout,
+  sealArtifact,
+  verifyReleaseResponse,
+  type ReleaseMarker,
+} from '@lvbt/web-platform/release';
 import type { DeploymentOperations } from './deployment.js';
-import { sealArtifact, verifyReleaseResponse, type ReleaseMarker } from './release-artifact.js';
 import { readCatalogRecords } from './catalog-records.js';
 import { prepareArchiveWorker } from './archive-worker.js';
 import type { LabManifestV1 } from './manifest.js';

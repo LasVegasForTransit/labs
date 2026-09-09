@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { previewConfiguration, previewUploadReceipt } from '../src/pr-preview-config.js';
+import { previewConfiguration, previewUploadReceipt } from '../src/pr-preview-config.ts';
 
 test('isolates static preview configuration from production routes and variables', () => {
   const config = previewConfiguration(

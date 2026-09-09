@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { provisionRoutes } from '../src/provision-routes.js';
-import { reconcileResources } from '../src/provision-reconcile.js';
+import { provisionRoutes } from '../src/provision-routes.ts';
+import { reconcileResources } from '../src/provision-reconcile.ts';
 
 const target = {
   hostname: 'labs.example.org',

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { activeVersion, uploadedVersion, verifyArchiveVersion } from '../src/cloudflare-release.js';
+import { activeVersion, uploadedVersion, verifyArchiveVersion } from '../src/cloudflare-release.ts';
 
 const first = '2ae50b24-3d42-48d2-a784-627b60841961';
 const second = '1c4deaba-ee53-4c3f-ba65-176ae596cad5';

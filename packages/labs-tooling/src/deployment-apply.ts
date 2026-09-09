@@ -6,9 +6,9 @@ import { cloudflareDeployment } from './cloudflare-deployment.js';
 import { parseDeploymentArguments } from './deployment-cli.js';
 import { deploymentPlan } from './deployment-plan.js';
 import { deployProjects } from './deployment.js';
-import { assertDeploymentCheckout } from './deployment-checkout.js';
+import { assertDeploymentCheckout } from '@lvbt/web-platform/release';
 
-export { assertDeploymentCheckout } from './deployment-checkout.js';
+export { assertDeploymentCheckout } from '@lvbt/web-platform/release';
 
 export function parseApplyArguments(args: string[]) {
   const apply = args.includes('--apply');

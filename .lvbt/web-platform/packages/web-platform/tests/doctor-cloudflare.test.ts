@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { cloudflareDoctor } from '../src/doctor-cloudflare.js';
+import { cloudflareDoctor } from '../src/doctor-cloudflare.ts';
 
 const target = {
   accountId: 'account',

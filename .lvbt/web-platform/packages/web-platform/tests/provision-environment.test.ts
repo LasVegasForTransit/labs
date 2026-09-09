@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { provisionEnvironment } from '../src/provision-environment.js';
-import { reconcileResources } from '../src/provision-reconcile.js';
+import { provisionEnvironment } from '../src/provision-environment.ts';
+import { reconcileResources } from '../src/provision-reconcile.ts';
 
 function fixture() {
   const state = {
