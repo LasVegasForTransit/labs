@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { affectedProjects, type WorkspaceProject } from './affected.js';
 import { parseManifestSource } from './manifest-source.js';
 import { validateCatalogRecord } from './catalog-records.js';
+import { parseMigrationHandoff } from './migration-handoff.js';
 
 function git(root: string, args: string[]): string {
   return execFileSync('git', args, {
@@ -26,8 +27,61 @@ const packageSchema = z.object({
   peerDependencies: z.record(z.string(), z.string()).optional(),
 });
 
+function addCatalogRecords(
+  blobs: Map<string, readonly string[]>,
+  read: (file: string) => string,
+  names: Set<string>,
+  projects: WorkspaceProject[],
+) {
+  for (const file of [...blobs.keys()]
+    .filter((file) => /^catalog\/[^/]+\.json$/.test(file))
+    .sort()) {
+    const slug = file.slice('catalog/'.length, -'.json'.length);
+    const manifest = validateCatalogRecord(JSON.parse(read(file)), slug);
+    if (projects.some((project) => project.slug === slug))
+      throw new Error(`Duplicate app and catalog ownership for ${slug}.`);
+    if (manifest.status !== 'retired') continue;
+    if (names.has(`@lvbt/lab-${slug}`))
+      throw new Error(`Duplicate deployment identity for ${slug}.`);
+    projects.push({
+      name: `@lvbt/lab-${slug}`,
+      directory: `retired/${slug}`,
+      dependencies: ['@lvbt/labs-cli'],
+      slug,
+      status: 'retired',
+      archive: true,
+    });
+  }
+}
+
+function applyMigrationHandoffs(
+  blobs: Map<string, readonly string[]>,
+  read: (file: string) => string,
+  projects: WorkspaceProject[],
+) {
+  for (const file of [...blobs.keys()]
+    .filter((file) => /^migrations\/[^/]+\.json$/.test(file))
+    .sort()) {
+    const slug = file.slice('migrations/'.length, -'.json'.length);
+    parseMigrationHandoff(JSON.parse(read(file)), slug);
+    const project = projects.find((candidate) => candidate.slug === slug);
+    if (project === undefined)
+      throw new Error(`Migration handoff ${slug} has no operational app source.`);
+    project.deploymentOwner = 'standalone';
+  }
+}
+
 function workspaceAt(root: string, commit: string): WorkspaceProject[] {
-  const entries = git(root, ['ls-tree', '-rz', commit, '--', 'apps', 'packages', 'catalog'])
+  const entries = git(root, [
+    'ls-tree',
+    '-rz',
+    commit,
+    '--',
+    'apps',
+    'packages',
+    'catalog',
+    'migrations',
+  ])
     .split('\0')
     .filter(Boolean);
   const blobs = new Map(
@@ -73,25 +127,8 @@ function workspaceAt(root: string, commit: string): WorkspaceProject[] {
       }
       return project;
     });
-  for (const file of [...blobs.keys()]
-    .filter((file) => /^catalog\/[^/]+\.json$/.test(file))
-    .sort()) {
-    const slug = file.slice('catalog/'.length, -'.json'.length);
-    const manifest = validateCatalogRecord(JSON.parse(read(file)), slug);
-    if (projects.some((project) => project.slug === slug))
-      throw new Error(`Duplicate app and catalog ownership for ${slug}.`);
-    if (manifest.status !== 'retired') continue;
-    if (names.has(`@lvbt/lab-${slug}`))
-      throw new Error(`Duplicate deployment identity for ${slug}.`);
-    projects.push({
-      name: `@lvbt/lab-${slug}`,
-      directory: `retired/${slug}`,
-      dependencies: ['@lvbt/labs-cli'],
-      slug,
-      status: 'retired',
-      archive: true,
-    });
-  }
+  addCatalogRecords(blobs, read, names, projects);
+  applyMigrationHandoffs(blobs, read, projects);
   return projects;
 }
 

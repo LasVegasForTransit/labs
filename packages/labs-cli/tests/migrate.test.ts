@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
 import { migrateLab, migrationInput } from '../src/migrate.js';
+import type { MigrationPauseOperations } from '../src/migration-handoff.js';
 import { withMigrationFixture } from '../test-support/migration-fixture.js';
 
 test(
@@ -99,12 +100,91 @@ test('guided input fills missing fields and JSON calls never prompt', async () =
     return Promise.resolve(answers.shift() ?? '');
   };
   expect(await migrationInput(['example', '--prepare'], ask)).toEqual({
+    phase: 'prepare',
     slug: 'example',
     repository: 'LasVegasForTransit/example',
     output: '/tmp/example',
     apply: false,
   });
   expect(questions).toHaveLength(2);
-  await expect(migrationInput(['--json'], ask)).rejects.toThrow(/Provide/);
+  await expect(migrationInput(['--json'], ask)).rejects.toThrow(/migration phase/);
   expect(questions).toHaveLength(2);
+});
+
+test('pause input requires the exported source commit and no output directory', async () => {
+  const commit = 'a'.repeat(40);
+  expect(
+    await migrationInput([
+      'example',
+      '--pause',
+      '--repository',
+      'LasVegasForTransit/example',
+      '--source-commit',
+      commit,
+      '--json',
+    ]),
+  ).toEqual({
+    phase: 'pause',
+    slug: 'example',
+    repository: 'LasVegasForTransit/example',
+    sourceCommit: commit,
+    apply: false,
+  });
+  await expect(
+    migrationInput([
+      'example',
+      '--prepare',
+      '--pause',
+      '--repository',
+      'LasVegasForTransit/example',
+      '--source-commit',
+      commit,
+      '--json',
+    ]),
+  ).rejects.toThrow(/one migration phase/);
+});
+
+test('pause connects provider acceptance to the persisted ownership gate', async () => {
+  await withMigrationFixture(async (root) => {
+    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf8',
+    }).trim();
+    let record: unknown = null;
+    const operations: MigrationPauseOperations = {
+      read: () => Promise.resolve(null),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: 'b'.repeat(40),
+          deploymentOwner: false,
+          validate: 'success',
+        }),
+      activeVersion: () => Promise.resolve('11111111-1111-4111-8111-111111111111'),
+      guard: () => Promise.resolve(),
+      write: (value) => {
+        record = value;
+        return Promise.resolve();
+      },
+    };
+    const result = await migrateLab(
+      root,
+      [
+        'migration-example',
+        '--pause',
+        '--repository',
+        'LasVegasForTransit/example',
+        '--source-commit',
+        sourceCommit,
+        '--apply',
+        '--json',
+      ],
+      { pauseOperations: () => operations },
+    );
+    expect(result).toMatchObject({ changed: true, phase: 'labs-paused' });
+    expect(record).toMatchObject({
+      slug: 'migration-example',
+      sourceCommit,
+      phase: 'labs-paused',
+    });
+  });
 });
