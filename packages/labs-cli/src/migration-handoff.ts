@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 
 const repository = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9-]*\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/);
 
-export const MigrationHandoffV1Schema = z
+export const MigrationPausedHandoffV1Schema = z
   .object({
     formatVersion: z.literal(1),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
@@ -15,7 +15,24 @@ export const MigrationHandoffV1Schema = z
   })
   .strict();
 
+export const MigrationVerifiedHandoffV1Schema = MigrationPausedHandoffV1Schema.omit({
+  phase: true,
+})
+  .extend({
+    phase: z.literal('destination-verified'),
+    destinationVersion: z.uuid(),
+    artifactHash: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+
+export const MigrationHandoffV1Schema = z.discriminatedUnion('phase', [
+  MigrationPausedHandoffV1Schema,
+  MigrationVerifiedHandoffV1Schema,
+]);
+
 export type MigrationHandoffV1 = z.infer<typeof MigrationHandoffV1Schema>;
+export type MigrationPausedHandoffV1 = z.infer<typeof MigrationPausedHandoffV1Schema>;
+export type MigrationVerifiedHandoffV1 = z.infer<typeof MigrationVerifiedHandoffV1Schema>;
 
 export function parseMigrationHandoff(input: unknown, slug: string): MigrationHandoffV1 {
   const handoff = MigrationHandoffV1Schema.parse(input);
@@ -47,7 +64,7 @@ export interface MigrationPauseOperations {
   inspectDestination(): Promise<z.infer<typeof destinationSchema>>;
   activeVersion(): Promise<string>;
   guard(): void | Promise<void>;
-  write(record: MigrationHandoffV1): Promise<void>;
+  write(record: MigrationPausedHandoffV1): Promise<void>;
 }
 
 export interface MigrationTransferOperations {
@@ -59,6 +76,14 @@ export interface MigrationTransferOperations {
   journal(phase: string, details?: unknown): Promise<void>;
 }
 
+export interface MigrationVerificationOperations {
+  read(): Promise<MigrationHandoffV1 | null>;
+  inspectDestination(): Promise<DestinationState>;
+  verifyDeployment(handoff: MigrationHandoffV1): Promise<{ version: string; artifactHash: string }>;
+  guard(): void | Promise<void>;
+  writeVerified(record: MigrationVerifiedHandoffV1): Promise<void>;
+}
+
 async function inspectedHandoff(
   input: z.infer<typeof pauseInputSchema>,
   operations: MigrationPauseOperations,
@@ -68,7 +93,7 @@ async function inspectedHandoff(
     throw new Error('The destination deployment owner must not be enabled before Labs pauses.');
   if (destination.validate !== 'success')
     throw new Error('The destination commit must pass its Validate check before Labs pauses.');
-  return MigrationHandoffV1Schema.parse({
+  return MigrationPausedHandoffV1Schema.parse({
     formatVersion: 1,
     slug: input.slug,
     repository: input.repository,
@@ -77,6 +102,87 @@ async function inspectedHandoff(
     previousVersion: await operations.activeVersion(),
     phase: 'labs-paused',
   });
+}
+
+function acceptedVerificationDestination(handoff: MigrationHandoffV1, raw: DestinationState) {
+  const destination = acceptedDestination(handoff, raw);
+  if (!destination.deploymentOwner)
+    throw new Error('The destination does not own deployment for this lab.');
+  return destination;
+}
+
+const deploymentVerificationSchema = z
+  .object({
+    version: z.uuid(),
+    artifactHash: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
+
+function verifiedHandoff(
+  handoff: MigrationHandoffV1,
+  verification: z.infer<typeof deploymentVerificationSchema>,
+) {
+  return MigrationVerifiedHandoffV1Schema.parse({
+    ...handoff,
+    phase: 'destination-verified',
+    destinationVersion: verification.version,
+    artifactHash: verification.artifactHash,
+  });
+}
+
+export async function verifyMigration(
+  raw: { slug: string; apply: boolean },
+  operations: MigrationVerificationOperations,
+) {
+  const input = z
+    .object({
+      slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+      apply: z.boolean(),
+    })
+    .strict()
+    .parse(raw);
+  const stored = await operations.read();
+  if (stored === null) throw new Error('Pause Labs deployment ownership before verification.');
+  const handoff = parseMigrationHandoff(stored, input.slug);
+  acceptedVerificationDestination(handoff, await operations.inspectDestination());
+  const observed = deploymentVerificationSchema.parse(await operations.verifyDeployment(handoff));
+  const verified = verifiedHandoff(handoff, observed);
+  if (handoff.phase === 'destination-verified') {
+    if (!isDeepStrictEqual(handoff, verified))
+      throw new Error('The verified destination deployment no longer matches its handoff record.');
+    return {
+      command: 'migrate',
+      ok: true,
+      changed: false,
+      wouldChange: false,
+      phase: 'destination-verified',
+      handoff,
+    };
+  }
+  if (!input.apply)
+    return {
+      command: 'migrate',
+      ok: true,
+      changed: false,
+      wouldChange: true,
+      phase: 'verification-planned',
+      handoff: verified,
+    };
+  await operations.guard();
+  acceptedVerificationDestination(handoff, await operations.inspectDestination());
+  const confirmed = deploymentVerificationSchema.parse(await operations.verifyDeployment(handoff));
+  if (!isDeepStrictEqual(observed, confirmed))
+    throw new Error('Destination deployment changed during migration verification.');
+  const record = verifiedHandoff(handoff, confirmed);
+  await operations.writeVerified(record);
+  return {
+    command: 'migrate',
+    ok: true,
+    changed: true,
+    wouldChange: false,
+    phase: 'destination-verified',
+    handoff: record,
+  };
 }
 
 export async function pauseMigration(

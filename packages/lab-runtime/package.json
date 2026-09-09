@@ -5,7 +5,8 @@
   "exports": {
     "./manifest": "./src/manifest.ts",
     "./archive": "./src/archive-browser.ts",
-    "./archive-files": "./src/archive-files.ts"
+    "./archive-files": "./src/archive-files.ts",
+    "./deploy": "./src/standalone-deploy.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -13,6 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@lvbt/web-platform": "file:../../.lvbt/web-platform/packages/web-platform",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ import { expect, test } from 'vitest';
 import {
   migrationPauseOperations,
   migrationTransferOperations,
+  migrationVerificationOperations,
 } from '../src/migration-handoff-operations.js';
 
 const input = {
@@ -136,6 +137,100 @@ test('transfer operations change only the destination owner and dispatch main', 
     expect(await readFile(path.join(root, '.wrangler/migrations/example.jsonl'), 'utf8')).toContain(
       '"phase":"prepared"',
     );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('verification operations prove the active version and replace the pause record', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-migration-verification-'));
+  const version = '22222222-2222-4222-8222-222222222222';
+  const artifactHash = 'c'.repeat(64);
+  const record = {
+    formatVersion: 1 as const,
+    ...input,
+    destinationCommit: 'b'.repeat(40),
+    previousVersion: '11111111-1111-4111-8111-111111111111',
+    phase: 'labs-paused' as const,
+  };
+  try {
+    await migrationPauseOperations(root, input, {
+      github: () => '',
+      wrangler: () => Promise.resolve('[]'),
+      guard: () => undefined,
+    }).write(record);
+    const operations = migrationVerificationOperations(root, input.slug, {
+      github: (args) => {
+        if (args[0] === 'variable') return 'true\n';
+        if (args.at(-1)?.endsWith('/commits/main'))
+          return JSON.stringify({ sha: record.destinationCommit });
+        return JSON.stringify({
+          check_runs: [
+            {
+              id: 1,
+              name: 'Validate',
+              status: 'completed',
+              conclusion: 'success',
+              head_sha: record.destinationCommit,
+            },
+          ],
+        });
+      },
+      wrangler: (args) => {
+        if (args[0] === 'versions')
+          return Promise.resolve(
+            JSON.stringify({
+              id: version,
+              annotations: { 'workers/message': `Commit ${record.destinationCommit}` },
+            }),
+          );
+        return Promise.resolve(
+          JSON.stringify([
+            {
+              created_on: '2026-09-09T00:00:00Z',
+              versions: [{ version_id: version, percentage: 100 }],
+            },
+          ]),
+        );
+      },
+      fetch: (request) => {
+        const url =
+          typeof request === 'string'
+            ? request
+            : request instanceof URL
+              ? request.href
+              : request.url;
+        return Promise.resolve(
+          url.includes('lvbt-release.json')
+            ? new Response(
+                JSON.stringify({
+                  formatVersion: 1,
+                  slug: input.slug,
+                  commit: record.destinationCommit,
+                  artifactHash,
+                }),
+              )
+            : new Response('<h1>Example</h1>'),
+        );
+      },
+      guard: () => undefined,
+    });
+
+    await expect(operations.verifyDeployment(record)).resolves.toEqual({
+      version,
+      artifactHash,
+    });
+    await operations.writeVerified({
+      ...record,
+      phase: 'destination-verified',
+      destinationVersion: version,
+      artifactHash,
+    });
+    await expect(operations.read()).resolves.toMatchObject({
+      phase: 'destination-verified',
+      destinationVersion: version,
+      artifactHash,
+    });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

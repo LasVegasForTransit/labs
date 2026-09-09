@@ -41,6 +41,7 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   scripts.check = `pnpm standards:check && ${scripts.check}`;
   scripts['build:archive'] = 'turbo run build:archive';
   scripts['test:archive'] = 'turbo run test:archive --concurrency=1';
+  scripts.deploy = `node packages/lab-runtime/src/standalone-deploy-cli.ts ${slug}`;
   pkg.scripts = scripts;
   write('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
   write(

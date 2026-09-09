@@ -98,10 +98,25 @@ variable, workflow runs, and active Worker version before retrying.
 The new repository deploys to the existing Worker and routes. Diagnostics check the stable Labs URL
 before the local app source leaves the workspace.
 
+Verify the deployed handoff from the clean Labs checkout:
+
+```sh
+pnpm lab migrate <slug> --verify --dry-run
+pnpm lab migrate <slug> --verify --apply
+```
+
+Verification requires the recorded destination commit to remain on `main` with a successful
+`Validate` check and `LVBT_DEPLOYMENT_OWNER=true`. It confirms the active Worker version carries
+that commit's deployment annotation, then reads the release marker and project page through the
+stable Labs route. The active version is checked again after both requests. Applying the command
+records the exact Worker version and artifact hash in `migrations/<slug>.json`; commit that change
+before completing graduation.
+
 ## Complete and recover
 
-Complete graduation by replacing `apps/<slug>` with a graduated catalog record that names the
-canonical source repository. Home keeps the project visible according to its manifest.
+Complete graduation only from a committed `destination-verified` record. Replace `apps/<slug>` with
+a graduated catalog record that names the canonical source repository. Home keeps the project
+visible according to its manifest.
 
 If handoff verification fails, restore Labs deployment ownership and redeploy the retained Worker
 version. Re-run the dry run after correcting the standalone tree; never create a second Worker or

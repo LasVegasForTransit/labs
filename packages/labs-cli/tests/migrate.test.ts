@@ -5,7 +5,10 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
 import { migrateLab, migrationInput } from '../src/migrate.js';
-import type { MigrationPauseOperations } from '../src/migration-handoff.js';
+import type {
+  MigrationPauseOperations,
+  MigrationVerificationOperations,
+} from '../src/migration-handoff.js';
 import { withMigrationFixture } from '../test-support/migration-fixture.js';
 
 test(
@@ -197,6 +200,14 @@ test('transfer input relies on the committed handoff record', async () => {
   });
 });
 
+test('verification input relies on the committed handoff record', async () => {
+  expect(await migrationInput(['example', '--verify', '--json'])).toEqual({
+    phase: 'verify',
+    slug: 'example',
+    apply: false,
+  });
+});
+
 test('transfer connects the committed pause to the destination deployment', async () => {
   await withMigrationFixture(async (root) => {
     const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -228,5 +239,43 @@ test('transfer connects the committed pause to the destination deployment', asyn
       }),
     });
     expect(result).toMatchObject({ changed: false, phase: 'transfer-planned' });
+  });
+});
+
+test('verification connects the stable deployment proof to the handoff record', async () => {
+  await withMigrationFixture(async (root) => {
+    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf8',
+    }).trim();
+    const handoff = {
+      formatVersion: 1 as const,
+      slug: 'migration-example',
+      repository: 'LasVegasForTransit/example',
+      sourceCommit,
+      destinationCommit: 'b'.repeat(40),
+      previousVersion: '11111111-1111-4111-8111-111111111111',
+      phase: 'labs-paused' as const,
+    };
+    const operations: MigrationVerificationOperations = {
+      read: () => Promise.resolve(handoff),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: handoff.destinationCommit,
+          deploymentOwner: true,
+          validate: 'success',
+        }),
+      verifyDeployment: () =>
+        Promise.resolve({
+          version: '22222222-2222-4222-8222-222222222222',
+          artifactHash: 'c'.repeat(64),
+        }),
+      guard: () => Promise.resolve(),
+      writeVerified: () => Promise.resolve(),
+    };
+    const result = await migrateLab(root, ['migration-example', '--verify', '--json'], {
+      verificationOperations: () => operations,
+    });
+    expect(result).toMatchObject({ changed: false, phase: 'verification-planned' });
   });
 });
