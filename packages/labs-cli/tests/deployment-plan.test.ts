@@ -127,7 +127,7 @@ test('deploys the archive before removing retired project source', async () => {
     execFileSync('git', ['init', '--quiet'], { cwd: root });
     const base = commit(root, {
       ...files,
-      'packages/labs-tooling/package.json': JSON.stringify({ name: '@lvbt/labs-tooling' }),
+      'packages/labs-cli/package.json': JSON.stringify({ name: '@lvbt/labs-cli' }),
     });
     const manifest = {
       ...home,
@@ -155,7 +155,7 @@ test('deploys the archive before removing retired project source', async () => {
     expect(deploymentPlan(root, { base: head, head: update }).deploy).toEqual(['map', 'home']);
     const runtime = commit(
       root,
-      { 'packages/labs-tooling/src/archive-worker.ts': '// Updated' },
+      { 'packages/labs-cli/src/archive-worker.ts': '// Updated' },
       update,
     );
     expect(deploymentPlan(root, { base: update, head: runtime }).deploy).toEqual(['map']);

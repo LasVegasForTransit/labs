@@ -17,9 +17,7 @@ function hashes(root: string) {
   );
   return dryRun
     .parse(JSON.parse(output))
-    .tasks.filter((task) =>
-      ['@lvbt/lab-home#build', '@lvbt/labs-tooling#test'].includes(task.taskId),
-    );
+    .tasks.filter((task) => ['@lvbt/lab-home#build', '@lvbt/labs-cli#test'].includes(task.taskId));
 }
 
 test('catalog records and app manifests invalidate home builds and catalog validation', async () => {
@@ -32,7 +30,7 @@ test('catalog records and app manifests invalidate home builds and catalog valid
     );
     await writeFile(path.join(root, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n');
     await mkdir(path.join(root, 'catalog'));
-    for (const name of ['lab-home', 'lab-transit-funding', 'labs-tooling']) {
+    for (const name of ['lab-home', 'lab-transit-funding', 'labs-cli']) {
       const directory = path.join(root, 'apps', name);
       await mkdir(directory, { recursive: true });
       await writeFile(

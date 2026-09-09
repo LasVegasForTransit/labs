@@ -68,7 +68,7 @@ function workspaceAt(root: string, commit: string): WorkspaceProject[] {
         project.status = manifest.status;
         if (manifest.status === 'retired') {
           project.archive = true;
-          project.dependencies = ['@lvbt/labs-tooling'];
+          project.dependencies = ['@lvbt/labs-cli'];
         }
       }
       return project;
@@ -86,7 +86,7 @@ function workspaceAt(root: string, commit: string): WorkspaceProject[] {
     projects.push({
       name: `@lvbt/lab-${slug}`,
       directory: `retired/${slug}`,
-      dependencies: ['@lvbt/labs-tooling'],
+      dependencies: ['@lvbt/labs-cli'],
       slug,
       status: 'retired',
       archive: true,

@@ -32,13 +32,9 @@ test('unverified account identity prevents writes', async () => {
 
 test('reports remaining infrastructure failures after verified managed writes', async () => {
   let state: string | null = null;
-  const checks = [
-    'github.repository',
-    'github.rules',
-    'cloudflare.zone',
-    'cloudflare.domain',
-    'cloudflare.workers',
-  ].map((id) => ({ id, status: 'pass' as const }));
+  const checks = ['github.repository', 'github.rules', 'cloudflare.zone', 'cloudflare.workers'].map(
+    (id) => ({ id, status: 'pass' as const }),
+  );
   const result = await runProvision(
     true,
     [

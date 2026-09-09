@@ -25,13 +25,7 @@ export async function runProvision(
   inspect: () => Promise<Check[]>,
 ) {
   const checks = await inspect();
-  const required = [
-    'github.repository',
-    'github.rules',
-    'cloudflare.zone',
-    'cloudflare.domain',
-    'cloudflare.workers',
-  ];
+  const required = ['github.repository', 'github.rules', 'cloudflare.zone', 'cloudflare.workers'];
   const blockedBy = required.filter(
     (id) => !checks.some((check) => check.id === id && check.status === 'pass'),
   );
@@ -72,7 +66,15 @@ export async function provision(root: string, args: string[]) {
   return {
     ...(await runProvision(input.apply, resources, inspect)),
     mode: input.apply ? 'apply' : 'dry-run',
-    managed: ['github.variables', 'github.production', 'cloudflare.routes'],
+    managed: [
+      'github.variables',
+      'github.production',
+      'github.credentials',
+      'github.analytics-variable',
+      'cloudflare.domain',
+      'cloudflare.routes',
+      'cloudflare.analytics',
+    ],
     verificationRequired: initial.verificationRequired,
   };
 }

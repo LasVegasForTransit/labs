@@ -6,15 +6,15 @@
   "scripts": {
     "bootstrap": "lvbt bootstrap",
     "preflight": "lvbt preflight",
-    "doctor": "tsx packages/labs-tooling/src/cli.ts doctor",
-    "provision": "tsx packages/labs-tooling/src/cli.ts provision",
+    "doctor": "tsx packages/labs-cli/src/cli.ts doctor",
+    "provision": "tsx packages/labs-cli/src/cli.ts provision",
     "standards:update": "node .lvbt/web-platform/standards/web-platform-cli.ts update",
     "standards:check": "node .lvbt/web-platform/standards/web-platform-cli.ts check",
     "build": "turbo run build",
     "build:archive": "turbo run build:archive",
     "dev": "turbo run dev",
-    "preview": "tsx packages/labs-tooling/src/preview.ts",
-    "lab": "tsx packages/labs-tooling/src/cli.ts",
+    "preview": "tsx packages/labs-cli/src/preview.ts",
+    "lab": "tsx packages/labs-cli/src/cli.ts",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
     "test": "turbo run test",
@@ -26,8 +26,8 @@
     "check:fix": "pnpm format && markdownlint-cli2 --fix && turbo run lint -- --fix",
     "prepare": "git config --local core.hooksPath .githooks",
     "deploy": "lvbt deploy",
-    "deploy:plan": "tsx packages/labs-tooling/src/deployment-cli.ts",
-    "deploy:affected": "tsx packages/labs-tooling/src/deployment-apply.ts"
+    "deploy:plan": "tsx packages/labs-cli/src/deployment-cli.ts",
+    "deploy:affected": "tsx packages/labs-cli/src/deployment-apply.ts"
   },
   "lint-staged": {
     "*": "prettier --write --ignore-unknown"

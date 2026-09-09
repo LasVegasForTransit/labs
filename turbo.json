@@ -3,6 +3,7 @@
   "ui": "tui",
   "globalDependencies": ["catalog/**", "retired/**", "apps/*/lab.config.ts"],
   "globalEnv": ["CI", "GITHUB_REF", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"],
+  "globalPassThroughEnv": ["CLOUDFLARE_API_TOKEN"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -41,7 +42,7 @@
       "dependsOn": ["^build"],
       "outputs": ["dist-archive/**"]
     },
-    "@lvbt/labs-tooling#test:e2e": {
+    "@lvbt/labs-cli#test:e2e": {
       "dependsOn": ["@lvbt/lab-home#build", "@lvbt/lab-transit-funding#build"],
       "cache": false,
       "outputs": ["playwright-report/**", "test-results/**"]
