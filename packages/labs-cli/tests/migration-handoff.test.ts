@@ -1,5 +1,9 @@
 import { expect, test } from 'vitest';
-import { parseMigrationHandoff, pauseMigration } from '../src/migration-handoff.js';
+import {
+  parseMigrationHandoff,
+  pauseMigration,
+  transferMigration,
+} from '../src/migration-handoff.js';
 
 const handoff = {
   formatVersion: 1,
@@ -135,4 +139,110 @@ test.each([
       },
     ),
   ).rejects.toThrow(message);
+});
+
+test('enables and dispatches the reviewed destination after the committed pause', async () => {
+  const events: string[] = [];
+  let owner = false;
+  const result = await transferMigration(
+    { slug: handoff.slug, apply: true },
+    {
+      read: () => Promise.resolve(handoff),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: handoff.destinationCommit,
+          deploymentOwner: owner,
+          validate: 'success',
+        }),
+      guard: () => {
+        events.push('guard');
+        return Promise.resolve();
+      },
+      setDestinationOwner: (enabled) => {
+        events.push(`owner:${enabled}`);
+        owner = enabled;
+        return Promise.resolve();
+      },
+      dispatch: (commit) => {
+        events.push(`dispatch:${commit}`);
+        return Promise.resolve();
+      },
+      journal: (phase) => {
+        events.push(`journal:${phase}`);
+        return Promise.resolve();
+      },
+    },
+  );
+  expect(result).toMatchObject({ ok: true, changed: true, phase: 'transfer-started' });
+  expect(events).toEqual([
+    'guard',
+    'journal:prepared',
+    'owner:true',
+    'journal:destination-enabled',
+    `dispatch:${handoff.destinationCommit}`,
+    'journal:deployment-dispatched',
+  ]);
+});
+
+test('transfer dry run has no writes and rejects a changed destination commit', async () => {
+  const operations = {
+    read: () => Promise.resolve(handoff),
+    inspectDestination: () =>
+      Promise.resolve({
+        commit: handoff.destinationCommit,
+        deploymentOwner: false,
+        validate: 'success' as const,
+      }),
+    guard: () => Promise.reject(new Error('must not guard')),
+    setDestinationOwner: () => Promise.reject(new Error('must not write')),
+    dispatch: () => Promise.reject(new Error('must not dispatch')),
+    journal: () => Promise.reject(new Error('must not journal')),
+  };
+  await expect(
+    transferMigration({ slug: handoff.slug, apply: false }, operations),
+  ).resolves.toMatchObject({
+    ok: true,
+    changed: false,
+    wouldChange: true,
+    phase: 'transfer-planned',
+  });
+  await expect(
+    transferMigration(
+      { slug: handoff.slug, apply: false },
+      {
+        ...operations,
+        inspectDestination: () =>
+          Promise.resolve({
+            commit: 'c'.repeat(40),
+            deploymentOwner: false,
+            validate: 'success',
+          }),
+      },
+    ),
+  ).rejects.toThrow(/commit changed/);
+});
+
+test('transfer reports an unconfirmed partial change when dispatch fails', async () => {
+  let owner = false;
+  const result = await transferMigration(
+    { slug: handoff.slug, apply: true },
+    {
+      read: () => Promise.resolve(handoff),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: handoff.destinationCommit,
+          deploymentOwner: owner,
+          validate: 'success',
+        }),
+      guard: () => Promise.resolve(),
+      setDestinationOwner: () => {
+        owner = true;
+        return Promise.resolve();
+      },
+      dispatch: () => Promise.reject(new Error('dispatch failed')),
+      journal: () => Promise.resolve(),
+    },
+  );
+  expect(result).toMatchObject({ ok: false, changed: null, phase: 'transfer-unconfirmed' });
+  expect(result.errors).toEqual(['dispatch failed']);
 });

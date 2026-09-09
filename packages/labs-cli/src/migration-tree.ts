@@ -70,14 +70,20 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   write('turbo.json', `${JSON.stringify(turbo, null, 2)}\n`);
   const deploy = read('.github/workflows/deploy.yml');
   const anchor = '    name: Deploy\n    needs: validate';
-  if (!deploy.includes(anchor))
+  const dispatch = '  workflow_dispatch:\n';
+  if (!deploy.includes(anchor) || !deploy.includes(dispatch))
     throw new Error('Review the preset deployment workflow before migration.');
   write(
     '.github/workflows/deploy.yml',
-    deploy.replace(
-      anchor,
-      `    name: Deploy\n    if: vars.LVBT_DEPLOYMENT_OWNER == 'true'\n    needs: validate`,
-    ),
+    deploy
+      .replace(
+        dispatch,
+        `  workflow_dispatch:\n    inputs:\n      commit:\n        description: Exact reviewed commit to deploy\n        required: true\n        type: string\n`,
+      )
+      .replace(
+        anchor,
+        `    name: Deploy\n    if: vars.LVBT_DEPLOYMENT_OWNER == 'true' && (github.event_name != 'workflow_dispatch' || github.sha == inputs.commit)\n    needs: validate`,
+      ),
   );
   write(
     '.github/workflows/ci.yml',

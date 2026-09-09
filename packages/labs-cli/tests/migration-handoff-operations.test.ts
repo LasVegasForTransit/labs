@@ -2,7 +2,10 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { migrationPauseOperations } from '../src/migration-handoff-operations.js';
+import {
+  migrationPauseOperations,
+  migrationTransferOperations,
+} from '../src/migration-handoff-operations.js';
 
 const input = {
   slug: 'example',
@@ -85,4 +88,55 @@ test('reads the active Worker version through the standard parser', async () => 
     guard: () => undefined,
   });
   await expect(operations.activeVersion()).resolves.toBe(version);
+});
+
+test('transfer operations change only the destination owner and dispatch main', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-migration-transfer-'));
+  try {
+    const record = {
+      formatVersion: 1 as const,
+      ...input,
+      destinationCommit: 'b'.repeat(40),
+      previousVersion: '11111111-1111-4111-8111-111111111111',
+      phase: 'labs-paused' as const,
+    };
+    await migrationPauseOperations(root, input, {
+      github: () => '',
+      wrangler: () => Promise.resolve('[]'),
+      guard: () => undefined,
+    }).write(record);
+    const commands: string[][] = [];
+    const operations = migrationTransferOperations(root, input.slug, {
+      github: (args) => {
+        commands.push(args);
+        return '';
+      },
+      guard: () => undefined,
+    });
+
+    await operations.guard();
+    await operations.journal('prepared', record);
+    await operations.setDestinationOwner(true);
+    await operations.dispatch(record.destinationCommit);
+
+    expect(commands).toEqual([
+      ['variable', 'set', 'LVBT_DEPLOYMENT_OWNER', '--body', 'true', '--repo', input.repository],
+      [
+        'workflow',
+        'run',
+        'deploy.yml',
+        '--repo',
+        input.repository,
+        '--ref',
+        'main',
+        '--field',
+        `commit=${record.destinationCommit}`,
+      ],
+    ]);
+    expect(await readFile(path.join(root, '.wrangler/migrations/example.jsonl'), 'utf8')).toContain(
+      '"phase":"prepared"',
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

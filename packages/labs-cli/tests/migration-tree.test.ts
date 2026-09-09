@@ -31,9 +31,10 @@ test(
       expect(
         result.files.get('docs/development/tutorials/start-here.md')?.content.toString(),
       ).not.toContain('<this-repository>');
-      expect(result.files.get('.github/workflows/deploy.yml')?.content.toString()).toContain(
-        'LVBT_DEPLOYMENT_OWNER',
-      );
+      const deploy = result.files.get('.github/workflows/deploy.yml')?.content.toString() ?? '';
+      expect(deploy).toContain('LVBT_DEPLOYMENT_OWNER');
+      expect(deploy).toContain('github.sha == inputs.commit');
+      expect(deploy).toContain('commit:');
       expect(result.files.get('.githooks/pre-commit')?.mode).toBe('100755');
       const pkg = JSON.parse(result.files.get('package.json')?.content.toString() ?? 'null') as {
         scripts: Record<string, string>;

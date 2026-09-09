@@ -1,7 +1,7 @@
 import { execFile, execFileSync } from 'node:child_process';
-import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { appendFile, lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { promisify } from 'node:util';
+import { isDeepStrictEqual, promisify } from 'node:util';
 import { z } from 'zod';
 import { activeVersion } from '@lvbt/web-platform/cloudflare';
 import { assertDeploymentCheckout } from '@lvbt/web-platform/release';
@@ -9,6 +9,7 @@ import {
   parseMigrationHandoff,
   type MigrationHandoffV1,
   type MigrationPauseOperations,
+  type MigrationTransferOperations,
 } from './migration-handoff.js';
 
 interface PauseIdentity {
@@ -44,6 +45,14 @@ async function optionalStat(file: string) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
     throw error;
   });
+}
+
+async function readHandoff(file: string, slug: string) {
+  const stat = await optionalStat(file);
+  if (stat === undefined) return null;
+  if (!stat.isFile() || stat.isSymbolicLink())
+    throw new Error('Migration handoff must be a regular file.');
+  return parseMigrationHandoff(JSON.parse(await readFile(file, 'utf8')), slug);
 }
 
 function defaultGitHub(root: string): GitHub {
@@ -125,11 +134,7 @@ export function migrationPauseOperations(
   const guard = dependencies.guard ?? defaultGuard(root, identity);
   return {
     async read() {
-      const stat = await optionalStat(file);
-      if (stat === undefined) return null;
-      if (!stat.isFile() || stat.isSymbolicLink())
-        throw new Error('Migration handoff must be a regular file.');
-      return parseMigrationHandoff(JSON.parse(await readFile(file, 'utf8')), identity.slug);
+      return readHandoff(file, identity.slug);
     },
     inspectDestination() {
       return Promise.resolve(inspectDestination(github, identity));
@@ -153,6 +158,81 @@ export function migrationPauseOperations(
           throw new Error('A migration handoff already exists for this slug.', { cause: error });
         throw error;
       }
+    },
+  };
+}
+
+export function migrationTransferOperations(
+  root: string,
+  slug: string,
+  dependencies: Pick<Dependencies, 'github' | 'guard'> = {},
+): MigrationTransferOperations {
+  const file = path.join(root, 'migrations', `${slug}.json`);
+  const journal = path.join(root, '.wrangler', 'migrations', `${slug}.jsonl`);
+  const github = dependencies.github ?? defaultGitHub(root);
+  const read = async () => {
+    const handoff = await readHandoff(file, slug);
+    if (handoff === null) throw new Error('Pause Labs deployment ownership before transfer.');
+    return handoff;
+  };
+  const guard =
+    dependencies.guard ??
+    (async () => {
+      const handoff = await read();
+      const current = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
+      assertDeploymentCheckout(root, current);
+      const committed = parseMigrationHandoff(
+        JSON.parse(
+          execFileSync('git', ['show', `HEAD:migrations/${slug}.json`], {
+            cwd: root,
+            encoding: 'utf8',
+          }),
+        ),
+        slug,
+      );
+      if (!isDeepStrictEqual(handoff, committed))
+        throw new Error('Commit the migration pause before transferring ownership.');
+    });
+  return {
+    read,
+    async inspectDestination() {
+      return inspectDestination(github, await read());
+    },
+    guard,
+    async setDestinationOwner(enabled) {
+      const handoff = await read();
+      github([
+        'variable',
+        'set',
+        'LVBT_DEPLOYMENT_OWNER',
+        '--body',
+        String(enabled),
+        '--repo',
+        handoff.repository,
+      ]);
+    },
+    async dispatch(commit) {
+      const handoff = await read();
+      if (commit !== handoff.destinationCommit)
+        throw new Error('Refusing to dispatch an unreviewed destination commit.');
+      github([
+        'workflow',
+        'run',
+        'deploy.yml',
+        '--repo',
+        handoff.repository,
+        '--ref',
+        'main',
+        '--field',
+        `commit=${commit}`,
+      ]);
+    },
+    async journal(phase, details) {
+      await mkdir(path.dirname(journal), { recursive: true });
+      await appendFile(journal, `${JSON.stringify({ phase, details })}\n`);
     },
   };
 }

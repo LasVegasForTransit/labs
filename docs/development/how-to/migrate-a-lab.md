@@ -77,6 +77,24 @@ variables, and secrets before handoff. Its `LVBT_DEPLOYMENT_OWNER` variable stay
 Labs owns production deployment. Enable ownership in the destination only after the pause record is
 merged into Labs. The record retains the previous Worker version for rollback.
 
+Plan the destination handoff from a clean Labs `main` checkout:
+
+```sh
+pnpm lab migrate <slug> --transfer --dry-run
+```
+
+The command rechecks the committed pause, destination commit, required check, and disabled owner.
+Apply the transfer to enable the destination and dispatch its deployment workflow:
+
+```sh
+pnpm lab migrate <slug> --transfer --apply
+```
+
+The workflow accepts the recorded commit as a required input and stops if destination `main` has
+advanced. Operations are recorded under `.wrangler/migrations/`. An unconfirmed result means that
+the owner variable changed but dispatch or confirmation failed; inspect the journal, destination
+variable, workflow runs, and active Worker version before retrying.
+
 The new repository deploys to the existing Worker and routes. Diagnostics check the stable Labs URL
 before the local app source leaves the workspace.
 

@@ -83,6 +83,12 @@ and the active Labs Worker version. Add `--apply` to write `migrations/<slug>.js
 that record excludes only the migrating slug from Labs production deployment. Both phases support
 guided prompts, complete non-interactive flags, `--dry-run`, and `--json`.
 
+`pnpm lab migrate <slug> --transfer` rechecks the committed pause and the exact destination commit.
+With `--apply`, it enables `LVBT_DEPLOYMENT_OWNER` and dispatches the destination deployment with
+the reviewed commit as a required workflow input. The workflow refuses a newer branch commit.
+Transfer operations are journaled before and after every remote mutation; an unconfirmed result
+requires provider inspection before retry.
+
 ## Deployment planning
 
 `pnpm deploy:plan --base <commit> --head <commit> --json` compares committed Git trees and prints
