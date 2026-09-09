@@ -5,8 +5,18 @@ import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { migrationTree } from './migration-tree.js';
 import { exportMigration, initializeMigrationRepository } from './migration-export.js';
-import { pauseMigration, type MigrationPauseOperations } from './migration-handoff.js';
-import { migrationPauseOperations } from './migration-handoff-operations.js';
+import {
+  pauseMigration,
+  transferMigration,
+  type MigrationPauseOperations,
+  type MigrationTransferOperations,
+} from './migration-handoff.js';
+import {
+  migrationPauseOperations,
+  migrationTransferOperations,
+} from './migration-handoff-operations.js';
+
+type MigrationPhase = 'prepare' | 'pause' | 'transfer';
 
 function migrationFlags(args: string[]) {
   const { values, positionals } = parseArgs({
@@ -18,6 +28,7 @@ function migrationFlags(args: string[]) {
       output: { type: 'string' },
       prepare: { type: 'boolean' },
       pause: { type: 'boolean' },
+      transfer: { type: 'boolean' },
       'source-commit': { type: 'string' },
       apply: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
@@ -25,8 +36,8 @@ function migrationFlags(args: string[]) {
     },
   });
   if (values.apply && values['dry-run']) throw new Error('Choose --apply or --dry-run.');
-  if ([values.prepare, values.pause].filter(Boolean).length !== 1)
-    throw new Error('Choose exactly one migration phase: --prepare or --pause.');
+  if ([values.prepare, values.pause, values.transfer].filter(Boolean).length !== 1)
+    throw new Error('Choose exactly one migration phase: --prepare, --pause, or --transfer.');
   if (positionals.length > 1 || (positionals.length > 0 && values.slug !== undefined))
     throw new Error('Provide one lab slug.');
   return { values, positionals };
@@ -41,7 +52,7 @@ async function promptedMigrationFields(
     output: string | undefined;
     sourceCommit: string | undefined;
   },
-  phase: 'prepare' | 'pause',
+  phase: MigrationPhase,
   ask?: Question,
 ) {
   const prompt =
@@ -55,13 +66,12 @@ async function promptedMigrationFields(
     output: 'Standalone directory outside Labs: ',
     sourceCommit: 'Exported Labs source commit: ',
   };
+  const projectField = phase === 'transfer' ? [] : ['repository' as const];
+  const phaseField =
+    phase === 'prepare' ? ['output' as const] : phase === 'pause' ? ['sourceCommit' as const] : [];
   try {
     if (question !== undefined)
-      for (const key of [
-        'slug',
-        'repository',
-        phase === 'prepare' ? 'output' : 'sourceCommit',
-      ] as const)
+      for (const key of ['slug' as const, ...projectField, ...phaseField])
         fields[key] ??= await question(labels[key]);
   } finally {
     prompt?.close();
@@ -70,12 +80,14 @@ async function promptedMigrationFields(
 }
 
 function validateMigrationFields(
-  phase: 'prepare' | 'pause',
+  phase: MigrationPhase,
   fields: Awaited<ReturnType<typeof promptedMigrationFields>>,
   apply: boolean,
 ) {
   const { slug, repository, output, sourceCommit } = fields;
-  if (!slug || !repository) throw new Error('Provide --slug and --repository.');
+  if (!slug) throw new Error('Provide --slug.');
+  if (phase === 'transfer') return { phase, slug, apply } as const;
+  if (!repository) throw new Error('Provide --repository.');
   if (phase === 'prepare') {
     if (!output) throw new Error('Provide --output for migration preparation.');
     return { phase, slug, repository, output, apply } as const;
@@ -86,7 +98,7 @@ function validateMigrationFields(
 
 export async function migrationInput(args: string[], ask?: Question) {
   const { values, positionals } = migrationFlags(args);
-  const phase: 'prepare' | 'pause' = values.pause ? 'pause' : 'prepare';
+  const phase: MigrationPhase = values.pause ? 'pause' : values.transfer ? 'transfer' : 'prepare';
   const fields = {
     slug: values.slug ?? positionals[0],
     repository: values.repository,
@@ -105,6 +117,7 @@ interface MigrationDependencies {
     root: string,
     input: { slug: string; repository: string; sourceCommit: string },
   ) => MigrationPauseOperations;
+  transferOperations?: (root: string, slug: string) => MigrationTransferOperations;
 }
 
 export async function migrateLab(
@@ -128,6 +141,11 @@ export async function migrateLab(
       throw new Error('Migration requires a clean committed source tree.');
   };
   clean();
+  if (input.phase === 'transfer')
+    return transferMigration(
+      { slug: input.slug, apply: input.apply },
+      (dependencies.transferOperations ?? migrationTransferOperations)(root, input.slug),
+    );
   if (input.phase === 'pause') {
     const current = git(['rev-parse', 'HEAD']);
     if (current !== input.sourceCommit)

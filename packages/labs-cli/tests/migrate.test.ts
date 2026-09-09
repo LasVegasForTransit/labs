@@ -188,3 +188,45 @@ test('pause connects provider acceptance to the persisted ownership gate', async
     });
   });
 });
+
+test('transfer input relies on the committed handoff record', async () => {
+  expect(await migrationInput(['example', '--transfer', '--json'])).toEqual({
+    phase: 'transfer',
+    slug: 'example',
+    apply: false,
+  });
+});
+
+test('transfer connects the committed pause to the destination deployment', async () => {
+  await withMigrationFixture(async (root) => {
+    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf8',
+    }).trim();
+    const handoff = {
+      formatVersion: 1 as const,
+      slug: 'migration-example',
+      repository: 'LasVegasForTransit/example',
+      sourceCommit,
+      destinationCommit: 'b'.repeat(40),
+      previousVersion: '11111111-1111-4111-8111-111111111111',
+      phase: 'labs-paused' as const,
+    };
+    const result = await migrateLab(root, ['migration-example', '--transfer', '--json'], {
+      transferOperations: () => ({
+        read: () => Promise.resolve(handoff),
+        inspectDestination: () =>
+          Promise.resolve({
+            commit: handoff.destinationCommit,
+            deploymentOwner: false,
+            validate: 'success',
+          }),
+        guard: () => Promise.resolve(),
+        setDestinationOwner: () => Promise.resolve(),
+        dispatch: () => Promise.resolve(),
+        journal: () => Promise.resolve(),
+      }),
+    });
+    expect(result).toMatchObject({ changed: false, phase: 'transfer-planned' });
+  });
+});
