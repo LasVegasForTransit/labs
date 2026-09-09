@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectNoAccessibilityViolations } from '@lvbt/playwright-config/accessibility';
 
 test('loads at its permanent Labs path with static metadata', async ({ page }) => {
   await page.goto('/transit-funding/');
@@ -10,6 +11,18 @@ test('loads at its permanent Labs path with static metadata', async ({ page }) =
     'href',
     'https://labs.lasvegasfortransit.org/transit-funding/',
   );
+  await expectNoAccessibilityViolations(page);
+});
+
+test('matches the publication visual baseline', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/transit-funding/');
+  await page.evaluate(() => document.fonts.ready);
+
+  await expect(page).toHaveScreenshot('introduction.png', {
+    animations: 'disabled',
+    fullPage: true,
+  });
 });
 
 test('restores the app shell beneath its permanent path', async ({ page }) => {

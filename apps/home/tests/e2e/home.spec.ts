@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { discoverLabs } from '@lvbt/labs-cli/manifest';
 import { isListedLab } from '@lvbt/labs-cli/catalog';
-
 test('presents the Labs projects clearly without overflowing', async ({ page }) => {
   await page.goto('/');
 

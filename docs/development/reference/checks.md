@@ -21,8 +21,10 @@ Runs without remote credentials, in this order, and stops at the first failing l
 ## Browser and build validation
 
 `pnpm test:e2e` builds the labs, runs each lab's Playwright suite against its production artifact on
-desktop and mobile profiles, then runs the shared preview navigation test. `pnpm build:archive`
-produces the read-only archive of every lab.
+desktop and mobile profiles, then runs the shared preview navigation test. Published pages use the
+organization Axe baseline and store portable project-specific screenshots beside their browser
+specs. `pnpm build:archive` produces the read-only archive of every lab, and `pnpm test:archive`
+checks the result with live services blocked.
 
 ## GitHub validation
 
