@@ -71,6 +71,17 @@ jobs:
       - name: Isolated archive tests
         run: pnpm test:archive
 
+      - name: Upload browser failures
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-failures-${{ github.run_attempt }}
+          path: |
+            apps/**/test-results/
+            packages/**/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   validate:
     name: Validate
     if: always()
