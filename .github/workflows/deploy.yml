@@ -49,7 +49,7 @@ jobs:
           fi
           BASE=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs" \
             --method GET -f branch=main -f per_page=100 | \
-            pnpm exec tsx packages/labs-tooling/src/deployment-baseline.ts)
+            pnpm exec tsx packages/labs-cli/src/deployment-baseline.ts)
           if [ -n "$BASE" ]; then
             pnpm deploy:affected --base "$BASE" --apply --json
           else

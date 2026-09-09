@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { expect, test } from 'vitest';
 import { deploymentBaseline } from '../src/deployment-baseline.js';
 
@@ -34,4 +36,13 @@ test('retries, missing history, and newer runs cannot supply an affected-only ba
   expect(deploymentBaseline({ workflow_runs: [] }, { id: 12, attempt: 1 })).toBeNull();
   expect(deploymentBaseline({ workflow_runs: [success] }, { id: 9, attempt: 1 })).toBeNull();
   expect(() => deploymentBaseline({}, { id: 12, attempt: 1 })).toThrow();
+});
+
+test('the production workflow invokes the current Labs CLI path', async () => {
+  const workflow = await readFile(
+    path.resolve(import.meta.dirname, '../../../.github/workflows/deploy.yml'),
+    'utf8',
+  );
+  expect(workflow).toContain('packages/labs-cli/src/deployment-baseline.ts');
+  expect(workflow).not.toContain('packages/labs-tooling');
 });
