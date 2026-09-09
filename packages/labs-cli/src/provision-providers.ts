@@ -10,14 +10,22 @@ import {
   githubReader,
   githubVariableWriter,
   provisionEnvironment,
+  provisionEnvironmentPresence,
   provisionEnvironmentSecret,
+  provisionRepositoryVariable,
   provisionVariables,
 } from '@lvbt/web-platform/github';
 import { discoverLabs } from './discovery.js';
+import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.js';
 
 interface Target {
   repository: string;
   environment: string;
+  preview: {
+    environment: string;
+    secret: string;
+    enabledVariable: string;
+  };
   branch: string;
   accountId: string;
   zoneId: string;
@@ -72,27 +80,22 @@ function cloudflareWriter(token: string) {
   };
 }
 
-function environmentSecretWriter(root: string, target: Target) {
+function environmentSecretWriter(
+  root: string,
+  target: Target,
+  environment: string,
+  secretName: string,
+) {
   return () => {
-    const secret = process.env.CLOUDFLARE_API_TOKEN?.trim();
+    const secret = process.env[secretName]?.trim();
     if (secret === undefined || secret.length === 0)
       return Promise.reject(
-        new Error(
-          'CLOUDFLARE_API_TOKEN is required in the environment for non-interactive provisioning.',
-        ),
+        new Error(`${secretName} is required for non-interactive provisioning.`),
       );
     try {
       execFileSync(
         'gh',
-        [
-          'secret',
-          'set',
-          'CLOUDFLARE_API_TOKEN',
-          '--env',
-          target.environment,
-          '--repo',
-          target.repository,
-        ],
+        ['secret', 'set', secretName, '--env', environment, '--repo', target.repository],
         { cwd: root, input: secret, stdio: ['pipe', 'pipe', 'pipe'], timeout: 30000 },
       );
       return Promise.resolve();
@@ -102,6 +105,48 @@ function environmentSecretWriter(root: string, target: Target) {
       );
     }
   };
+}
+
+function previewResources(
+  root: string,
+  target: Target,
+  github: ReturnType<typeof githubReader>,
+  write: ReturnType<typeof githubWriter>,
+) {
+  const environment = `repos/${target.repository}/environments/${encodeURIComponent(target.preview.environment)}`;
+  const secrets = `${environment}/secrets`;
+  const previewRead = githubPreviewReader(environment, github, (endpoint) =>
+    optionalGitHubRead(root, endpoint),
+  );
+  return [
+    provisionEnvironmentPresence(
+      { repository: target.repository, environment: target.preview.environment },
+      previewRead,
+      (method, endpoint, body) => {
+        if (endpoint !== environment)
+          throw new Error('Preview environment write is outside the declared target.');
+        return write(method, endpoint, body);
+      },
+    ),
+    provisionEnvironmentSecret(
+      {
+        repository: target.repository,
+        environment: target.preview.environment,
+        name: target.preview.secret,
+      },
+      () => previewRead(secrets),
+      environmentSecretWriter(root, target, target.preview.environment, target.preview.secret),
+    ),
+    provisionRepositoryVariable(
+      {
+        repository: target.repository,
+        name: target.preview.enabledVariable,
+        value: 'true',
+      },
+      github,
+      (method, endpoint, body) => write(method, endpoint, body),
+    ),
+  ];
 }
 
 export async function provisionResources(root: string, target: Target) {
@@ -136,8 +181,9 @@ export async function provisionResources(root: string, target: Target) {
         name: 'CLOUDFLARE_API_TOKEN',
       },
       () => github(environmentSecrets),
-      environmentSecretWriter(root, target),
+      environmentSecretWriter(root, target, target.environment, 'CLOUDFLARE_API_TOKEN'),
     ),
+    ...previewResources(root, target, github, githubWrite),
     provisionCustomDomain(
       {
         ...target,
