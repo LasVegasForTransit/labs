@@ -11,6 +11,7 @@ provisioning metadata and remain absent from prose documentation.
 | Default branch       | `main`                         | Production source                             |
 | Required check       | `Validate`                     | Merge gate                                    |
 | Environment          | `production`                   | Deployment secrets, variables, and protection |
+| Environment          | `preview`                      | Isolated pull-request deployment credential   |
 | Project repositories | `LasVegasForTransit/<project>` | Graduated source and deployment ownership     |
 
 Repository rules follow the vendored `.lvbt/web-platform/standards/ruleset.json`, including pull

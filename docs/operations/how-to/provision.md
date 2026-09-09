@@ -12,10 +12,11 @@ gh auth login
 pnpm exec wrangler login
 ```
 
-Set `CLOUDFLARE_API_TOKEN` in the command environment before applying changes. The token is read
-from standard input by GitHub CLI and is never placed in a command argument. It needs Workers
-Routes, Workers Scripts, Account Analytics, and Zone DNS permissions for the configured account and
-zone.
+Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_PREVIEW_API_TOKEN` in the command environment before
+applying changes. GitHub CLI reads both tokens from standard input; neither appears in a command
+argument. The production token needs Workers Routes, Workers Scripts, Account Analytics, and Zone
+DNS permissions for the configured account and zone. The preview token needs Worker Scripts access
+without production routes, analytics, or application secrets.
 
 Run a read-only comparison:
 
@@ -45,7 +46,7 @@ pnpm provision --apply
 
 The operation creates or reconciles:
 
-- the production environment on the existing public `LasVegasForTransit/labs` repository;
+- the production and pull-request preview environments on the existing public repository;
 - Actions variables and narrowly scoped deployment secrets;
 - the Labs custom domain, exact project routes, DNS, and TLS;
 - the shared Cloudflare Web Analytics property;

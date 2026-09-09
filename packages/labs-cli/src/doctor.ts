@@ -6,12 +6,18 @@ import { z } from 'zod';
 import { authenticatedCloudflareReader, cloudflareDoctor } from '@lvbt/web-platform/cloudflare';
 import { githubDoctor, githubReader } from '@lvbt/web-platform/github';
 import { discoverLabs } from './discovery.js';
+import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.js';
 
 const hostname = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/);
 const infrastructure = z.object({
   repository: z.string().regex(/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/),
   branch: z.string().min(1),
   environment: z.string().min(1),
+  preview: z.object({
+    environment: z.string().regex(/^[A-Za-z0-9._-]+$/),
+    secret: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
+    enabledVariable: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
+  }),
   accountId: z.string().regex(/^[a-f0-9]+$/),
   zoneId: z.string().regex(/^[a-f0-9]+$/),
   zoneName: hostname,
@@ -50,7 +56,13 @@ export async function doctor(root: string, args: string[]) {
   const ruleset: unknown = JSON.parse(
     await readFile(path.join(root, '.lvbt/web-platform/standards/ruleset.json'), 'utf8'),
   );
-  const github = await githubDoctor({ ...target, ruleset }, githubReader(root));
+  const previewEnvironment = `repos/${target.repository}/environments/${encodeURIComponent(target.preview.environment)}`;
+  const github = await githubDoctor(
+    { ...target, ruleset },
+    githubPreviewReader(previewEnvironment, githubReader(root), (endpoint) =>
+      optionalGitHubRead(root, endpoint),
+    ),
+  );
   let cloudflare;
   try {
     cloudflare = authenticatedCloudflareReader(root);
