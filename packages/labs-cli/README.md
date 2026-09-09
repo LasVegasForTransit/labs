@@ -1,6 +1,6 @@
 # Labs operations
 
-`@lvbt/labs-tooling` owns the Labs repository's `pnpm lab` interface, catalog discovery, project
+`@lvbt/labs-cli` owns the Labs repository's `pnpm lab` interface, catalog discovery, project
 generation, lifecycle transitions, deployment policy, and provider target definitions. It contains
 rules that apply specifically to `labs.lasvegasfortransit.org` and the Labs monorepo.
 

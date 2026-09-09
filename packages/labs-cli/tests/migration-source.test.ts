@@ -43,7 +43,7 @@ test('reads committed source and includes the transitive shared-package closure'
 
 test.each([
   { '@lvbt/lab-other': 'workspace:*' },
-  { '@lvbt/labs-tooling': 'workspace:*' },
+  { '@lvbt/labs-cli': 'workspace:*' },
   { outside: 'file:../../../outside' },
 ])('rejects nonportable dependencies: %j', async (dependencies) => {
   await fixture(dependencies, (root) => {

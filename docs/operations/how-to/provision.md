@@ -12,6 +12,11 @@ gh auth login
 pnpm exec wrangler login
 ```
 
+Set `CLOUDFLARE_API_TOKEN` in the command environment before applying changes. The token is read
+from standard input by GitHub CLI and is never placed in a command argument. It needs Workers
+Routes, Workers Scripts, Account Analytics, and Zone DNS permissions for the configured account and
+zone.
+
 Run a read-only comparison:
 
 ```sh
@@ -40,13 +45,15 @@ pnpm provision --apply
 
 The operation creates or reconciles:
 
-- the public `LasVegasForTransit/labs` repository;
-- the `Validate` branch rule and production environment;
+- the production environment on the existing public `LasVegasForTransit/labs` repository;
 - Actions variables and narrowly scoped deployment secrets;
-- the home and project Workers;
 - the Labs custom domain, exact project routes, DNS, and TLS;
 - the shared Cloudflare Web Analytics property;
 - repository metadata consumed by `pnpm run doctor`.
+
+The GitHub repository, its `Validate` branch rule, the Cloudflare zone, and the home and project
+Workers establish the provider identities that provisioning reconciles against. Missing or
+mismatched identities block writes before any provider state changes.
 
 Provisioning is idempotent. Matching resources produce no change; drift creates an explicit update.
 Resources outside the manifest remain untouched.
@@ -59,8 +66,8 @@ unconfirmed write; inspect provider state before retrying.
 
 ## Provision one project
 
-`pnpm lab provision <slug> --apply` reconciles one project Worker, routes, bindings, and GitHub
-deployment metadata. The command refuses to create a route until the project passes `pnpm check`.
+`pnpm lab provision <slug> --apply` reconciles one project Worker route and GitHub deployment
+metadata. The command refuses to create a route until the project passes `pnpm check`.
 
 Run `pnpm lab doctor <slug>` after application. Successful diagnostics include DNS resolution, valid
 TLS, expected route ownership, Worker version visibility, analytics placement, and secret names

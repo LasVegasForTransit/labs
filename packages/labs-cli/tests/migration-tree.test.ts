@@ -21,7 +21,7 @@ test(
         source.read('apps/migration-example/wrangler.jsonc'),
       );
       expect(result.files.has('apps/home/package.json')).toBe(false);
-      expect(result.files.has('packages/labs-tooling/package.json')).toBe(false);
+      expect(result.files.has('packages/labs-cli/package.json')).toBe(false);
       expect(result.files.get('.lvbt/web-platform.json')?.content).toEqual(
         source.read('.lvbt/web-platform.json'),
       );

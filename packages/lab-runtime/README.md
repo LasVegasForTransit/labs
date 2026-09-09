@@ -9,4 +9,4 @@ Archive browser suites use `createArchiveContext` and `readProjectArchiveFiles` 
 `@lvbt/lab-runtime/archive`. File-only checks import `@lvbt/lab-runtime/archive-files`.
 
 The package travels with a project during migration. Repository discovery, deployment ownership,
-provisioning, and lifecycle commands remain in `@lvbt/labs-tooling`.
+provisioning, and lifecycle commands remain in `@lvbt/labs-cli`.

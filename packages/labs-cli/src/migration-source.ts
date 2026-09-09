@@ -54,7 +54,7 @@ function localDependency(
   specifier: string,
   packages: Map<string, PackageEntry>,
 ) {
-  if (name === '@lvbt/labs-tooling')
+  if (name === '@lvbt/labs-cli')
     throw new Error(
       'Replace repository-management tooling with @lvbt/lab-runtime before migration.',
     );
