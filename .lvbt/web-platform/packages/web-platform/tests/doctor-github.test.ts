@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { githubDoctor } from '../src/doctor-github.js';
-import standard from '../../../.lvbt/web-platform/standards/ruleset.json' with { type: 'json' };
+import { githubDoctor } from '../src/doctor-github.ts';
+import standard from '../../../standards/ruleset.json' with { type: 'json' };
 
 const target = {
   repository: 'LasVegasForTransit/labs',

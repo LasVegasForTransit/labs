@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
-import { provisionVariables } from '../src/provision-variables.js';
-import { reconcileResources } from '../src/provision-reconcile.js';
+import { provisionVariables } from '../src/provision-variables.ts';
+import { reconcileResources } from '../src/provision-reconcile.ts';
 
 test('reconciles only declared nonsecret variables and preserves unrelated values', async () => {
   const variables = new Map([

@@ -1,27 +1,27 @@
-import type { previewTargets } from './pr-preview-plan.js';
-
-type Target = ReturnType<typeof previewTargets>[number];
-interface Receipt {
+export interface PreviewReceipt {
   version: string;
   url: string;
 }
-interface Result {
+interface Result<Target> {
   target: Target;
   status: 'verified' | 'failed' | 'withheld';
-  receipt?: Receipt;
+  receipt?: PreviewReceipt;
   phase?: string;
 }
-interface Operations {
+export interface PreviewOperations<Target> {
   build(): Promise<void>;
   assertCurrent(): Promise<void>;
-  record(entry: { phase: string; target: Target; receipt?: Receipt }): Promise<void>;
-  upload(target: Target): Promise<Receipt>;
-  verify(target: Target, receipt: Receipt): Promise<void>;
+  record(entry: { phase: string; target: Target; receipt?: PreviewReceipt }): Promise<void>;
+  upload(target: Target): Promise<PreviewReceipt>;
+  verify(target: Target, receipt: PreviewReceipt): Promise<void>;
 }
 
-async function publishOne(target: Target, operations: Operations): Promise<Result> {
+async function publishOne<Target>(
+  target: Target,
+  operations: PreviewOperations<Target>,
+): Promise<Result<Target>> {
   let phase = 'guard';
-  let receipt: Receipt | undefined;
+  let receipt: PreviewReceipt | undefined;
   try {
     await operations.assertCurrent();
     phase = 'journal';
@@ -42,8 +42,11 @@ async function publishOne(target: Target, operations: Operations): Promise<Resul
   }
 }
 
-export async function publishPreviews(targets: Target[], operations: Operations) {
-  const results: Result[] = [];
+export async function publishPreviews<Target>(
+  targets: Target[],
+  operations: PreviewOperations<Target>,
+) {
+  const results: Result<Target>[] = [];
   if (targets.length === 0) return { ok: true, results };
   try {
     await operations.build();

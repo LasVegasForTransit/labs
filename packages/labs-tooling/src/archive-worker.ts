@@ -6,7 +6,7 @@ import { verifyStoredArchive } from './archive-store.js';
 import type { ArchiveAsset } from './archive-worker-runtime.js';
 import { writeProject } from './create-write.js';
 import { archiveChecksums } from './archive-files.js';
-import type { ReleaseMarker } from './release-artifact.js';
+import type { ReleaseMarker } from '@lvbt/web-platform/release';
 
 export async function prepareArchiveWorker(archive: string, destination: string, commit?: string) {
   if (commit !== undefined && !/^[a-f0-9]{40}$/.test(commit))

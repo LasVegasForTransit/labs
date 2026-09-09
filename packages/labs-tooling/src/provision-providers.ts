@@ -1,9 +1,15 @@
 import { execFileSync } from 'node:child_process';
-import { githubReader } from './github-read.js';
-import { cloudflareCredential, cloudflareReader } from './cloudflare-read.js';
-import { provisionVariables, githubVariableWriter } from './provision-variables.js';
-import { provisionEnvironment } from './provision-environment.js';
-import { provisionRoutes } from './provision-routes.js';
+import {
+  cloudflareCredential,
+  cloudflareReader,
+  provisionRoutes,
+} from '@lvbt/web-platform/cloudflare';
+import {
+  githubReader,
+  githubVariableWriter,
+  provisionEnvironment,
+  provisionVariables,
+} from '@lvbt/web-platform/github';
 import { discoverLabs } from './discovery.js';
 
 interface Target {

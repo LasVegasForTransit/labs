@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lvbt/lab-runtime": "workspace:*",
+    "@lvbt/web-platform": "file:../../.lvbt/web-platform/packages/web-platform",
     "zod": "catalog:"
   },
   "devDependencies": {

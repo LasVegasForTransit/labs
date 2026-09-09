@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { reconcileResources, type ProvisionResource } from './provision-reconcile.js';
+import { reconcileResources, type ProvisionResource } from '@lvbt/web-platform/provision';
 
 interface Check {
   id: string;

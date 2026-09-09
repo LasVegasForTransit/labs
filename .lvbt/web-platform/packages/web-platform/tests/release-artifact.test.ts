@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promis
 import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
-import { sealArtifact, verifyReleaseResponse } from '../src/release-artifact.js';
+import { sealArtifact, verifyReleaseResponse } from '../src/release-artifact.ts';
 
 const identity = { slug: 'map', commit: 'a'.repeat(40) };
 

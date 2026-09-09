@@ -83,11 +83,6 @@ async function validateConfiguration(target: Target) {
   z.string()
     .regex(/^[a-f0-9]{40}$/)
     .parse(target.commit);
-  if (
-    target.mode === 'temporary' &&
-    !target.worker.startsWith(`lvbt-labs-pr-${target.pullRequest}-`)
-  )
-    throw new Error('Temporary Worker identity does not match the pull request.');
   const configPath = path.join(target.directory, 'wrangler.json');
   const config: unknown = JSON.parse(await readFile(configPath, 'utf8'));
   const settings = z

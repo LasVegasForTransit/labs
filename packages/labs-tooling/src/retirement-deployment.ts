@@ -6,8 +6,8 @@ import { z } from 'zod';
 import { archiveRoutes } from './archive-browser.js';
 import { archiveChecksums } from './archive-files.js';
 import { verifyStoredArchive } from './archive-store.js';
-import { activeVersion, verifyArchiveVersion } from './cloudflare-release.js';
-import { verifyReleaseResponse } from './release-artifact.js';
+import { activeVersion, verifyArchiveVersion } from '@lvbt/web-platform/cloudflare';
+import { verifyReleaseResponse } from '@lvbt/web-platform/release';
 
 const deploymentSchema = z
   .object({

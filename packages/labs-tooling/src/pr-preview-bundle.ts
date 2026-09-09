@@ -2,9 +2,8 @@ import { mkdir, mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path';
 import ts from 'typescript';
 import { z } from 'zod';
+import { previewConfiguration, sealArtifact } from '@lvbt/web-platform/release';
 import { readArchiveFiles } from './archive-files.js';
-import { previewConfiguration } from './pr-preview-config.js';
-import { sealArtifact } from './release-artifact.js';
 
 export async function preparePreviewBundle(
   app: string,

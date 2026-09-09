@@ -84,6 +84,8 @@ every file under `site/`; it excludes itself. The site contains exactly one root
 
 ### Tooling and automation
 
-`packages/labs-tooling` owns `pnpm lab`, generators, validation, lifecycle transitions,
-provisioning, and diagnostics. `.github` owns contribution templates and the GitHub Actions
-workflows that run those interfaces.
+`packages/labs-tooling` owns `pnpm lab`, catalog discovery, generators, lifecycle transitions,
+deployment policy, and provider target definitions. The vendored `@lvbt/web-platform` package owns
+provider reads, reconciliation, release provenance, and Worker preview guards shared across LVBT
+repositories. `.github` owns contribution templates and the GitHub Actions workflows that run those
+interfaces.

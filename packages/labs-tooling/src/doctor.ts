@@ -3,10 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
-import { authenticatedCloudflareReader } from './cloudflare-read.js';
-import { githubReader } from './github-read.js';
-import { githubDoctor } from './doctor-github.js';
-import { cloudflareDoctor } from './doctor-cloudflare.js';
+import { authenticatedCloudflareReader, cloudflareDoctor } from '@lvbt/web-platform/cloudflare';
+import { githubDoctor, githubReader } from '@lvbt/web-platform/github';
 import { discoverLabs } from './discovery.js';
 
 const hostname = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/);

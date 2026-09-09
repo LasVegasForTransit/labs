@@ -561,6 +561,9 @@ importers:
       '@lvbt/lab-runtime':
         specifier: workspace:*
         version: link:../lab-runtime
+      '@lvbt/web-platform':
+        specifier: file:../../.lvbt/web-platform/packages/web-platform
+        version: file:.lvbt/web-platform/packages/web-platform
       zod:
         specifier: 'catalog:'
         version: 4.5.4
@@ -1693,6 +1696,10 @@ packages:
     resolution: {directory: .lvbt/web-platform/packages/vitest-config, type: directory}
     peerDependencies:
       vitest: '>=4'
+
+  '@lvbt/web-platform@file:.lvbt/web-platform/packages/web-platform':
+    resolution: {directory: .lvbt/web-platform/packages/web-platform, type: directory}
+    engines: {node: '>=24'}
 
   '@napi-rs/wasm-runtime@1.2.3':
     resolution: {integrity: sha512-UMduMbqO5s5zF2NkNacMT/yK5Y5QiKvWr2+50bzIIxFDwVJ2h49b+oyjaCGPhJxd2/gC2x39EHv/gHVuu36x2Q==}
@@ -4875,6 +4882,10 @@ snapshots:
   '@lvbt/vitest-config@file:.lvbt/web-platform/packages/vitest-config(vitest@4.1.11(@types/node@24.13.3)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)))':
     dependencies:
       vitest: 4.1.11(@types/node@24.13.3)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  '@lvbt/web-platform@file:.lvbt/web-platform/packages/web-platform':
+    dependencies:
+      zod: 4.5.4
 
   '@napi-rs/wasm-runtime@1.2.3(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
     dependencies:
