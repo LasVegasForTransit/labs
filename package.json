@@ -14,6 +14,8 @@
     "build:archive": "turbo run build:archive",
     "dev": "turbo run dev",
     "preview": "tsx packages/labs-cli/src/preview.ts",
+    "preview:deploy": "tsx packages/labs-cli/src/pr-preview-command.ts",
+    "preview:cleanup": "tsx packages/labs-cli/src/pr-preview-cleanup-command.ts",
     "lab": "tsx packages/labs-cli/src/cli.ts",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
