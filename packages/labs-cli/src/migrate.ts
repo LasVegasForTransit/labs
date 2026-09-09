@@ -5,11 +5,14 @@ import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
 import { migrationTree } from './migration-tree.js';
 import { exportMigration, initializeMigrationRepository } from './migration-export.js';
+import { finalizeMigration } from './migration-finalize.js';
 import {
   pauseMigration,
+  rollbackMigration,
   transferMigration,
   verifyMigration,
   type MigrationPauseOperations,
+  type MigrationRollbackOperations,
   type MigrationTransferOperations,
   type MigrationVerificationOperations,
 } from './migration-handoff.js';
@@ -18,8 +21,9 @@ import {
   migrationTransferOperations,
   migrationVerificationOperations,
 } from './migration-handoff-operations.js';
+import { migrationRollbackOperations } from './migration-rollback-operations.js';
 
-type MigrationPhase = 'prepare' | 'pause' | 'transfer' | 'verify';
+type MigrationPhase = 'prepare' | 'pause' | 'transfer' | 'verify' | 'finalize' | 'rollback';
 
 function migrationFlags(args: string[]) {
   const { values, positionals } = parseArgs({
@@ -33,6 +37,9 @@ function migrationFlags(args: string[]) {
       pause: { type: 'boolean' },
       transfer: { type: 'boolean' },
       verify: { type: 'boolean' },
+      finalize: { type: 'boolean' },
+      rollback: { type: 'boolean' },
+      graduated: { type: 'string' },
       'source-commit': { type: 'string' },
       apply: { type: 'boolean' },
       'dry-run': { type: 'boolean' },
@@ -40,9 +47,18 @@ function migrationFlags(args: string[]) {
     },
   });
   if (values.apply && values['dry-run']) throw new Error('Choose --apply or --dry-run.');
-  if ([values.prepare, values.pause, values.transfer, values.verify].filter(Boolean).length !== 1)
+  if (
+    [
+      values.prepare,
+      values.pause,
+      values.transfer,
+      values.verify,
+      values.finalize,
+      values.rollback,
+    ].filter(Boolean).length !== 1
+  )
     throw new Error(
-      'Choose exactly one migration phase: --prepare, --pause, --transfer, or --verify.',
+      'Choose exactly one migration phase: --prepare, --pause, --transfer, --verify, --finalize, or --rollback.',
     );
   if (positionals.length > 1 || (positionals.length > 0 && values.slug !== undefined))
     throw new Error('Provide one lab slug.');
@@ -57,6 +73,7 @@ async function promptedMigrationFields(
     repository: string | undefined;
     output: string | undefined;
     sourceCommit: string | undefined;
+    graduated: string | undefined;
   },
   phase: MigrationPhase,
   ask?: Question,
@@ -71,10 +88,19 @@ async function promptedMigrationFields(
     repository: 'Destination GitHub repository (owner/name): ',
     output: 'Standalone directory outside Labs: ',
     sourceCommit: 'Exported Labs source commit: ',
+    graduated: 'Graduation date (YYYY-MM-DD): ',
   };
-  const projectField = phase === 'transfer' || phase === 'verify' ? [] : ['repository' as const];
+  const projectField = ['transfer', 'verify', 'finalize', 'rollback'].includes(phase)
+    ? []
+    : ['repository' as const];
   const phaseField =
-    phase === 'prepare' ? ['output' as const] : phase === 'pause' ? ['sourceCommit' as const] : [];
+    phase === 'prepare'
+      ? ['output' as const]
+      : phase === 'pause'
+        ? ['sourceCommit' as const]
+        : phase === 'finalize'
+          ? ['graduated' as const]
+          : [];
   try {
     if (question !== undefined)
       for (const key of ['slug' as const, ...projectField, ...phaseField])
@@ -90,10 +116,15 @@ function validateMigrationFields(
   fields: Awaited<ReturnType<typeof promptedMigrationFields>>,
   apply: boolean,
 ) {
-  const { slug, repository, output, sourceCommit } = fields;
+  const { slug, repository, output, sourceCommit, graduated } = fields;
   if (!slug) throw new Error('Provide --slug.');
   if (phase === 'transfer') return { phase: 'transfer', slug, apply } as const;
   if (phase === 'verify') return { phase: 'verify', slug, apply } as const;
+  if (phase === 'finalize') {
+    if (!graduated) throw new Error('Provide --graduated for migration finalization.');
+    return { phase: 'finalize', slug, graduated, apply } as const;
+  }
+  if (phase === 'rollback') return { phase: 'rollback', slug, apply } as const;
   if (!repository) throw new Error('Provide --repository.');
   if (phase === 'prepare') {
     if (!output) throw new Error('Provide --output for migration preparation.');
@@ -103,20 +134,30 @@ function validateMigrationFields(
   return { phase: 'pause', slug, repository, sourceCommit, apply } as const;
 }
 
+function selectedPhase(values: {
+  pause?: boolean;
+  transfer?: boolean;
+  verify?: boolean;
+  finalize?: boolean;
+  rollback?: boolean;
+}): MigrationPhase {
+  if (values.pause) return 'pause';
+  if (values.transfer) return 'transfer';
+  if (values.verify) return 'verify';
+  if (values.finalize) return 'finalize';
+  if (values.rollback) return 'rollback';
+  return 'prepare';
+}
+
 export async function migrationInput(args: string[], ask?: Question) {
   const { values, positionals } = migrationFlags(args);
-  const phase: MigrationPhase = values.pause
-    ? 'pause'
-    : values.transfer
-      ? 'transfer'
-      : values.verify
-        ? 'verify'
-        : 'prepare';
+  const phase = selectedPhase(values);
   const fields = {
     slug: values.slug ?? positionals[0],
     repository: values.repository,
     output: values.output,
     sourceCommit: values['source-commit'],
+    graduated: values.graduated,
   };
   const completed =
     !values.json && (ask !== undefined || process.stdin.isTTY)
@@ -132,6 +173,8 @@ interface MigrationDependencies {
   ) => MigrationPauseOperations;
   transferOperations?: (root: string, slug: string) => MigrationTransferOperations;
   verificationOperations?: (root: string, slug: string) => MigrationVerificationOperations;
+  rollbackOperations?: (root: string, slug: string) => MigrationRollbackOperations;
+  finalize?: typeof finalizeMigration;
 }
 
 type MigrationInput = Awaited<ReturnType<typeof migrationInput>>;
@@ -142,6 +185,12 @@ async function runHandoffPhase(
   dependencies: MigrationDependencies,
   repository: { git(arguments_: string[]): string; clean(): void },
 ) {
+  if (input.phase === 'finalize') return (dependencies.finalize ?? finalizeMigration)(root, input);
+  if (input.phase === 'rollback')
+    return rollbackMigration(
+      { slug: input.slug, apply: input.apply },
+      (dependencies.rollbackOperations ?? migrationRollbackOperations)(root, input.slug),
+    );
   if (input.phase === 'transfer')
     return transferMigration(
       { slug: input.slug, apply: input.apply },

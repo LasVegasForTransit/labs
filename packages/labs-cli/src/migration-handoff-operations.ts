@@ -21,10 +21,10 @@ interface PauseIdentity {
   sourceCommit: string;
 }
 
-type GitHub = (args: string[]) => string;
-type Wrangler = (args: string[]) => Promise<string>;
+export type GitHub = (args: string[]) => string;
+export type Wrangler = (args: string[]) => Promise<string>;
 
-interface Dependencies {
+export interface MigrationProviderDependencies {
   github?: GitHub;
   wrangler?: Wrangler;
   fetch?: typeof fetch;
@@ -63,7 +63,7 @@ async function optionalStat(file: string) {
   });
 }
 
-async function readHandoff(file: string, slug: string) {
+export async function readHandoff(file: string, slug: string) {
   const stat = await optionalStat(file);
   if (stat === undefined) return null;
   if (!stat.isFile() || stat.isSymbolicLink())
@@ -71,7 +71,7 @@ async function readHandoff(file: string, slug: string) {
   return parseMigrationHandoff(JSON.parse(await readFile(file, 'utf8')), slug);
 }
 
-function defaultGitHub(root: string): GitHub {
+export function defaultGitHub(root: string): GitHub {
   return (args) =>
     execFileSync('gh', args, {
       cwd: root,
@@ -81,7 +81,7 @@ function defaultGitHub(root: string): GitHub {
     });
 }
 
-function defaultWrangler(root: string): Wrangler {
+export function defaultWrangler(root: string): Wrangler {
   return async (args) =>
     (
       await promisify(execFile)('pnpm', ['exec', 'wrangler', ...args], {
@@ -107,7 +107,7 @@ function defaultGuard(root: string, identity: PauseIdentity) {
   };
 }
 
-function inspectDestination(github: GitHub, identity: PauseIdentity) {
+export function inspectDestination(github: GitHub, identity: PauseIdentity) {
   const endpoint = `repos/${identity.repository}`;
   const commit = commitSchema.parse(
     JSON.parse(github(['api', '--hostname', 'github.com', `${endpoint}/commits/main`])),
@@ -142,7 +142,7 @@ function inspectDestination(github: GitHub, identity: PauseIdentity) {
 export function migrationPauseOperations(
   root: string,
   identity: PauseIdentity,
-  dependencies: Dependencies = {},
+  dependencies: MigrationProviderDependencies = {},
 ): MigrationPauseOperations {
   const file = path.join(root, 'migrations', `${identity.slug}.json`);
   const github = dependencies.github ?? defaultGitHub(root);
@@ -181,7 +181,7 @@ export function migrationPauseOperations(
 export function migrationTransferOperations(
   root: string,
   slug: string,
-  dependencies: Pick<Dependencies, 'github' | 'guard'> = {},
+  dependencies: Pick<MigrationProviderDependencies, 'github' | 'guard'> = {},
 ): MigrationTransferOperations {
   const file = path.join(root, 'migrations', `${slug}.json`);
   const journal = path.join(root, '.wrangler', 'migrations', `${slug}.jsonl`);
@@ -253,7 +253,7 @@ export function migrationTransferOperations(
   };
 }
 
-function migrationVerificationGuard(
+export function migrationVerificationGuard(
   root: string,
   slug: string,
   read: () => Promise<MigrationHandoffV1 | null>,
@@ -343,7 +343,7 @@ async function writeVerifiedHandoff(
 export function migrationVerificationOperations(
   root: string,
   slug: string,
-  dependencies: Dependencies = {},
+  dependencies: MigrationProviderDependencies = {},
 ): MigrationVerificationOperations {
   const file = path.join(root, 'migrations', `${slug}.json`);
   const github = dependencies.github ?? defaultGitHub(root);
