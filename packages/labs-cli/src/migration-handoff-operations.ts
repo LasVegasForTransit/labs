@@ -1,15 +1,18 @@
 import { execFile, execFileSync } from 'node:child_process';
-import { appendFile, lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { appendFile, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual, promisify } from 'node:util';
 import { z } from 'zod';
 import { activeVersion } from '@lvbt/web-platform/cloudflare';
-import { assertDeploymentCheckout } from '@lvbt/web-platform/release';
+import { assertDeploymentCheckout, verifyReleaseResponse } from '@lvbt/web-platform/release';
 import {
   parseMigrationHandoff,
   type MigrationHandoffV1,
   type MigrationPauseOperations,
   type MigrationTransferOperations,
+  type MigrationVerificationOperations,
+  type MigrationVerifiedHandoffV1,
 } from './migration-handoff.js';
 
 interface PauseIdentity {
@@ -24,6 +27,7 @@ type Wrangler = (args: string[]) => Promise<string>;
 interface Dependencies {
   github?: GitHub;
   wrangler?: Wrangler;
+  fetch?: typeof fetch;
   guard?: () => void | Promise<void>;
 }
 
@@ -39,6 +43,18 @@ const checkRunsSchema = z.object({
     }),
   ),
 });
+const versionSchema = z.object({
+  id: z.uuid(),
+  annotations: z.object({ 'workers/message': z.string() }),
+});
+const releaseSchema = z
+  .object({
+    formatVersion: z.literal(1),
+    slug: z.string(),
+    commit: z.string().regex(/^[a-f0-9]{40}$/),
+    artifactHash: z.string().regex(/^[a-f0-9]{64}$/),
+  })
+  .strict();
 
 async function optionalStat(file: string) {
   return lstat(file).catch((error: unknown) => {
@@ -233,6 +249,121 @@ export function migrationTransferOperations(
     async journal(phase, details) {
       await mkdir(path.dirname(journal), { recursive: true });
       await appendFile(journal, `${JSON.stringify({ phase, details })}\n`);
+    },
+  };
+}
+
+function migrationVerificationGuard(
+  root: string,
+  slug: string,
+  read: () => Promise<MigrationHandoffV1 | null>,
+) {
+  return async () => {
+    const handoff = await read();
+    if (handoff === null) throw new Error('Pause Labs deployment ownership before verification.');
+    const current = execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf8',
+    }).trim();
+    assertDeploymentCheckout(root, current);
+    const committed = parseMigrationHandoff(
+      JSON.parse(
+        execFileSync('git', ['show', `HEAD:migrations/${slug}.json`], {
+          cwd: root,
+          encoding: 'utf8',
+        }),
+      ),
+      slug,
+    );
+    if (!isDeepStrictEqual(handoff, committed))
+      throw new Error('Commit the migration pause before verifying the destination.');
+  };
+}
+
+async function verifyDestinationDeployment(
+  slug: string,
+  handoff: MigrationHandoffV1,
+  wrangler: Wrangler,
+  request: typeof fetch,
+) {
+  const worker = `lvbt-labs-${slug}`;
+  const currentVersion = async () =>
+    activeVersion(JSON.parse(await wrangler(['deployments', 'list', '--json', '--name', worker])));
+  const version = await currentVersion();
+  if (version === null) throw new Error('The destination Worker has no active version.');
+  const details = versionSchema.parse(
+    JSON.parse(await wrangler(['versions', 'view', version, '--json', '--name', worker])),
+  );
+  if (
+    details.id !== version ||
+    details.annotations['workers/message'] !== `Commit ${handoff.destinationCommit}`
+  )
+    throw new Error('The active destination version lacks migration release provenance.');
+  const base = `https://labs.lasvegasfortransit.org/${slug}/`;
+  const options = {
+    redirect: 'manual' as const,
+    cache: 'no-store' as const,
+    signal: AbortSignal.timeout(15000),
+  };
+  const response = await request(
+    `${base}lvbt-release.json?commit=${handoff.destinationCommit}`,
+    options,
+  );
+  const marker = releaseSchema.parse(await response.clone().json());
+  await verifyReleaseResponse(response, {
+    formatVersion: 1,
+    slug,
+    commit: handoff.destinationCommit,
+    artifactHash: marker.artifactHash,
+  });
+  const page = await request(base, { ...options, signal: AbortSignal.timeout(15000) });
+  if (page.status !== 200) throw new Error(`The migrated project returned HTTP ${page.status}.`);
+  if ((await currentVersion()) !== version)
+    throw new Error('The active destination version changed during stable-route verification.');
+  return { version, artifactHash: marker.artifactHash };
+}
+
+async function writeVerifiedHandoff(
+  file: string,
+  read: () => Promise<MigrationHandoffV1 | null>,
+  record: MigrationVerifiedHandoffV1,
+) {
+  const current = await read();
+  if (current?.phase !== 'labs-paused')
+    throw new Error('Only a paused migration can be recorded as destination-verified.');
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, `${JSON.stringify(record, null, 2)}\n`, { flag: 'wx' });
+    await rename(temporary, file);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
+
+export function migrationVerificationOperations(
+  root: string,
+  slug: string,
+  dependencies: Dependencies = {},
+): MigrationVerificationOperations {
+  const file = path.join(root, 'migrations', `${slug}.json`);
+  const github = dependencies.github ?? defaultGitHub(root);
+  const wrangler = dependencies.wrangler ?? defaultWrangler(root);
+  const request = dependencies.fetch ?? fetch;
+  const read = () => readHandoff(file, slug);
+  const guard = dependencies.guard ?? migrationVerificationGuard(root, slug, read);
+  return {
+    read,
+    async inspectDestination() {
+      const handoff = await read();
+      if (handoff === null) throw new Error('Pause Labs deployment ownership before verification.');
+      return inspectDestination(github, handoff);
+    },
+    async verifyDeployment(handoff) {
+      return verifyDestinationDeployment(slug, handoff, wrangler, request);
+    },
+    guard,
+    async writeVerified(record: MigrationVerifiedHandoffV1) {
+      await writeVerifiedHandoff(file, read, record);
     },
   };
 }

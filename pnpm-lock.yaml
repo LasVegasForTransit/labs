@@ -531,6 +531,9 @@ importers:
 
   packages/lab-runtime:
     dependencies:
+      '@lvbt/web-platform':
+        specifier: file:../../.lvbt/web-platform/packages/web-platform
+        version: file:.lvbt/web-platform/packages/web-platform
       zod:
         specifier: 'catalog:'
         version: 4.5.4

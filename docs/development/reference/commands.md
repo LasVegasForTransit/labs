@@ -30,7 +30,7 @@ The full list, exit codes, and hooks are in the
 | `pnpm lab preview <slug>`   | Serve the selected lab's production artifact                                               |
 | `pnpm lab status <slug>`    | Print the lab's validated manifest (`--json` for one line)                                 |
 | `pnpm lab deprecate <slug>` | Preview deprecation metadata; `--apply` writes the manifest                                |
-| `pnpm lab migrate <slug>`   | Prepare a standalone repository or pause Labs deployment ownership                         |
+| `pnpm lab migrate <slug>`   | Prepare, transfer, and verify a standalone project migration                               |
 | `pnpm lab retire <slug>`    | Prepare, verify, and finalize a read-only retirement archive                               |
 
 A slug identifies an app under `apps/` or a retired or graduated record at `catalog/<slug>.json`.
@@ -88,6 +88,11 @@ With `--apply`, it enables `LVBT_DEPLOYMENT_OWNER` and dispatches the destinatio
 the reviewed commit as a required workflow input. The workflow refuses a newer branch commit.
 Transfer operations are journaled before and after every remote mutation; an unconfirmed result
 requires provider inspection before retry.
+
+`pnpm lab migrate <slug> --verify` proves the destination still owns deployment, its reviewed commit
+remains validated, the active Worker version names that commit, and the stable Labs marker and page
+resolve correctly. Add `--apply` to replace the pause record with the exact verified version and
+artifact hash. Graduation requires that committed verification record.
 
 ## Deployment planning
 

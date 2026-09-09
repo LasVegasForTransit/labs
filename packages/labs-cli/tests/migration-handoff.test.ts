@@ -3,6 +3,7 @@ import {
   parseMigrationHandoff,
   pauseMigration,
   transferMigration,
+  verifyMigration,
 } from '../src/migration-handoff.js';
 
 const handoff = {
@@ -245,4 +246,68 @@ test('transfer reports an unconfirmed partial change when dispatch fails', async
   );
   expect(result).toMatchObject({ ok: false, changed: null, phase: 'transfer-unconfirmed' });
   expect(result.errors).toEqual(['dispatch failed']);
+});
+
+test('records the exact destination version only after stable-route verification', async () => {
+  const verified = {
+    ...handoff,
+    phase: 'destination-verified' as const,
+    destinationVersion: '22222222-2222-4222-8222-222222222222',
+    artifactHash: 'c'.repeat(64),
+  };
+  const events: string[] = [];
+  const result = await verifyMigration(
+    { slug: handoff.slug, apply: true },
+    {
+      read: () => Promise.resolve(handoff),
+      inspectDestination: () =>
+        Promise.resolve({
+          commit: handoff.destinationCommit,
+          deploymentOwner: true,
+          validate: 'success',
+        }),
+      verifyDeployment: () => {
+        events.push('verify');
+        return Promise.resolve({
+          version: verified.destinationVersion,
+          artifactHash: verified.artifactHash,
+        });
+      },
+      guard: () => {
+        events.push('guard');
+        return Promise.resolve();
+      },
+      writeVerified: (record) => {
+        events.push('write');
+        expect(record).toEqual(verified);
+        return Promise.resolve();
+      },
+    },
+  );
+  expect(result).toMatchObject({ ok: true, changed: true, phase: 'destination-verified' });
+  expect(events).toEqual(['verify', 'guard', 'verify', 'write']);
+});
+
+test('verification refuses a destination that does not own deployment', async () => {
+  await expect(
+    verifyMigration(
+      { slug: handoff.slug, apply: false },
+      {
+        read: () => Promise.resolve(handoff),
+        inspectDestination: () =>
+          Promise.resolve({
+            commit: handoff.destinationCommit,
+            deploymentOwner: false,
+            validate: 'success',
+          }),
+        verifyDeployment: () =>
+          Promise.resolve({
+            version: '22222222-2222-4222-8222-222222222222',
+            artifactHash: 'c'.repeat(64),
+          }),
+        guard: () => Promise.resolve(),
+        writeVerified: () => Promise.resolve(),
+      },
+    ),
+  ).rejects.toThrow(/does not own/);
 });
