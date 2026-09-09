@@ -9,7 +9,7 @@ test('retains Playwright failure artifacts for visual review', async () => {
 
   expect(source).toContain('if: failure()');
   expect(source).toContain(
-    'uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4',
+    'uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f',
   );
   expect(source).toContain('apps/**/test-results/');
   expect(source).toContain('packages/**/test-results/');
