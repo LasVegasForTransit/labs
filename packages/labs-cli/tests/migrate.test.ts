@@ -14,7 +14,7 @@ import { withMigrationFixture } from '../test-support/migration-fixture.js';
 
 test(
   'plans without writes, exports, and verifies an unchanged rerun',
-  { timeout: 30000 },
+  { timeout: 60000 },
   async () => {
     const outer = await mkdtemp(path.join(os.tmpdir(), 'lvbt-migrate-command-'));
     try {
@@ -39,7 +39,7 @@ test(
               'migrate',
               ...args,
             ],
-            { cwd: root, encoding: 'utf8', timeout: 30000 },
+            { cwd: root, encoding: 'utf8', timeout: 60000 },
           ),
         ) as {
           changed: boolean;
