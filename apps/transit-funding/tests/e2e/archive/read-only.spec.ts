@@ -1,10 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
+import { expectNoAccessibilityViolations } from '@lvbt/playwright-config/accessibility';
 
 test('reads the funding story with all live services unavailable', async ({
   browser,
   viewport,
-}, testInfo) => {
+}) => {
   const archive = await createArchiveContext(browser, {
     slug: 'transit-funding',
     files: await readProjectArchiveFiles(),
@@ -32,7 +33,11 @@ test('reads the funding story with all live services unavailable', async ({
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.getByRole('link', { name: 'LVBT Labs home' }).focus();
     await expect(page.getByRole('link', { name: 'LVBT Labs home' })).toBeFocused();
-    await page.screenshot({ path: testInfo.outputPath('archive.png'), fullPage: true });
+    await expectNoAccessibilityViolations(page);
+    await expect(page).toHaveScreenshot('retired-publication.png', {
+      animations: 'disabled',
+      fullPage: true,
+    });
     expect(archive.failures).toEqual([]);
   } finally {
     await archive.context.close();
