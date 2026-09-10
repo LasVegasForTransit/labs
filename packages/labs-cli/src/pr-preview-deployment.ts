@@ -111,14 +111,19 @@ interface PreviewDeploymentDependencies {
   assertCurrent?: () => Promise<void>;
   prepare?: (
     app: string,
-    identity: { slug: string; worker: string; commit: string; mode: 'version' | 'temporary' },
+    identity: {
+      slug: string;
+      worker: string;
+      commit: string;
+      mode: 'version' | 'temporary' | 'staging';
+    },
     parent: string,
   ) => Promise<{ directory: string; marker: ReleaseMarker }>;
   upload?: (
     target: {
       directory: string;
       worker: string;
-      mode: 'version' | 'temporary';
+      mode: 'version' | 'temporary' | 'staging';
       repository: string;
       pullRequest: number;
       commit: string;
@@ -174,8 +179,6 @@ export async function publishPullRequestPreviews(input: {
         );
       await assertCurrent();
       for (const target of targets) {
-        if (target.mode === 'staging')
-          throw new Error('Stateful previews require a dedicated staging deployment.');
         bundles.set(
           target.slug,
           await prepare(
@@ -196,7 +199,6 @@ export async function publishPullRequestPreviews(input: {
     async upload(target): Promise<PreviewReceipt> {
       const bundle = bundles.get(target.slug);
       if (bundle === undefined) throw new Error(`No preview bundle exists for ${target.slug}.`);
-      if (target.mode === 'staging') throw new Error('Stateful preview staging is not configured.');
       return upload(
         {
           directory: bundle.directory,

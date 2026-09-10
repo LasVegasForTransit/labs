@@ -68,3 +68,61 @@ test.each(['analytics', 'symlink'])('rejects unsafe build assets: %s', async (fa
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('uses an explicit isolated configuration for a stateful staging Worker', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'preview-bundle-test-'));
+  try {
+    const app = path.join(root, 'app');
+    await mkdir(path.join(app, 'dist'), { recursive: true });
+    await writeFile(
+      path.join(app, 'wrangler.jsonc'),
+      JSON.stringify({
+        name: 'lvbt-labs-map',
+        compatibility_date: '2026-08-31',
+        assets: { directory: 'dist' },
+        durable_objects: { bindings: [{ name: 'MAP', class_name: 'MapState' }] },
+      }),
+    );
+    await writeFile(
+      path.join(app, 'wrangler.staging.jsonc'),
+      JSON.stringify({
+        name: 'lvbt-labs-map-staging',
+        main: './src/worker.ts',
+        compatibility_date: '2026-08-31',
+        assets: { directory: 'dist' },
+        durable_objects: { bindings: [{ name: 'MAP', class_name: 'MapState' }] },
+        routes: [],
+        workers_dev: true,
+        preview_urls: false,
+        vars: { DEPLOYMENT_ENVIRONMENT: 'staging' },
+      }),
+    );
+    await writeFile(path.join(app, 'dist/index.html'), '<h1>Map</h1>');
+
+    const bundle = await preparePreviewBundle(
+      app,
+      {
+        slug: 'map',
+        worker: 'lvbt-labs-map-staging',
+        commit: 'a'.repeat(40),
+        mode: 'staging',
+      },
+      root,
+    );
+    const config = JSON.parse(
+      await readFile(path.join(bundle.directory, 'wrangler.json'), 'utf8'),
+    ) as Record<string, unknown>;
+
+    expect(config).toMatchObject({
+      name: 'lvbt-labs-map-staging',
+      main: path.join(app, 'src/worker.ts'),
+      durable_objects: { bindings: [{ name: 'MAP', class_name: 'MapState' }] },
+      routes: [],
+      workers_dev: true,
+      preview_urls: false,
+      vars: { DEPLOYMENT_ENVIRONMENT: 'staging' },
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

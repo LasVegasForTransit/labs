@@ -2,34 +2,63 @@ import { mkdir, mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises'
 import path from 'node:path';
 import ts from 'typescript';
 import { z } from 'zod';
-import { previewConfiguration, sealArtifact } from '@lvbt/web-platform/release';
+import {
+  previewConfiguration,
+  sealArtifact,
+  stagingPreviewConfiguration,
+} from '@lvbt/web-platform/release';
 import { readArchiveFiles } from './archive-files.js';
 
-export async function preparePreviewBundle(
+interface PreviewIdentity {
+  slug: string;
+  worker: string;
+  commit: string;
+  mode: 'version' | 'temporary' | 'staging';
+}
+
+async function readWorkerConfig(file: string, label: string) {
+  const parsed = ts.parseConfigFileTextToJson(file, await readFile(file, 'utf8'));
+  if (parsed.error) throw new Error(`Invalid ${label} Worker configuration.`);
+  const raw: unknown = parsed.config;
+  return z.record(z.string(), z.unknown()).parse(raw);
+}
+
+async function bundleConfiguration(
   app: string,
-  identity: { slug: string; worker: string; commit: string; mode: 'version' | 'temporary' },
-  parent: string,
+  identity: PreviewIdentity,
+  production: Record<string, unknown>,
+  assets: string,
 ) {
+  if (identity.mode !== 'staging')
+    return previewConfiguration(production, identity.worker, assets, identity.mode);
+  const staging = await readWorkerConfig(path.join(app, 'wrangler.staging.jsonc'), 'staging');
+  const main = z.object({ main: z.string().min(1) }).parse(staging).main;
+  return stagingPreviewConfiguration(
+    { ...staging, main: path.resolve(app, main) },
+    identity.worker,
+    assets,
+  );
+}
+
+export async function preparePreviewBundle(app: string, identity: PreviewIdentity, parent: string) {
   z.string()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .parse(identity.slug);
   z.string()
     .regex(/^[a-f0-9]{40}$/)
     .parse(identity.commit);
-  const sourceConfig = path.join(app, 'wrangler.jsonc');
-  const parsed = ts.parseConfigFileTextToJson(sourceConfig, await readFile(sourceConfig, 'utf8'));
-  if (parsed.error) throw new Error('Invalid Worker configuration.');
+  const production = await readWorkerConfig(path.join(app, 'wrangler.jsonc'), 'production');
   const original = z
     .object({
       name: z.literal(`lvbt-labs-${identity.slug}`),
       assets: z.object({ directory: z.string() }),
     })
-    .parse(parsed.config);
-  const config = previewConfiguration(
-    parsed.config,
-    identity.worker,
+    .parse(production);
+  const config = await bundleConfiguration(
+    app,
+    identity,
+    production,
     path.resolve(parent, 'assets'),
-    identity.mode,
   );
   const directory = await realpath(app);
   const source = await realpath(path.resolve(app, original.assets.directory));

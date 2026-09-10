@@ -1,6 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseLabCommand, projectFilter } from '../src/cli.js';
+import {
+  commandResultExitCode,
+  parseLabCommand,
+  projectCheckScripts,
+  projectFilter,
+  runProjectChecks,
+} from '../src/cli.js';
+
+describe('commandResultExitCode', () => {
+  it('fails the process when a lifecycle operation reports failure', () => {
+    expect(commandResultExitCode({ ok: false })).toBe(1);
+    expect(commandResultExitCode({ ok: true })).toBeUndefined();
+  });
+});
 
 describe('parseLabCommand', () => {
   it('parses a project command with structured output', () => {
@@ -27,13 +40,45 @@ describe('parseLabCommand', () => {
     });
   });
 
+  it('parses a focused project check', () => {
+    expect(parseLabCommand(['check', 'transit-funding', '--json'])).toEqual({
+      command: 'check',
+      slug: 'transit-funding',
+      json: true,
+    });
+  });
+
   it('rejects unsupported commands with the documented command list', () => {
-    expect(() => parseLabCommand(['launch', 'home'])).toThrow(/dev\|preview\|status/);
+    expect(() => parseLabCommand(['launch', 'home'])).toThrow(/dev\|preview\|check\|status/);
   });
 });
 
 describe('projectFilter', () => {
   it('derives the workspace package name from the permanent slug', () => {
     expect(projectFilter('transit-funding')).toBe('@lvbt/lab-transit-funding');
+  });
+});
+
+describe('runProjectChecks', () => {
+  it('runs the complete project gate in order', async () => {
+    const scripts: string[] = [];
+    const result = await runProjectChecks('home', (_slug, script) => {
+      scripts.push(script);
+      return Promise.resolve(0);
+    });
+
+    expect(scripts).toEqual(projectCheckScripts);
+    expect(result).toMatchObject({ command: 'check', slug: 'home', ok: true, changed: false });
+  });
+
+  it('stops after the first failed gate', async () => {
+    const scripts: string[] = [];
+    const result = await runProjectChecks('home', (_slug, script) => {
+      scripts.push(script);
+      return Promise.resolve(script === 'test' ? 1 : 0);
+    });
+
+    expect(scripts).toEqual(['lint', 'check-types', 'test']);
+    expect(result).toMatchObject({ ok: false, errors: ['test failed with exit code 1.'] });
   });
 });

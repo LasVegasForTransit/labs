@@ -16,8 +16,15 @@ type RetirementFields = Record<
   string | undefined
 >;
 
-async function promptRetirement(fields: RetirementFields, verify: boolean, json: boolean) {
-  if (!process.stdin.isTTY || json) return fields;
+type Question = (label: string) => Promise<string>;
+
+async function promptRetirement(
+  fields: RetirementFields,
+  verify: boolean,
+  json: boolean,
+  ask?: Question,
+) {
+  if (json || (ask === undefined && !process.stdin.isTTY)) return fields;
   const labels = {
     slug: 'Lab slug: ',
     reason: 'Reason for retirement: ',
@@ -28,11 +35,20 @@ async function promptRetirement(fields: RetirementFields, verify: boolean, json:
   const keys: (keyof RetirementFields)[] = verify
     ? ['slug', 'commit', 'version', 'previousVersion']
     : ['slug', 'reason'];
-  const prompt = createInterface({ input: process.stdin, output: process.stderr });
+  const prompt =
+    ask === undefined
+      ? createInterface({ input: process.stdin, output: process.stderr })
+      : undefined;
+  const question =
+    ask ??
+    ((label: string) => {
+      if (prompt === undefined) throw new Error('Interactive prompt is unavailable.');
+      return prompt.question(label);
+    });
   try {
-    for (const key of keys) fields[key] ??= await prompt.question(labels[key]);
+    for (const key of keys) fields[key] ??= await question(labels[key]);
   } finally {
-    prompt.close();
+    prompt?.close();
   }
   return fields;
 }
@@ -69,7 +85,7 @@ function retirementFlags(args: string[]) {
   return { values, positionals };
 }
 
-async function retirementInput(args: string[]) {
+export async function retirementInput(args: string[], ask?: Question) {
   const { values, positionals } = retirementFlags(args);
   const { slug, reason, commit, version, previousVersion } = await promptRetirement(
     {
@@ -81,6 +97,7 @@ async function retirementInput(args: string[]) {
     },
     values.verify === true || values.finalize === true,
     values.json === true,
+    ask,
   );
   if (slug === undefined || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
     throw new Error('Provide a lowercase kebab-case slug.');

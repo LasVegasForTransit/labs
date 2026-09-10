@@ -166,3 +166,44 @@ test('builds every affected package before uploading and verifying previews', as
     'record',
   ]);
 });
+
+test('publishes a stateful project through its dedicated staging Worker', async () => {
+  const target = {
+    slug: 'map',
+    worker: 'lvbt-labs-map-staging',
+    mode: 'staging' as const,
+    cleanup: false,
+  };
+  const marker = {
+    formatVersion: 1 as const,
+    slug: 'map',
+    commit,
+    artifactHash: 'c'.repeat(64),
+  };
+  const modes: string[] = [];
+
+  const result = await publishPullRequestPreviews({
+    root: '/repo',
+    identity: { ...identity, accountId: 'abc123' },
+    plan: { head: commit, packages: ['@lvbt/lab-map'], deploy: ['map'] },
+    targets: [target],
+    read: { get: () => Promise.resolve({}), list: () => Promise.resolve([]) },
+    dependencies: {
+      run: () => Promise.resolve(''),
+      assertCurrent: () => Promise.resolve(),
+      prepare: (_app, preview) => {
+        modes.push(`prepare:${preview.mode}`);
+        return Promise.resolve({ directory: '/bundle', marker });
+      },
+      upload: (preview) => {
+        modes.push(`upload:${preview.mode}`);
+        return Promise.resolve({ version: 'version', url: 'https://staging.example/' });
+      },
+      verify: () => Promise.resolve(),
+      record: () => Promise.resolve(),
+    },
+  });
+
+  expect(result.ok).toBe(true);
+  expect(modes).toEqual(['prepare:staging', 'upload:staging']);
+});

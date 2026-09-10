@@ -28,6 +28,7 @@ The full list, exit codes, and hooks are in the
 | `pnpm lab create`           | Plan a draft lab using guided input, flags, or `--manifest <file>`; `--apply` writes files |
 | `pnpm lab dev <slug>`       | Run the selected lab's development server                                                  |
 | `pnpm lab preview <slug>`   | Serve the selected lab's production artifact                                               |
+| `pnpm lab check <slug>`     | Run one lab's static analysis, tests, build, and browser acceptance                        |
 | `pnpm lab status <slug>`    | Print the lab's validated manifest (`--json` for one line)                                 |
 | `pnpm lab deprecate <slug>` | Preview deprecation metadata; `--apply` writes the manifest                                |
 | `pnpm lab migrate <slug>`   | Prepare, transfer, and verify a standalone project migration                               |
@@ -35,7 +36,8 @@ The full list, exit codes, and hooks are in the
 
 A slug identifies an app under `apps/` or a retired or graduated record at `catalog/<slug>.json`.
 `status` reads both locations; development and preview commands require app source. Commands exit
-with status 2 on a usage error. Duplicate ownership between an app and a catalog record is invalid.
+with status 1 when an operation fails and status 2 when input or configuration is invalid. Duplicate
+ownership between an app and a catalog record is invalid.
 
 ### Creation
 

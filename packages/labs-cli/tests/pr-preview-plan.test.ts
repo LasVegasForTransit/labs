@@ -11,7 +11,7 @@ test('uses versions for deployed apps and temporary Workers for new apps', () =>
 
 test('stateful apps use dedicated staging rather than production version uploads', () => {
   expect(previewTargets(23, ['map'], ['lvbt-labs-map'], ['map'])).toEqual([
-    { slug: 'map', worker: 'lvbt-labs-staging-map', mode: 'staging', cleanup: false },
+    { slug: 'map', worker: 'lvbt-labs-map-staging', mode: 'staging', cleanup: false },
   ]);
 });
 

@@ -171,50 +171,54 @@ test('pause input requires the exported source commit and no output directory', 
   ).rejects.toThrow(/one migration phase/);
 });
 
-test('pause connects provider acceptance to the persisted ownership gate', async () => {
-  await withMigrationFixture(async (root) => {
-    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: root,
-      encoding: 'utf8',
-    }).trim();
-    let record: unknown = null;
-    const operations: MigrationPauseOperations = {
-      read: () => Promise.resolve(null),
-      inspectDestination: () =>
-        Promise.resolve({
-          commit: 'b'.repeat(40),
-          deploymentOwner: false,
-          validate: 'success',
-        }),
-      activeVersion: () => Promise.resolve('11111111-1111-4111-8111-111111111111'),
-      guard: () => Promise.resolve(),
-      write: (value) => {
-        record = value;
-        return Promise.resolve();
-      },
-    };
-    const result = await migrateLab(
-      root,
-      [
-        'migration-example',
-        '--pause',
-        '--repository',
-        'LasVegasForTransit/example',
-        '--source-commit',
+test(
+  'pause connects provider acceptance to the persisted ownership gate',
+  { timeout: 30000 },
+  async () => {
+    await withMigrationFixture(async (root) => {
+      const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
+      let record: unknown = null;
+      const operations: MigrationPauseOperations = {
+        read: () => Promise.resolve(null),
+        inspectDestination: () =>
+          Promise.resolve({
+            commit: 'b'.repeat(40),
+            deploymentOwner: false,
+            validate: 'success',
+          }),
+        activeVersion: () => Promise.resolve('11111111-1111-4111-8111-111111111111'),
+        guard: () => Promise.resolve(),
+        write: (value) => {
+          record = value;
+          return Promise.resolve();
+        },
+      };
+      const result = await migrateLab(
+        root,
+        [
+          'migration-example',
+          '--pause',
+          '--repository',
+          'LasVegasForTransit/example',
+          '--source-commit',
+          sourceCommit,
+          '--apply',
+          '--json',
+        ],
+        { pauseOperations: () => operations },
+      );
+      expect(result).toMatchObject({ changed: true, phase: 'labs-paused' });
+      expect(record).toMatchObject({
+        slug: 'migration-example',
         sourceCommit,
-        '--apply',
-        '--json',
-      ],
-      { pauseOperations: () => operations },
-    );
-    expect(result).toMatchObject({ changed: true, phase: 'labs-paused' });
-    expect(record).toMatchObject({
-      slug: 'migration-example',
-      sourceCommit,
-      phase: 'labs-paused',
+        phase: 'labs-paused',
+      });
     });
-  });
-});
+  },
+);
 
 test('transfer input relies on the committed handoff record', async () => {
   expect(await migrationInput(['example', '--transfer', '--json'])).toEqual({

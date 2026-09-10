@@ -15,3 +15,12 @@ test('retains Playwright failure artifacts for visual review', async () => {
   expect(source).toContain('packages/**/test-results/');
   expect(source.indexOf('Browser tests')).toBeLessThan(source.indexOf('Upload browser failures'));
 });
+
+test('runs validation once for each pull request commit', async () => {
+  const source = await readFile(workflow, 'utf8');
+
+  expect(source).toMatch(/^ {2}pull_request:$/m);
+  expect(source).not.toMatch(/^ {2}push:$/m);
+  expect(source).toMatch(/^ {2}workflow_call:$/m);
+  expect(source).toMatch(/^ {2}workflow_dispatch:$/m);
+});

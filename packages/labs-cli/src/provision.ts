@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { reconcileResources, type ProvisionResource } from '@lvbt/web-platform/provision';
+import { reconcileResourceGroups, type ProvisionResource } from '@lvbt/web-platform/provision';
 
 interface Check {
   id: string;
@@ -24,8 +24,16 @@ export async function runProvision(
   resources: ProvisionResource[],
   inspect: () => Promise<Check[]>,
 ) {
+  return runProvisionGroups(apply, [resources], inspect);
+}
+
+export async function runProvisionGroups(
+  apply: boolean,
+  groups: ProvisionResource[][],
+  inspect: () => Promise<Check[]>,
+) {
   const checks = await inspect();
-  const required = ['github.repository', 'github.rules', 'cloudflare.zone', 'cloudflare.workers'];
+  const required = ['cloudflare.zone'];
   const blockedBy = required.filter(
     (id) => !checks.some((check) => check.id === id && check.status === 'pass'),
   );
@@ -38,7 +46,7 @@ export async function runProvision(
       blockedBy,
       remaining: checks.filter((check) => check.status !== 'pass'),
     };
-  const result = await reconcileResources(resources, apply);
+  const result = await reconcileResourceGroups(groups, apply);
   const remaining = (apply ? await inspect() : checks).filter((check) => check.status !== 'pass');
   return {
     command: 'provision',
@@ -52,7 +60,7 @@ export async function runProvision(
 export async function provision(root: string, args: string[]) {
   const input = provisionInput(args);
   const { doctor } = await import('./doctor.js');
-  const { provisionResources } = await import('./provision-providers.js');
+  const { provisionResourceGroups } = await import('./provision-providers.js');
   const initial = await doctor(root, []);
   let first = true;
   const inspect = async () => {
@@ -62,11 +70,13 @@ export async function provision(root: string, args: string[]) {
     }
     return (await doctor(root, [])).checks;
   };
-  const resources = await provisionResources(root, initial.target);
+  const groups = await provisionResourceGroups(root, initial.target);
   return {
-    ...(await runProvision(input.apply, resources, inspect)),
+    ...(await runProvisionGroups(input.apply, groups, inspect)),
     mode: input.apply ? 'apply' : 'dry-run',
     managed: [
+      'github.repository',
+      'github.rules',
       'github.variables',
       'github.production',
       'github.credentials',
@@ -74,6 +84,7 @@ export async function provision(root: string, args: string[]) {
       'github.preview-credentials',
       'github.preview-enabled',
       'github.analytics-variable',
+      'cloudflare.workers',
       'cloudflare.domain',
       'cloudflare.routes',
       'cloudflare.analytics',

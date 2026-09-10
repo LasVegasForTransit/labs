@@ -7,6 +7,7 @@ import { authenticatedCloudflareReader, cloudflareDoctor } from '@lvbt/web-platf
 import { githubDoctor, githubReader } from '@lvbt/web-platform/github';
 import { discoverLabs } from './discovery.js';
 import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.js';
+import { liveDoctor } from './live-doctor.js';
 
 const hostname = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/);
 const infrastructure = z.object({
@@ -70,7 +71,11 @@ export async function doctor(root: string, args: string[]) {
     const unavailable = () => Promise.reject(new Error('Cloudflare authentication unavailable.'));
     cloudflare = { get: unavailable, list: unavailable };
   }
-  const checks = [...github, ...(await cloudflareDoctor({ ...target, workers }, cloudflare))];
+  const checks = [
+    ...github,
+    ...(await cloudflareDoctor({ ...target, workers }, cloudflare)),
+    ...(await liveDoctor(target.hostname, workers)),
+  ];
   return {
     command: 'doctor',
     scope: 'infrastructure-configuration',
@@ -80,11 +85,6 @@ export async function doctor(root: string, args: string[]) {
     requestedLab: input.slug ?? null,
     checks,
     excludedDrafts: labs.filter((lab) => lab.status === 'draft').map((lab) => lab.slug),
-    verificationRequired: [
-      'Live DNS and TLS',
-      'Worker versions and response headers',
-      'Preview analytics exclusion',
-      'Production rollback',
-    ],
+    verificationRequired: ['Preview analytics exclusion', 'Production rollback'],
   };
 }

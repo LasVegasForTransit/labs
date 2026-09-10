@@ -35,8 +35,11 @@ and `unknown` means the provider could not be inspected or returned an unrecogni
 Unknown results never count as success. Draft projects do not acquire production routes.
 
 Use `pnpm --silent run doctor --json` to capture only the structured report. The `run` keyword is
-required because pnpm reserves `doctor` for its own package-manager diagnostics. Infrastructure
-configuration checks do not replace live URL, TLS, header, preview, or rollback acceptance.
+required because pnpm reserves `doctor` for its own package-manager diagnostics. The same read-only
+run requests the public hostname and verifies DNS and TLS reachability, security headers, release
+markers, exact and subtree route ownership, the home fallback, and a real multi-Worker deployment.
+Preview isolation and rollback remain exercised acceptance workflows because neither can be proven
+from passive production inspection.
 
 ## Apply repository resources
 
@@ -46,15 +49,24 @@ pnpm provision --apply
 
 The operation creates or reconciles:
 
-- the production and pull-request preview environments on the existing public repository;
+- the public GitHub repository and its pinned organization ruleset;
+- the production and pull-request preview environments;
 - Actions variables and narrowly scoped deployment secrets;
+- inactive bootstrap versions for missing source-backed Workers;
 - the Labs custom domain, exact project routes, DNS, and TLS;
 - the shared Cloudflare Web Analytics property;
 - repository metadata consumed by `pnpm run doctor`.
 
-The GitHub repository, its `Validate` branch rule, the Cloudflare zone, and the home and project
-Workers establish the provider identities that provisioning reconciles against. Missing or
-mismatched identities block writes before any provider state changes.
+The configured Cloudflare zone establishes the external account boundary and must already exist.
+Provisioning stops before any write when that zone cannot be verified. GitHub resources reconcile in
+dependency order: repository, ruleset and environment identities, environment policy and secrets,
+then Cloudflare resources. A failed or unconfirmed stage withholds every dependent stage.
+
+An active or deprecated lab with source under `apps/<slug>` receives a Worker identity when none
+exists. Provisioning builds that app and uploads an inactive version; it does not activate the
+version or replace production traffic. The normal deployment workflow activates and verifies the
+version after every affected artifact has built successfully. Draft labs and catalog-only retired or
+graduated records never receive bootstrap uploads.
 
 Provisioning is idempotent. Matching resources produce no change; drift creates an explicit update.
 Resources outside the manifest remain untouched.
@@ -65,14 +77,12 @@ infrastructure checks. A verified write does not imply a complete installation: 
 indicates unresolved configuration even when some operations succeeded. `changed: null` indicates an
 unconfirmed write; inspect provider state before retrying.
 
-## Provision one project
+## Verify the result
 
-`pnpm lab provision <slug> --apply` reconciles one project Worker route and GitHub deployment
-metadata. The command refuses to create a route until the project passes `pnpm check`.
-
-Run `pnpm lab doctor <slug>` after application. Successful diagnostics include DNS resolution, valid
-TLS, expected route ownership, Worker version visibility, analytics placement, and secret names
-without values.
+Run `pnpm lab doctor` after application. Successful diagnostics confirm the repository settings,
+environment configuration, Worker identities, route ownership, custom domain, analytics property,
+DNS, TLS, security headers, public release markers, and home fallback. Acceptance also requires a
+completed preview-isolation run and an exercised production rollback.
 
 ## Recover authentication
 
