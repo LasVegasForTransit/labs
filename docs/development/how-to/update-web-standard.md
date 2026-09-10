@@ -6,10 +6,11 @@ vendored copy.
 
 ## Review and apply
 
-Choose a published repository-tooling release and inspect the proposed file changes:
+Choose a published repository-tooling release and inspect the proposed file changes. Replace the
+example value with the release being adopted:
 
 ```sh
-RELEASE=v0.2.7
+RELEASE=vX.Y.Z
 pnpm standards:update --release "$RELEASE" --dry-run --json
 ```
 

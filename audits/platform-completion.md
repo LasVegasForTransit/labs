@@ -7,7 +7,7 @@ infrastructure, migration, or organization-wide acceptance.
 
 | Requirement                         | Evidence required                                                                                                                           | Current state                                                                                                                                                                                                    |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Versioned web preset                | Published source tag; consumer provenance and offline integrity checks; reviewed update diff                                                | `v0.3.0-rc.8` is vendored with exact commit and content hash; stable release and cross-repository adoption remain pending                                                                                        |
+| Versioned web preset                | Published source tag; consumer provenance and offline integrity checks; reviewed update diff                                                | The unreleased preset is vendored with an exact commit and content hash; its first stable release and cross-repository adoption remain pending                                                                   |
 | Create                              | Both profiles generated from the pinned preset; guided and non-interactive flows; checks and browser tests pass                             | Both profiles pass disposable-repository creation, builds, archives, and desktop/mobile Worker browser tests                                                                                                     |
 | Deprecate                           | Required reason and sunset; public shared notice; operational app                                                                           | Guided and non-interactive transitions and both shared notice renderers pass local browser acceptance; live acceptance pending                                                                                   |
 | Retire                              | API-isolated archive; checksums; stable URL; write bindings removed; rollback                                                               | Archive preparation, isolation, asset-only binding verification, finalization recovery, and rollback checks pass locally; live deployment pending                                                                |
@@ -31,10 +31,10 @@ No credential values belong in this record.
 
 ## September 5 validation update
 
-Repository-tooling PRs #19 and #20 merged through required checks. The vendored preset in Labs
-records `v0.2.7`, source commit `6f34bbba529a8ee53badbe6a1696658a0e0411aa`, and its content hash.
-The offline integrity check and full Labs `pnpm check` pass. This proves local consumer adoption,
-not completion of the organization-wide rollout. Further unproven tooling changes use prereleases.
+Repository-tooling changes merged through required checks. The vendored preset in Labs records its
+source commit and content hash without claiming a release. The offline integrity check and full Labs
+`pnpm check` pass. This proves local consumer adoption, not completion of the organization-wide
+rollout.
 
 The generator consumes vendored Astro and Vite templates. Both generated profiles passed local
 builds, archive builds, and desktop/mobile browser tests in a disposable checkout. Guided creation
