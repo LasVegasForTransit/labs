@@ -31,6 +31,12 @@ never match production credentials.
 
 Durable Object projects use their dedicated staging Worker for browser and migration checks.
 
+Add `wrangler.staging.jsonc` beside the production configuration. Give it the
+`lvbt-labs-<slug>-staging` Worker name, the project Worker entry point, the built asset directory,
+and staging-owned Durable Object bindings and migrations. Set `routes` to an empty array,
+`workers_dev` to `true`, and `preview_urls` to `false`. Keep production analytics and production
+resource identifiers out of the file.
+
 ## Verify the new surface
 
 Add Worker unit tests, request tests under workerd, production-build browser coverage, and explicit

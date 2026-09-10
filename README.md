@@ -34,6 +34,7 @@ and foundational interface elements; application behavior stays with the project
 | `pnpm check`              | Format, docs, shape rules, lint, types, and unit tests  |
 | `pnpm lab dev <slug>`     | Run one lab locally                                     |
 | `pnpm lab preview <slug>` | Build and serve one lab's production artifact           |
+| `pnpm lab check <slug>`   | Validate one lab through its browser acceptance suite   |
 | `pnpm preview`            | Preview the catalog and every lab on one local origin   |
 | `pnpm lab status <slug>`  | Print one lab's manifest                                |
 | `pnpm test:e2e`           | Browser tests for every lab and the shared preview      |

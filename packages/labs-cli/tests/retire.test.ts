@@ -4,11 +4,34 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
 import home from '../../../apps/home/lab.config.js';
-import { retireLab } from '../src/retire.js';
+import { retireLab, retirementInput } from '../src/retire.js';
 
 const active = { ...home, slug: 'map' };
 const source = `// Keep project attribution.\nexport default ${JSON.stringify(active)} as const;\n`;
 const args = ['map', '--reason', 'The program ended.', '--json'];
+
+test('collects guided retirement fields while JSON input remains non-interactive', async () => {
+  const answers = ['map', 'The program ended.'];
+  const questions: string[] = [];
+  const ask = (question: string) => {
+    questions.push(question);
+    return Promise.resolve(answers.shift() ?? '');
+  };
+
+  expect(await retirementInput([], ask)).toEqual({
+    slug: 'map',
+    reason: 'The program ended.',
+    apply: false,
+    verify: false,
+    finalize: false,
+    commit: undefined,
+    version: undefined,
+    previousVersion: undefined,
+  });
+  expect(questions).toEqual(['Lab slug: ', 'Reason for retirement: ']);
+  await expect(retirementInput(['--json'], ask)).rejects.toThrow(/slug/i);
+  expect(questions).toHaveLength(2);
+});
 
 async function fixture(run: (root: string) => Promise<void>, scripts: Record<string, string> = {}) {
   const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-retire-command-'));

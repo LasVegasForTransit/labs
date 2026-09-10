@@ -30,7 +30,7 @@ export function previewTargets(
       mode === 'version'
         ? production
         : mode === 'staging'
-          ? `lvbt-labs-staging-${slug}`
+          ? `lvbt-labs-${slug}-staging`
           : `lvbt-labs-pr-${pullRequest}-${slug}`;
     if (worker.length > 63) throw new Error(`Preview Worker name is too long for ${slug}.`);
     if (mode !== 'version' && slugs.some((candidate) => `lvbt-labs-${candidate}` === worker))

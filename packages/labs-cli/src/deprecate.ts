@@ -12,6 +12,8 @@ export interface DeprecationDetails {
   successor?: LabManifestV1['successor'];
 }
 
+type Question = (label: string) => Promise<string>;
+
 export function deprecateManifest(
   manifest: LabManifestV1,
   details: DeprecationDetails,
@@ -41,19 +43,33 @@ export function deprecateManifest(
 }
 
 async function promptForDetails(
-  slug: string | undefined,
-  reason: string | undefined,
-  sunset: string | undefined,
+  fields: {
+    slug: string | undefined;
+    reason: string | undefined;
+    sunset: string | undefined;
+  },
   json: boolean,
+  ask?: Question,
 ) {
-  if (process.stdin.isTTY && !json) {
-    const prompt = createInterface({ input: process.stdin, output: process.stderr });
+  let { slug, reason, sunset } = fields;
+  const interactive = !json && (ask !== undefined || process.stdin.isTTY);
+  if (interactive) {
+    const prompt =
+      ask === undefined
+        ? createInterface({ input: process.stdin, output: process.stderr })
+        : undefined;
+    const question =
+      ask ??
+      ((label: string) => {
+        if (prompt === undefined) throw new Error('Interactive prompt is unavailable.');
+        return prompt.question(label);
+      });
     try {
-      slug ??= await prompt.question('Lab slug: ');
-      reason ??= await prompt.question('Reason for deprecation: ');
-      sunset ??= await prompt.question('Sunset date (YYYY-MM-DD): ');
+      slug ??= await question('Lab slug: ');
+      reason ??= await question('Reason for deprecation: ');
+      sunset ??= await question('Sunset date (YYYY-MM-DD): ');
     } finally {
-      prompt.close();
+      prompt?.close();
     }
   }
   if (slug === undefined || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
@@ -63,7 +79,7 @@ async function promptForDetails(
   return { slug, reason, sunset };
 }
 
-async function deprecationInput(arguments_: string[]) {
+export async function deprecationInput(arguments_: string[], ask?: Question) {
   const { values, positionals } = parseArgs({
     args: arguments_,
     allowPositionals: true,
@@ -84,10 +100,13 @@ async function deprecationInput(arguments_: string[]) {
     throw new Error('Provide one lab slug.');
   }
   const { slug, reason, sunset } = await promptForDetails(
-    values.slug ?? positionals[0],
-    values.reason,
-    values.sunset,
+    {
+      slug: values.slug ?? positionals[0],
+      reason: values.reason,
+      sunset: values.sunset,
+    },
     values.json === true,
+    ask,
   );
   if ((values.successor === undefined) !== (values['successor-label'] === undefined)) {
     throw new Error('Provide both --successor and --successor-label.');

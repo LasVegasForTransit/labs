@@ -6,9 +6,13 @@ import { pathToFileURL } from 'node:url';
 import { discoverLabs, validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
 import type { rollbackLab } from './rollback-command.js';
 
-const commands = ['dev', 'preview', 'status'] as const;
+const commands = ['dev', 'preview', 'check', 'status'] as const;
+export const projectCheckScripts = ['lint', 'check-types', 'test', 'build', 'test:e2e'] as const;
 
 type LabCommandName = (typeof commands)[number];
+type ProjectCheckScript = (typeof projectCheckScripts)[number];
+type ProjectScript = 'dev' | 'preview' | ProjectCheckScript;
+type ProjectRunner = (slug: string, script: ProjectScript) => Promise<number>;
 
 export interface ParsedLabCommand {
   command: LabCommandName;
@@ -66,19 +70,47 @@ async function loadManifest(root: string, slug: string): Promise<LabManifestV1> 
   return validateManifestForDirectory(module.default, slug);
 }
 
-function runProjectScript(slug: string, script: 'dev' | 'preview'): Promise<number> {
+function runProjectScript(slug: string, script: ProjectScript, quiet = false): Promise<number> {
   return new Promise((resolve, reject) => {
     const child = spawn('pnpm', ['--filter', projectFilter(slug), script], {
-      stdio: 'inherit',
+      stdio: quiet ? 'ignore' : 'inherit',
     });
     child.on('error', reject);
     child.on('exit', (code) => resolve(code ?? 1));
   });
 }
 
+export async function runProjectChecks(slug: string, run: ProjectRunner = runProjectScript) {
+  const steps: { script: ProjectCheckScript; exitCode: number }[] = [];
+  for (const script of projectCheckScripts) {
+    const exitCode = await run(slug, script);
+    steps.push({ script, exitCode });
+    if (exitCode !== 0) {
+      return {
+        command: 'check' as const,
+        slug,
+        ok: false,
+        changed: false,
+        steps,
+        errors: [`${script} failed with exit code ${exitCode}.`],
+      };
+    }
+  }
+  return { command: 'check' as const, slug, ok: true, changed: false, steps, errors: [] };
+}
+
 function printRollbackResult(result: Awaited<ReturnType<typeof rollbackLab>>) {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (!result.ok) process.exitCode = 1;
+}
+
+export function commandResultExitCode(result: { ok: boolean }): 1 | undefined {
+  return result.ok ? undefined : 1;
+}
+
+function printLifecycleResult(result: { ok: boolean }) {
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  process.exitCode = commandResultExitCode(result);
 }
 
 function printCommandError(error: unknown) {
@@ -111,19 +143,31 @@ async function runInfrastructureCommand() {
   return true;
 }
 
+async function runProjectCheckCommand(root: string, parsed: ParsedLabCommand) {
+  if (parsed.command !== 'check' || parsed.slug === undefined) return false;
+  await loadManifest(root, parsed.slug);
+  const run = parsed.json
+    ? (slug: string, script: ProjectScript) => runProjectScript(slug, script, true)
+    : runProjectScript;
+  const result = await runProjectChecks(parsed.slug, run);
+  process.stdout.write(`${JSON.stringify(result, null, parsed.json ? 0 : 2)}\n`);
+  if (!result.ok) process.exitCode = 1;
+  return true;
+}
+
 async function main(): Promise<void> {
   try {
     if (await runInfrastructureCommand()) return;
     if (process.argv[2] === 'migrate') {
       const { migrateLab } = await import('./migrate.js');
       const result = await migrateLab(process.cwd(), process.argv.slice(3));
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      printLifecycleResult(result);
       return;
     }
     if (process.argv[2] === 'retire') {
       const { retireLab } = await import('./retire.js');
       const result = await retireLab(process.cwd(), process.argv.slice(3));
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      printLifecycleResult(result);
       return;
     }
     if (process.argv[2] === 'rollback') {
@@ -134,7 +178,7 @@ async function main(): Promise<void> {
     if (process.argv[2] === 'deprecate') {
       const { deprecateLab } = await import('./deprecate.js');
       const result = await deprecateLab(process.cwd(), process.argv.slice(3));
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      printLifecycleResult(result);
       return;
     }
     if (process.argv[2] === 'create') {
@@ -164,6 +208,8 @@ async function main(): Promise<void> {
       return;
     }
 
+    if (await runProjectCheckCommand(root, parsed)) return;
+    if (parsed.command === 'check') return;
     await loadManifest(root, parsed.slug);
     process.exitCode = await runProjectScript(parsed.slug, parsed.command);
   } catch (error) {

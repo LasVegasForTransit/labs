@@ -1,5 +1,8 @@
+import { access, readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
+import ts from 'typescript';
 import { z } from 'zod';
 import { cloudflareCredential, cloudflareReader } from '@lvbt/web-platform/cloudflare';
 import { deploymentPlan } from './deployment-plan.js';
@@ -65,6 +68,7 @@ interface PreviewResult {
 interface PreviewPlanDependencies {
   deploymentPlan?: (root: string, refs: { base?: string; head?: string }) => PreviewPlan;
   deployedWorkers(): Promise<string[]>;
+  statefulProjects?: (root: string, slugs: string[]) => Promise<string[]>;
 }
 
 interface PreviewRunDependencies extends PreviewPlanDependencies {
@@ -73,6 +77,29 @@ interface PreviewRunDependencies extends PreviewPlanDependencies {
     targets: PreviewTarget[],
     input: PreviewCommandInput,
   ): Promise<PreviewResult>;
+}
+
+export async function statefulPreviewSlugs(root: string, slugs: string[]) {
+  const stateful: string[] = [];
+  for (const slug of slugs) {
+    const file = path.join(root, 'apps', slug, 'wrangler.jsonc');
+    const parsed = ts.parseConfigFileTextToJson(file, await readFile(file, 'utf8'));
+    if (parsed.error) throw new Error(`Invalid Worker configuration for ${slug}.`);
+    const config = z
+      .object({
+        durable_objects: z.object({ bindings: z.array(z.unknown()) }).optional(),
+      })
+      .loose()
+      .parse(parsed.config);
+    if ((config.durable_objects?.bindings.length ?? 0) === 0) continue;
+    try {
+      await access(path.join(root, 'apps', slug, 'wrangler.staging.jsonc'));
+    } catch {
+      throw new Error(`Stateful project ${slug} requires wrangler.staging.jsonc.`);
+    }
+    stateful.push(slug);
+  }
+  return stateful;
 }
 
 export async function planPullRequestPreview(
@@ -88,6 +115,7 @@ export async function planPullRequestPreview(
     input.pullRequest,
     plan.deploy,
     await dependencies.deployedWorkers(),
+    await (dependencies.statefulProjects ?? statefulPreviewSlugs)(root, plan.deploy),
   );
   return { plan, targets };
 }

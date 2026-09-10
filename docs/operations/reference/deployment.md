@@ -74,6 +74,12 @@ verified preview and its slug path.
 The close workflow deletes temporary Workers. Durable Object projects deploy to their dedicated
 staging Worker instead of a version preview.
 
+A project with Durable Object bindings includes `wrangler.staging.jsonc`. Its Worker name is
+`lvbt-labs-<slug>-staging`; `main`, assets, variables, migrations, and every resource binding point
+to staging-owned resources. The configuration contains no routes, enables `workers_dev`, disables
+version preview URLs, and omits the production analytics token. Preview planning rejects a stateful
+project without this file, and deployment rejects a staging Worker that does not already exist.
+
 ### Production
 
 A push to `main` builds the complete affected set before the first upload. Project Workers deploy in

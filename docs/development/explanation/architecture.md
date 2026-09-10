@@ -159,8 +159,9 @@ generates binding types from configuration, preventing handwritten environment d
 drifting away from deployed resources.
 
 Structured logs identify the project, environment, and deployment version. `pnpm run doctor` checks
-provider configuration without changing it. Live route, TLS, header, preview, and rollback
-acceptance establish production behavior separately.
+provider configuration and live route, TLS, header, release-marker, and fallback behavior without
+changing it. Preview and rollback acceptance run separately because they exercise temporary and
+mutable states.
 
 ### Testing
 

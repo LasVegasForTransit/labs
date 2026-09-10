@@ -35,6 +35,7 @@ and appear in the owning project's operations reference.
 ## Reconciliation
 
 `pnpm provision` owns GitHub and Cloudflare configuration. `pnpm run doctor` compares provider
-configuration with `.lvbt/infrastructure.config.ts` without changing it. A provider dashboard edit
-appears as drift on the next run and returns to the repository-defined state after reviewed
-application.
+configuration with `.lvbt/infrastructure.config.ts` and requests every published route without
+changing either provider. A provider dashboard edit appears as drift on the next run and returns to
+the repository-defined state after reviewed application. A Worker that merely exists does not pass:
+its public route serves a valid release marker identifying that project.

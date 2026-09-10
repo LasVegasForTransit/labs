@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import { deprecateLab, deprecateManifest } from '../src/deprecate.js';
+import { deprecateLab, deprecateManifest, deprecationInput } from '../src/deprecate.js';
 import { LabManifestV1Schema } from '../src/manifest.js';
 import home from '../../../apps/home/lab.config.js';
 
@@ -68,6 +68,28 @@ describe('deprecateManifest', () => {
 });
 
 describe('deprecateLab', () => {
+  it('collects guided fields while JSON input remains non-interactive', async () => {
+    const answers = ['example', details.reason, details.sunset];
+    const questions: string[] = [];
+    const ask = (question: string) => {
+      questions.push(question);
+      return Promise.resolve(answers.shift() ?? '');
+    };
+
+    expect(await deprecationInput([], ask)).toEqual({
+      slug: 'example',
+      apply: false,
+      details,
+    });
+    expect(questions).toEqual([
+      'Lab slug: ',
+      'Reason for deprecation: ',
+      'Sunset date (YYYY-MM-DD): ',
+    ]);
+    await expect(deprecationInput(['--json'], ask)).rejects.toThrow(/slug/i);
+    expect(questions).toHaveLength(3);
+  });
+
   it('plans without writing, applies once, and preserves unrelated source comments', async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'lab-deprecate-'));
     try {

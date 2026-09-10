@@ -31,6 +31,6 @@ export function optionalGitHubRead(root: string, endpoint: string) {
     const stderr =
       typeof error === 'object' && error !== null && 'stderr' in error ? String(error.stderr) : '';
     if (stderr.includes('HTTP 404')) return Promise.resolve(null);
-    return Promise.reject(new Error('GitHub environment read was not confirmed.'));
+    return Promise.reject(new Error('GitHub read was not confirmed.'));
   }
 }
