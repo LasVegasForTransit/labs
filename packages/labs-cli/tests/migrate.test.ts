@@ -115,6 +115,29 @@ test('guided input fills missing fields and JSON calls never prompt', async () =
   expect(questions).toHaveLength(2);
 });
 
+test('guided input asks for the migration phase before its fields', async () => {
+  const answers = ['prepare', 'example', 'LasVegasForTransit/example', '/tmp/example'];
+  const questions: string[] = [];
+  const ask = (question: string) => {
+    questions.push(question);
+    return Promise.resolve(answers.shift() ?? '');
+  };
+
+  expect(await migrationInput([], ask)).toEqual({
+    phase: 'prepare',
+    slug: 'example',
+    repository: 'LasVegasForTransit/example',
+    output: '/tmp/example',
+    apply: false,
+  });
+  expect(questions).toEqual([
+    'Migration phase (prepare, pause, transfer, verify, finalize, rollback): ',
+    'Lab slug: ',
+    'Destination GitHub repository (owner/name): ',
+    'Standalone directory outside Labs: ',
+  ]);
+});
+
 test('pause input requires the exported source commit and no output directory', async () => {
   const commit = 'a'.repeat(40);
   expect(

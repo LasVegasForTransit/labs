@@ -25,6 +25,15 @@ import { migrationRollbackOperations } from './migration-rollback-operations.js'
 
 type MigrationPhase = 'prepare' | 'pause' | 'transfer' | 'verify' | 'finalize' | 'rollback';
 
+const migrationPhases = [
+  'prepare',
+  'pause',
+  'transfer',
+  'verify',
+  'finalize',
+  'rollback',
+] as const satisfies readonly MigrationPhase[];
+
 function migrationFlags(args: string[]) {
   const { values, positionals } = parseArgs({
     args,
@@ -47,16 +56,7 @@ function migrationFlags(args: string[]) {
     },
   });
   if (values.apply && values['dry-run']) throw new Error('Choose --apply or --dry-run.');
-  if (
-    [
-      values.prepare,
-      values.pause,
-      values.transfer,
-      values.verify,
-      values.finalize,
-      values.rollback,
-    ].filter(Boolean).length !== 1
-  )
+  if (migrationPhases.filter((phase) => values[phase]).length > 1)
     throw new Error(
       'Choose exactly one migration phase: --prepare, --pause, --transfer, --verify, --finalize, or --rollback.',
     );
@@ -76,13 +76,8 @@ async function promptedMigrationFields(
     graduated: string | undefined;
   },
   phase: MigrationPhase,
-  ask?: Question,
+  question: Question,
 ) {
-  const prompt =
-    ask === undefined
-      ? createInterface({ input: process.stdin, output: process.stderr })
-      : undefined;
-  const question = ask ?? prompt?.question.bind(prompt);
   const labels = {
     slug: 'Lab slug: ',
     repository: 'Destination GitHub repository (owner/name): ',
@@ -101,14 +96,20 @@ async function promptedMigrationFields(
         : phase === 'finalize'
           ? ['graduated' as const]
           : [];
-  try {
-    if (question !== undefined)
-      for (const key of ['slug' as const, ...projectField, ...phaseField])
-        fields[key] ??= await question(labels[key]);
-  } finally {
-    prompt?.close();
-  }
+  for (const key of ['slug' as const, ...projectField, ...phaseField])
+    fields[key] ??= await question(labels[key]);
   return fields;
+}
+
+async function promptedMigrationPhase(question: Question): Promise<MigrationPhase> {
+  const answer = (
+    await question('Migration phase (prepare, pause, transfer, verify, finalize, rollback): ')
+  )
+    .trim()
+    .toLowerCase();
+  if (!migrationPhases.includes(answer as MigrationPhase))
+    throw new Error(`Choose a migration phase: ${migrationPhases.join(', ')}.`);
+  return answer as MigrationPhase;
 }
 
 function validateMigrationFields(
@@ -135,23 +136,33 @@ function validateMigrationFields(
 }
 
 function selectedPhase(values: {
+  prepare?: boolean;
   pause?: boolean;
   transfer?: boolean;
   verify?: boolean;
   finalize?: boolean;
   rollback?: boolean;
-}): MigrationPhase {
+}): MigrationPhase | undefined {
+  if (values.prepare) return 'prepare';
   if (values.pause) return 'pause';
   if (values.transfer) return 'transfer';
   if (values.verify) return 'verify';
   if (values.finalize) return 'finalize';
   if (values.rollback) return 'rollback';
-  return 'prepare';
+  return undefined;
 }
 
 export async function migrationInput(args: string[], ask?: Question) {
   const { values, positionals } = migrationFlags(args);
-  const phase = selectedPhase(values);
+  const interactive = !values.json && (ask !== undefined || process.stdin.isTTY);
+  const prompt =
+    interactive && ask === undefined
+      ? createInterface({ input: process.stdin, output: process.stderr })
+      : undefined;
+  const question = interactive
+    ? (ask ?? (prompt === undefined ? undefined : (label: string) => prompt.question(label)))
+    : undefined;
+  let phase = selectedPhase(values);
   const fields = {
     slug: values.slug ?? positionals[0],
     repository: values.repository,
@@ -159,11 +170,20 @@ export async function migrationInput(args: string[], ask?: Question) {
     sourceCommit: values['source-commit'],
     graduated: values.graduated,
   };
-  const completed =
-    !values.json && (ask !== undefined || process.stdin.isTTY)
-      ? await promptedMigrationFields(fields, phase, ask)
-      : fields;
-  return validateMigrationFields(phase, completed, values.apply === true);
+  try {
+    if (phase === undefined) {
+      if (question === undefined)
+        throw new Error(
+          'Choose exactly one migration phase: --prepare, --pause, --transfer, --verify, --finalize, or --rollback.',
+        );
+      phase = await promptedMigrationPhase(question);
+    }
+    const completed =
+      question === undefined ? fields : await promptedMigrationFields(fields, phase, question);
+    return validateMigrationFields(phase, completed, values.apply === true);
+  } finally {
+    prompt?.close();
+  }
 }
 
 interface MigrationDependencies {
