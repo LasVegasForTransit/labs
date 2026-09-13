@@ -9,6 +9,7 @@ coverage/
 .dev.vars
 .dev.vars.*
 .DS_Store
+.claude/worktrees/
 .astro/
 .astro/
 dist-archive/
