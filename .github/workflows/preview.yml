@@ -48,7 +48,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .wrangler/previews
-          pnpm preview:deploy \
+          pnpm --silent run preview:deploy -- \
             --pull-request "$PULL_REQUEST" \
             --repository "$GITHUB_REPOSITORY" \
             --base "$BASE_SHA" \
