@@ -24,12 +24,15 @@ import type { LabManifestV1 } from './manifest.js';
 import { parseManifestSource } from './manifest-source.js';
 
 type Run = (args: string[], cwd: string, env?: NodeJS.ProcessEnv) => Promise<string>;
+type Wait = (milliseconds: number) => Promise<void>;
 interface DeploymentDependencies {
   run?: Run;
   fetch?: typeof fetch;
   assertCheckout?: typeof assertDeploymentCheckout;
+  wait?: Wait;
 }
 const execute = promisify(execFile);
+const wait: Wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 const run: Run = async (args, cwd, env) => {
   const result = await execute('pnpm', args, {
     cwd,
@@ -140,21 +143,40 @@ async function buildProjects(
   return markers;
 }
 
-async function verifyPublicArtifact(request: typeof fetch, marker: ReleaseMarker): Promise<void> {
+function retryableStatus(status: number) {
+  return status === 404 || status === 429 || status >= 500;
+}
+
+async function verifyPublicArtifact(
+  request: typeof fetch,
+  marker: ReleaseMarker,
+  pause: Wait,
+): Promise<void> {
   const { slug, commit } = marker;
   const base = `https://labs.lasvegasfortransit.org/${slug === 'home' ? '' : `${slug}/`}`;
-  const response = await request(`${base}lvbt-release.json?commit=${commit}`, {
-    redirect: 'manual',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(15000),
-  });
-  await verifyReleaseResponse(response, marker);
-  const page = await request(base, {
-    redirect: 'manual',
-    cache: 'no-store',
-    signal: AbortSignal.timeout(15000),
-  });
-  if (page.status !== 200) throw new Error(`The project page returned HTTP ${page.status}.`);
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const response = await request(`${base}lvbt-release.json?commit=${commit}`, {
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15000),
+    });
+    if (response.status !== 200 && retryableStatus(response.status) && attempt < 11) {
+      await pause(5000);
+      continue;
+    }
+    await verifyReleaseResponse(response, marker);
+    const page = await request(base, {
+      redirect: 'manual',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(15000),
+    });
+    if (page.status === 200) return;
+    if (retryableStatus(page.status) && attempt < 11) {
+      await pause(5000);
+      continue;
+    }
+    throw new Error(`The project page returned HTTP ${page.status}.`);
+  }
 }
 
 async function verifyActiveVersion(
@@ -240,7 +262,7 @@ export function cloudflareDeployment(
           JSON.parse(await wrangler(slug, ['versions', 'view', receipt.version, '--json'])),
           receipt.version,
         );
-      await verifyPublicArtifact(request, expected);
+      await verifyPublicArtifact(request, expected, dependencies.wait ?? wait);
       await verifyActiveVersion(currentVersion, slug, receipt.version);
       await journal(slug, { phase: 'verified', ...receipt });
     },

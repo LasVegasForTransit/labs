@@ -145,9 +145,14 @@ test('seals the build, journals rollback state before upload, and verifies the s
       JSON.stringify({ name: 'lvbt-labs-home', assets: { directory: './dist' } }),
     );
     let uploaded = false;
+    let markerRequests = 0;
     const urls: string[] = [];
     const operations = cloudflareDeployment(root, 'a'.repeat(40), ['home'], {
       assertCheckout() {},
+      wait(milliseconds) {
+        expect(milliseconds).toBe(5000);
+        return Promise.resolve();
+      },
       async run(args, cwd, env) {
         if (args[1] === 'turbo') {
           expect(cwd).toBe(root);
@@ -184,11 +189,14 @@ test('seals the build, journals rollback state before upload, and verifies the s
           typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
         urls.push(url);
         expect(options?.redirect).toBe('manual');
-        return url.includes('lvbt-release.json')
-          ? Response.json(
-              JSON.parse(await readFile(path.join(app, 'dist/lvbt-release.json'), 'utf8')),
-            )
-          : new Response('<h1>Labs</h1>');
+        if (url.includes('lvbt-release.json')) {
+          markerRequests += 1;
+          if (markerRequests === 1) return new Response('Not found', { status: 404 });
+          return Response.json(
+            JSON.parse(await readFile(path.join(app, 'dist/lvbt-release.json'), 'utf8')),
+          );
+        }
+        return new Response('<h1>Labs</h1>');
       },
     });
     const result = await deployProjects(
@@ -201,6 +209,7 @@ test('seals the build, journals rollback state before upload, and verifies the s
       version: newVersion,
     });
     expect(urls).toEqual([
+      `https://labs.lasvegasfortransit.org/lvbt-release.json?commit=${'a'.repeat(40)}`,
       `https://labs.lasvegasfortransit.org/lvbt-release.json?commit=${'a'.repeat(40)}`,
       'https://labs.lasvegasfortransit.org/',
     ]);
