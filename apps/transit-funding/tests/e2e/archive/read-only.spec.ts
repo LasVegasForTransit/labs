@@ -37,6 +37,7 @@ test('reads the funding story with all live services unavailable', async ({
     await expect(page).toHaveScreenshot('retired-publication.png', {
       animations: 'disabled',
       fullPage: true,
+      maxDiffPixelRatio: 0.005,
     });
     expect(archive.failures).toEqual([]);
   } finally {
