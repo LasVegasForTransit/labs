@@ -4,7 +4,10 @@ import path from 'node:path';
 import { afterEach, expect, test } from 'vitest';
 import { reconcileResources } from '@lvbt/web-platform/provision';
 import type { LabManifestV1 } from '../src/manifest.js';
-import { provisionWorkerResources } from '../src/provision-providers.js';
+import {
+  provisionWorkerPreviewResources,
+  provisionWorkerResources,
+} from '../src/provision-providers.js';
 
 const roots: string[] = [];
 
@@ -91,4 +94,50 @@ test('rejects a published source lab without Worker configuration', async () => 
   await expect(
     provisionWorkerResources(root, [manifest('map', 'active')], () => Promise.resolve([])),
   ).rejects.toThrow(/wrangler\.jsonc/);
+});
+
+test('manages preview URLs for every Worker still deployed by Labs', async () => {
+  const reads: string[] = [];
+  const writes: Array<{ worker: string; settings: unknown }> = [];
+  const resources = provisionWorkerPreviewResources(
+    [
+      manifest('home', 'active'),
+      manifest('old-map', 'retired'),
+      manifest('draft-map', 'draft'),
+      manifest('graduated-map', 'graduated'),
+    ],
+    (worker) => {
+      reads.push(worker);
+      return Promise.resolve({ enabled: false, previews_enabled: false });
+    },
+    (worker, settings) => {
+      writes.push({ worker, settings });
+      return Promise.resolve();
+    },
+  );
+
+  expect(resources.map(({ id }) => id)).toEqual([
+    'cloudflare.worker-previews.lvbt-labs-home',
+    'cloudflare.worker-previews.lvbt-labs-old-map',
+  ]);
+  await Promise.all(resources.map((resource) => resource.read()));
+  expect(reads).toEqual(['lvbt-labs-home', 'lvbt-labs-old-map']);
+  await Promise.all(
+    resources.map((resource) =>
+      resource.write(
+        { enabled: false, previews_enabled: false },
+        { enabled: false, previews_enabled: true },
+      ),
+    ),
+  );
+  expect(writes).toEqual([
+    {
+      worker: 'lvbt-labs-home',
+      settings: { enabled: false, previews_enabled: true },
+    },
+    {
+      worker: 'lvbt-labs-old-map',
+      settings: { enabled: false, previews_enabled: true },
+    },
+  ]);
 });

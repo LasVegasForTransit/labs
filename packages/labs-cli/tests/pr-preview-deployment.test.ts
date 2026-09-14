@@ -22,6 +22,7 @@ test('accepts only an open same-repository pull request at the checked-out commi
   await expect(
     assertPreviewHead('/repo', identity, {
       checkout: () => commit,
+      clean: () => true,
       pullRequest: () =>
         Promise.resolve({
           state: 'open',
@@ -42,9 +43,24 @@ test.each([
   await expect(
     assertPreviewHead('/repo', identity, {
       checkout: () => commit,
+      clean: () => true,
       pullRequest: () => Promise.resolve(pullRequest),
     }),
   ).rejects.toThrow();
+});
+
+test('rejects uncommitted preview bytes before credentialed work', async () => {
+  await expect(
+    assertPreviewHead('/repo', identity, {
+      checkout: () => commit,
+      clean: () => false,
+      pullRequest: () =>
+        Promise.resolve({
+          state: 'open',
+          head: { sha: commit, repo: { full_name: identity.repository } },
+        }),
+    }),
+  ).rejects.toThrow(/uncommitted/i);
 });
 
 test('verifies the prefixed release marker, page, robots policy, and noindex header', async () => {

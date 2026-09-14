@@ -85,6 +85,7 @@ export async function provision(root: string, args: string[]) {
       'github.preview-enabled',
       'github.analytics-variable',
       'cloudflare.workers',
+      'cloudflare.worker-previews',
       'cloudflare.domain',
       'cloudflare.routes',
       'cloudflare.analytics',

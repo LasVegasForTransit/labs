@@ -31,6 +31,7 @@ const pullRequestSchema = z.object({
 
 interface PreviewIdentityDependencies {
   checkout(root: string): string;
+  clean(root: string): boolean;
   pullRequest(repository: string, pullRequest: number): Promise<unknown>;
 }
 
@@ -41,6 +42,12 @@ const defaultIdentityDependencies: PreviewIdentityDependencies = {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim(),
+  clean: (root) =>
+    execFileSync('git', ['status', '--porcelain', '--untracked-files=normal'], {
+      cwd: root,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim().length === 0,
   pullRequest: (repository, pullRequest) => {
     const output = execFileSync('gh', ['api', `repos/${repository}/pulls/${pullRequest}`], {
       encoding: 'utf8',
@@ -58,6 +65,8 @@ export async function assertPreviewHead(
 ) {
   const identity = identitySchema.parse(input);
   const checkout = dependencies.checkout(root);
+  if (!dependencies.clean(root))
+    throw new Error('Preview publication refuses uncommitted repository changes.');
   const pullRequest = pullRequestSchema.parse(
     await dependencies.pullRequest(identity.repository, identity.pullRequest),
   );
