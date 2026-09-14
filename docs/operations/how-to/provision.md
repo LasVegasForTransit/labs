@@ -53,6 +53,7 @@ The operation creates or reconciles:
 - the production and pull-request preview environments;
 - Actions variables and narrowly scoped deployment secrets;
 - inactive bootstrap versions for missing source-backed Workers;
+- immutable version preview URLs for each Worker deployed by Labs;
 - the Labs custom domain, exact project routes, DNS, and TLS;
 - the shared Cloudflare Web Analytics property;
 - repository metadata consumed by `pnpm run doctor`.

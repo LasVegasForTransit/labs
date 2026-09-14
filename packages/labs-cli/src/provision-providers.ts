@@ -9,6 +9,7 @@ import {
   provisionCustomDomain,
   provisionRoutes,
   provisionWorkerPresence,
+  provisionWorkerPreviewUrls,
 } from '@lvbt/web-platform/cloudflare';
 import {
   githubReader,
@@ -148,6 +149,26 @@ export async function provisionWorkerResources(
     );
   }
   return resources;
+}
+
+export function provisionWorkerPreviewResources(
+  labs: LabManifestV1[],
+  read: (worker: string) => Promise<unknown>,
+  write: (
+    worker: string,
+    settings: { enabled: boolean; previews_enabled: boolean },
+  ) => Promise<void>,
+) {
+  return labs
+    .filter(({ status }) => !['draft', 'graduated'].includes(status))
+    .map(({ slug }) => {
+      const worker = `lvbt-labs-${slug}`;
+      return provisionWorkerPreviewUrls(
+        { name: worker },
+        () => read(worker),
+        (settings) => write(worker, settings),
+      );
+    });
 }
 
 function environmentSecretWriter(
@@ -290,8 +311,15 @@ export async function provisionResourceGroups(root: string, target: Target) {
     await readFile(path.join(root, '.lvbt/web-platform/standards/ruleset.json'), 'utf8'),
   );
   const githubResources = githubResourceGroups(root, target, ruleset);
-  const cloudflareResources = [
-    ...(await provisionWorkerResources(root, labs, () => cloudflare.list(workerScripts))),
+  const workerResources = await provisionWorkerResources(root, labs, () =>
+    cloudflare.list(workerScripts),
+  );
+  const workerPreviewResources = provisionWorkerPreviewResources(
+    labs,
+    (worker) => cloudflare.get(`${workerScripts}/${worker}/subdomain`),
+    (worker, body) => cloudflareWrite('POST', `${workerScripts}/${worker}/subdomain`, body),
+  );
+  const routingResources = [
     provisionCustomDomain(
       {
         ...target,
@@ -305,21 +333,28 @@ export async function provisionResourceGroups(root: string, target: Target) {
       () => cloudflare.list(routes),
       (body) => cloudflareWrite('POST', routes, body),
     ),
-    ...provisionAnalytics(target, {
-      readSites: () => cloudflare.list(analytics),
-      createSite: (body) => cloudflareWrite('POST', `${account}/rum/site_info`, body),
-      readVariables: () => githubResources.github(environmentVariables),
-      writeVariable: (method, endpoint, body) => {
-        if (
-          endpoint !==
-          (method === 'POST'
-            ? environmentVariables
-            : `${environmentVariables}/CLOUDFLARE_WEB_ANALYTICS_TOKEN`)
-        )
-          throw new Error('Analytics variable write is outside the declared target.');
-        return githubResources.write(method, endpoint, body);
-      },
-    }),
   ];
-  return [...githubResources.groups, cloudflareResources];
+  const analyticsResources = provisionAnalytics(target, {
+    readSites: () => cloudflare.list(analytics),
+    createSite: (body) => cloudflareWrite('POST', `${account}/rum/site_info`, body),
+    readVariables: () => githubResources.github(environmentVariables),
+    writeVariable: (method, endpoint, body) => {
+      if (
+        endpoint !==
+        (method === 'POST'
+          ? environmentVariables
+          : `${environmentVariables}/CLOUDFLARE_WEB_ANALYTICS_TOKEN`)
+      )
+        throw new Error('Analytics variable write is outside the declared target.');
+      return githubResources.write(method, endpoint, body);
+    },
+  });
+  return [
+    ...githubResources.groups.slice(0, 2),
+    workerResources,
+    workerPreviewResources,
+    routingResources,
+    analyticsResources,
+    ...githubResources.groups.slice(2),
+  ];
 }
