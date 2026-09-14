@@ -13,8 +13,10 @@ test('preview workflow runs credentialed uploads only for enabled same-repositor
   expect(source).toContain("vars.CLOUDFLARE_PREVIEWS_ENABLED == 'true'");
   expect(source).toContain('environment: preview');
   expect(source).toContain('CLOUDFLARE_PREVIEW_API_TOKEN');
-  expect(source.indexOf('pnpm test:e2e')).toBeLessThan(source.indexOf('pnpm preview:deploy'));
-  expect(source).toContain('pnpm preview:deploy');
+  expect(source.indexOf('pnpm test:e2e')).toBeLessThan(
+    source.indexOf('pnpm --silent run preview:deploy --'),
+  );
+  expect(source).toContain('pnpm --silent run preview:deploy --');
   expect(source).toContain('--apply --json');
 });
 
