@@ -58,6 +58,7 @@ test.each([false, true])(
         guard() {
           guarded = true;
         },
+        wait: () => Promise.resolve(),
         run(args) {
           if (args[0] === 'deployments')
             return Promise.resolve(
@@ -117,6 +118,54 @@ test.each([false, true])(
     }
   },
 );
+
+test('waits for the selected version to reach the public route', async () => {
+  let markerRequests = 0;
+  let waits = 0;
+  const operations = rollbackCloudflare('/unused', LabManifestV1Schema.parse(home), {
+    guard() {},
+    wait() {
+      waits += 1;
+      return Promise.resolve();
+    },
+    run(args) {
+      if (args[0] === 'deployments')
+        return Promise.resolve(
+          JSON.stringify([
+            {
+              created_on: '2026-09-05T00:00:00Z',
+              versions: [{ version_id: version, percentage: 100 }],
+            },
+          ]),
+        );
+      if (args[1] === 'view')
+        return Promise.resolve(
+          JSON.stringify({
+            id: version,
+            annotations: { 'workers/message': `Commit ${input.commit}` },
+          }),
+        );
+      throw new Error(`Unexpected Wrangler command: ${args.join(' ')}`);
+    },
+    fetch(url) {
+      const address = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+      if (!address.includes('lvbt-release.json')) return Promise.resolve(new Response('Labs'));
+      markerRequests += 1;
+      return Promise.resolve(
+        Response.json({
+          formatVersion: 1,
+          slug: 'home',
+          commit: markerRequests === 1 ? 'b'.repeat(40) : input.commit,
+          artifactHash: 'c'.repeat(64),
+        }),
+      );
+    },
+  });
+
+  expect((await rollbackWorker(input, operations)).ok).toBe(true);
+  expect(markerRequests).toBe(2);
+  expect(waits).toBe(1);
+});
 
 test('retired projects cannot restore write-capable versions', async () => {
   const manifest = LabManifestV1Schema.parse({
