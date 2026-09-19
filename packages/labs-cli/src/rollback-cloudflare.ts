@@ -17,6 +17,7 @@ export function rollbackCloudflare(
     run?: Run;
     fetch?: typeof fetch;
     guard?: () => void;
+    wait?: (milliseconds: number) => Promise<void>;
   } = {},
 ): RollbackOperations {
   const worker = `lvbt-labs-${manifest.slug}`;
@@ -32,6 +33,9 @@ export function rollbackCloudflare(
         })
       ).stdout);
   const request = dependencies.fetch ?? fetch;
+  const wait =
+    dependencies.wait ??
+    ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
   const guard =
     dependencies.guard ??
     (() =>
@@ -77,7 +81,7 @@ export function rollbackCloudflare(
     async verify(input) {
       if ((await current()) !== input.version)
         throw new Error('The requested rollback version is not active.');
-      await verifyRollbackRoute(request, input, artifactHash);
+      await verifyRollbackRoute(request, input, artifactHash, wait);
       if ((await current()) !== input.version)
         throw new Error('The active version changed during route verification.');
     },
@@ -103,6 +107,8 @@ async function verifyRollbackRoute(
   request: typeof fetch,
   input: RollbackInput,
   artifactHash?: string,
+  wait: (milliseconds: number) => Promise<void> = (milliseconds) =>
+    new Promise((resolve) => setTimeout(resolve, milliseconds)),
 ) {
   const base = `https://labs.lasvegasfortransit.org/${input.slug === 'home' ? '' : `${input.slug}/`}`;
   const options = {
@@ -110,9 +116,37 @@ async function verifyRollbackRoute(
     cache: 'no-store' as const,
     signal: AbortSignal.timeout(15000),
   };
+  const target = { base, options, input, artifactHash };
+  let lastError = 'The rollback route does not serve the requested source commit.';
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const markerError = await rollbackMarkerError(request, target);
+    lastError = markerError ?? (await rollbackPageError(request, base, options));
+    if (lastError === '') return;
+    if (attempt < 11) await wait(5000);
+  }
+  throw new Error(lastError);
+}
+
+function retryableStatus(status: number) {
+  return status === 404 || status === 429 || status >= 500;
+}
+
+async function rollbackMarkerError(
+  request: typeof fetch,
+  target: {
+    base: string;
+    options: RequestInit;
+    input: RollbackInput;
+    artifactHash: string | undefined;
+  },
+) {
+  const { base, options, input, artifactHash } = target;
   const marker = await request(`${base}lvbt-release.json?commit=${input.commit}`, options);
-  if (marker.status !== 200)
-    throw new Error(`Rollback release marker returned HTTP ${marker.status}.`);
+  if (marker.status !== 200) {
+    const message = `Rollback release marker returned HTTP ${marker.status}.`;
+    if (!retryableStatus(marker.status)) throw new Error(message);
+    return message;
+  }
   const parsed = z
     .object({
       formatVersion: z.literal(1),
@@ -121,10 +155,16 @@ async function verifyRollbackRoute(
       artifactHash: z.string().regex(/^[a-f0-9]{64}$/),
     })
     .safeParse(await marker.json());
-  if (!parsed.success)
-    throw new Error('The rollback route does not serve the requested source commit.');
+  if (!parsed.success) return 'The rollback route does not serve the requested source commit.';
   if (artifactHash !== undefined && parsed.data.artifactHash !== artifactHash)
-    throw new Error('The rollback route does not serve the recorded retirement archive.');
+    return 'The rollback route does not serve the recorded retirement archive.';
+  return null;
+}
+
+async function rollbackPageError(request: typeof fetch, base: string, options: RequestInit) {
   const page = await request(base, { ...options, signal: AbortSignal.timeout(15000) });
-  if (page.status !== 200) throw new Error(`Rollback project page returned HTTP ${page.status}.`);
+  if (page.status === 200) return '';
+  const message = `Rollback project page returned HTTP ${page.status}.`;
+  if (!retryableStatus(page.status)) throw new Error(message);
+  return message;
 }
