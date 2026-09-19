@@ -7,6 +7,43 @@ import { discoverLabs, validateManifestForDirectory, type LabManifestV1 } from '
 import type { rollbackLab } from './rollback-command.js';
 
 const commands = ['dev', 'preview', 'check', 'status'] as const;
+const supportedCommands = [
+  'create',
+  ...commands,
+  'provision',
+  'doctor',
+  'deprecate',
+  'retire',
+  'migrate',
+  'rollback',
+] as const;
+const usage = `pnpm lab <${supportedCommands.join('|')}> [options]`;
+const help = `LVBT Labs project lifecycle and development tools.
+
+Usage:
+  pnpm lab <command> [options]
+
+Commands:
+  create                Plan or create a lab project
+  dev <slug>            Start a lab's development server
+  preview <slug>        Build and serve a lab locally
+  check <slug>          Run a lab's complete validation gate
+  status <slug>         Print a lab's validated manifest
+  provision             Plan or apply managed infrastructure
+  doctor [slug]         Inspect infrastructure without changing it
+  deprecate <slug>      Plan or apply a deprecation
+  retire <slug>         Prepare, verify, or finalize an archive
+  migrate <slug>        Prepare, transfer, verify, or finalize a migration
+  rollback <slug>       Restore a previous Worker version
+
+Common options:
+  --json                Print structured output
+  --dry-run             Plan without changing state
+  --apply               Apply the planned change
+  -h, --help            Show this help
+
+Command flags and examples: docs/development/reference/commands.md
+`;
 export const projectCheckScripts = ['lint', 'check-types', 'test', 'build', 'test:e2e'] as const;
 
 type LabCommandName = (typeof commands)[number];
@@ -23,7 +60,7 @@ export interface ParsedLabCommand {
 export function parseLabCommand(arguments_: readonly string[]): ParsedLabCommand {
   const [command, ...tokens] = arguments_;
   if (command === undefined || !commands.includes(command as LabCommandName)) {
-    throw new Error(`Usage: pnpm lab <${commands.join('|')}> [slug] [--json]`);
+    throw new Error(`Usage: ${usage}`);
   }
 
   let slug: string | undefined;
@@ -219,5 +256,6 @@ async function main(): Promise<void> {
 
 const entry = process.argv[1];
 if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
-  void main();
+  if (process.argv[2] === '--help' || process.argv[2] === '-h') process.stdout.write(help);
+  else void main();
 }
