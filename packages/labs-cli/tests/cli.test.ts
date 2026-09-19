@@ -1,3 +1,6 @@
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,6 +10,52 @@ import {
   projectFilter,
   runProjectChecks,
 } from '../src/cli.js';
+
+const cliPath = fileURLToPath(new URL('../src/cli.ts', import.meta.url));
+const tsxPath = fileURLToPath(new URL('../../../node_modules/.bin/tsx', import.meta.url));
+
+function runCli(...arguments_: string[]) {
+  return spawnSync(tsxPath, [cliPath, ...arguments_], {
+    encoding: 'utf8',
+  });
+}
+
+describe('command-line help', () => {
+  it('documents every supported command and exits successfully', () => {
+    const result = runCli('--help');
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe('');
+    for (const command of [
+      'create',
+      'dev',
+      'preview',
+      'check',
+      'status',
+      'provision',
+      'doctor',
+      'deprecate',
+      'retire',
+      'migrate',
+      'rollback',
+    ]) {
+      expect(result.stdout).toMatch(new RegExp(`^  ${command}(?: |$)`, 'm'));
+    }
+  });
+
+  it('keeps invalid-command errors machine-readable with --json', () => {
+    const result = runCli('launch', '--json');
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toBe('');
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      command: 'launch',
+      ok: false,
+      changed: false,
+      errors: [expect.stringContaining('Usage: pnpm lab')],
+    });
+  });
+});
 
 describe('commandResultExitCode', () => {
   it('fails the process when a lifecycle operation reports failure', () => {
