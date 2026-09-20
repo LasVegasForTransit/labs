@@ -1536,22 +1536,13 @@ packages:
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
   '@lasvegasfortransit/analytics@0.1.0':
-    resolution: {integrity: sha512-i8tsAi7cGjBtPQUozrgEJYNZJS6qaixRkW2LoqEr+xwPRp0EkSygsNsh2PPif8CwQRIjD3dED/H2ZsHqepZtFw==}
+    resolution: {integrity: sha512-K59fZ8eY/CH24MmbvwVMPD57Sqx5eV4w1jwCWAwdgzpYJx6tmDgcO3hn48tFBrpfZUJhiqXSAzMPgjj3elNeXw==, tarball: https://npm.pkg.github.com/download/@lasvegasfortransit/analytics/0.1.0/f2fce6c94d49786e6f61711b2c35dab104e90e2e}
     hasBin: true
     peerDependencies:
       '@playwright/test': '>=1.62 <2'
       astro: '>=6 <8'
       react: '>=18 <20'
       vite: '>=6 <9'
-    peerDependenciesMeta:
-      '@playwright/test':
-        optional: true
-      astro:
-        optional: true
-      react:
-        optional: true
-      vite:
-        optional: true
 
   '@lvbt/cli@file:.lvbt/web-platform/packages/cli':
     resolution: {directory: .lvbt/web-platform/packages/cli, type: directory}
@@ -4633,7 +4624,7 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.6.0
 
   '@lasvegasfortransit/analytics@0.1.0(@playwright/test@1.62.1)(astro@7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))(react@19.2.8)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))':
-    optionalDependencies:
+    dependencies:
       '@playwright/test': 1.62.1
       astro: 7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
       react: 19.2.8
