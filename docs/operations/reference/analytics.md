@@ -1,7 +1,7 @@
 # Analytics
 
-LVBT Labs uses `@lvbt/analytics` for privacy-preserving measurement. One Cloudflare Web Analytics
-property covers `labs.lasvegasfortransit.org`; the first-party collector at
+LVBT Labs uses `@lasvegasfortransit/analytics` for privacy-preserving measurement. One Cloudflare
+Web Analytics property covers `labs.lasvegasfortransit.org`; the first-party collector at
 `events.lasvegasfortransit.org` accepts the package's typed conversion events. Projects do not load
 independent trackers.
 

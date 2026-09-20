@@ -1,4 +1,4 @@
-import type { AnalyticsHandle } from '@lvbt/analytics';
+import type { AnalyticsHandle } from '@lasvegasfortransit/analytics';
 
 export const LABS_SITE = 'labs.lasvegasfortransit.org';
 
@@ -14,6 +14,6 @@ export async function initLabsAnalytics(
   const normalized = token?.trim();
   if (!normalized) return undefined;
 
-  const { init } = await import('@lvbt/analytics');
+  const { init } = await import('@lasvegasfortransit/analytics');
   return init({ site: LABS_SITE, token: normalized });
 }

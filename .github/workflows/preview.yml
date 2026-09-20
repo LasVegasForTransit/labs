@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 concurrency:
   group: preview-pr-${{ github.event.pull_request.number }}
@@ -25,6 +26,7 @@ jobs:
     environment: preview
     permissions:
       contents: read
+      packages: read
       pull-requests: write
     steps:
       - name: Checkout proposed commit

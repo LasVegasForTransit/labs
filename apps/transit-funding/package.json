@@ -15,7 +15,7 @@
     "test:archive": "playwright test --config playwright.archive.config.ts"
   },
   "dependencies": {
-    "@lvbt/analytics": "catalog:",
+    "@lasvegasfortransit/analytics": "catalog:",
     "@lvbt/brand": "workspace:*",
     "@lvbt/ui": "workspace:*",
     "react": "catalog:",

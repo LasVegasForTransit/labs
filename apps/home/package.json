@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "catalog:",
-    "@lvbt/analytics": "catalog:",
+    "@lasvegasfortransit/analytics": "catalog:",
     "@lvbt/brand": "workspace:*",
     "@lvbt/labs-cli": "workspace:*",
     "@lvbt/ui": "workspace:*",

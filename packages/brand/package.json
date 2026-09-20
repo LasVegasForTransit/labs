@@ -10,7 +10,7 @@
     "./assets/*": "./assets/*"
   },
   "dependencies": {
-    "@lvbt/analytics": "catalog:"
+    "@lasvegasfortransit/analytics": "catalog:"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
