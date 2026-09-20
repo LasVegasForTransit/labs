@@ -13,10 +13,21 @@ import {
 
 const cliPath = fileURLToPath(new URL('../src/cli.ts', import.meta.url));
 const tsxPath = fileURLToPath(new URL('../../../node_modules/.bin/tsx', import.meta.url));
+const repositoryRoot = fileURLToPath(new URL('../../..', import.meta.url));
+const ptyRunner = fileURLToPath(new URL('../test-support/pty-run.py', import.meta.url));
 
 function runCli(...arguments_: string[]) {
   return spawnSync(tsxPath, [cliPath, ...arguments_], {
     encoding: 'utf8',
+  });
+}
+
+function runGuidedCli(steps: { expect: string; send: string }[], ...arguments_: string[]) {
+  return spawnSync('python3', [ptyRunner, tsxPath, cliPath, ...arguments_], {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    env: { ...process.env, FORCE_COLOR: '0' },
+    input: JSON.stringify(steps),
   });
 }
 
@@ -54,6 +65,53 @@ describe('command-line help', () => {
       changed: false,
       errors: [expect.stringContaining('Usage: pnpm lab')],
     });
+  });
+
+  it('reports an applied creation failure as potentially changed', () => {
+    const result = runCli(
+      'create',
+      '--manifest',
+      '/definitely/missing/lvbt-create-manifest.json',
+      '--apply',
+      '--json',
+    );
+
+    expect(result.status).toBe(2);
+    expect(result.stderr).toBe('');
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      command: 'create',
+      ok: false,
+      changed: null,
+    });
+  });
+});
+
+describe('guided command-line workflows', () => {
+  it('collects a complete creation plan through a real terminal', () => {
+    const steps = [
+      ['Permanent slug (lowercase kebab-case):', 'guided-pty-example'],
+      ['Project name:', 'Guided PTY example'],
+      ['Public summary:', 'A generated project exercised through a real terminal.'],
+      ['Profile (site or app):', 'site'],
+      ['Kind (tool, visualization, or publication):', 'publication'],
+      ['Maintainer GitHub usernames (comma-separated):', 'lvbt-maintainer'],
+      ['Preview image public path:', '/guided-pty-example/preview.png'],
+      ['Preview image description:', 'A preview of the generated project'],
+      ['Content license:', 'CC-BY-4.0'],
+      ['Data license:', 'CC0-1.0'],
+      ['Asset license:', 'CC-BY-4.0'],
+    ];
+
+    const result = runGuidedCli(
+      steps.map(([expect_, send]) => ({ expect: expect_ ?? '', send: send ?? '' })),
+      'create',
+      '--dry-run',
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Permanent slug (lowercase kebab-case):');
+    expect(result.stdout).toContain('Asset license:');
+    expect(result.stdout).toContain('Planned apps/guided-pty-example (site, draft, unlisted).');
   });
 });
 

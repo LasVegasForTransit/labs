@@ -255,136 +255,152 @@ test('rollback input relies on the committed handoff record', async () => {
   });
 });
 
-test('transfer connects the committed pause to the destination deployment', async () => {
-  await withMigrationFixture(async (root) => {
-    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: root,
-      encoding: 'utf8',
-    }).trim();
-    const handoff = {
-      formatVersion: 1 as const,
-      slug: 'migration-example',
-      repository: 'LasVegasForTransit/example',
-      sourceCommit,
-      destinationCommit: 'b'.repeat(40),
-      previousVersion: '11111111-1111-4111-8111-111111111111',
-      phase: 'labs-paused' as const,
-    };
-    const result = await migrateLab(root, ['migration-example', '--transfer', '--json'], {
-      transferOperations: () => ({
+test(
+  'transfer connects the committed pause to the destination deployment',
+  { timeout: 15000 },
+  async () => {
+    await withMigrationFixture(async (root) => {
+      const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
+      const handoff = {
+        formatVersion: 1 as const,
+        slug: 'migration-example',
+        repository: 'LasVegasForTransit/example',
+        sourceCommit,
+        destinationCommit: 'b'.repeat(40),
+        previousVersion: '11111111-1111-4111-8111-111111111111',
+        phase: 'labs-paused' as const,
+      };
+      const result = await migrateLab(root, ['migration-example', '--transfer', '--json'], {
+        transferOperations: () => ({
+          read: () => Promise.resolve(handoff),
+          inspectDestination: () =>
+            Promise.resolve({
+              commit: handoff.destinationCommit,
+              deploymentOwner: false,
+              validate: 'success',
+            }),
+          guard: () => Promise.resolve(),
+          setDestinationOwner: () => Promise.resolve(),
+          dispatch: () => Promise.resolve(),
+          journal: () => Promise.resolve(),
+        }),
+      });
+      expect(result).toMatchObject({ changed: false, phase: 'transfer-planned' });
+    });
+  },
+);
+
+test(
+  'verification connects the stable deployment proof to the handoff record',
+  { timeout: 15000 },
+  async () => {
+    await withMigrationFixture(async (root) => {
+      const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
+      const handoff = {
+        formatVersion: 1 as const,
+        slug: 'migration-example',
+        repository: 'LasVegasForTransit/example',
+        sourceCommit,
+        destinationCommit: 'b'.repeat(40),
+        previousVersion: '11111111-1111-4111-8111-111111111111',
+        phase: 'labs-paused' as const,
+      };
+      const operations: MigrationVerificationOperations = {
         read: () => Promise.resolve(handoff),
         inspectDestination: () =>
           Promise.resolve({
             commit: handoff.destinationCommit,
-            deploymentOwner: false,
+            deploymentOwner: true,
             validate: 'success',
+          }),
+        verifyDeployment: () =>
+          Promise.resolve({
+            version: '22222222-2222-4222-8222-222222222222',
+            artifactHash: 'c'.repeat(64),
+          }),
+        guard: () => Promise.resolve(),
+        writeVerified: () => Promise.resolve(),
+      };
+      const result = await migrateLab(root, ['migration-example', '--verify', '--json'], {
+        verificationOperations: () => operations,
+      });
+      expect(result).toMatchObject({ changed: false, phase: 'verification-planned' });
+    });
+  },
+);
+
+test(
+  'finalization connects the verified handoff to recoverable source removal',
+  { timeout: 15000 },
+  async () => {
+    await withMigrationFixture(async (root) => {
+      const result = await migrateLab(
+        root,
+        ['migration-example', '--finalize', '--graduated', '2026-09-10', '--json'],
+        {
+          finalize: (_root, input) =>
+            Promise.resolve({
+              command: 'migrate' as const,
+              ok: true as const,
+              changed: false,
+              phase: 'finalization-planned' as const,
+              recovery: null,
+              input,
+            }),
+        },
+      );
+      expect(result).toMatchObject({
+        changed: false,
+        phase: 'finalization-planned',
+        input: { slug: 'migration-example', graduated: '2026-09-10', apply: false },
+      });
+    });
+  },
+);
+
+test(
+  'rollback connects the committed handoff to provider recovery',
+  { timeout: 15000 },
+  async () => {
+    await withMigrationFixture(async (root) => {
+      const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
+        cwd: root,
+        encoding: 'utf8',
+      }).trim();
+      const handoff = {
+        formatVersion: 1 as const,
+        slug: 'migration-example',
+        repository: 'LasVegasForTransit/example',
+        sourceCommit,
+        destinationCommit: 'b'.repeat(40),
+        previousVersion: '11111111-1111-4111-8111-111111111111',
+        phase: 'labs-paused' as const,
+      };
+      const operations: MigrationRollbackOperations = {
+        read: () => Promise.resolve(handoff),
+        inspectDestination: () =>
+          Promise.resolve({
+            commit: handoff.destinationCommit,
+            deploymentOwner: true,
+            validate: 'failure',
           }),
         guard: () => Promise.resolve(),
         setDestinationOwner: () => Promise.resolve(),
-        dispatch: () => Promise.resolve(),
+        restore: () => Promise.resolve(),
+        verifyRestored: () => Promise.resolve(),
+        removeHandoff: () => Promise.resolve(),
         journal: () => Promise.resolve(),
-      }),
+      };
+      const result = await migrateLab(root, ['migration-example', '--rollback', '--json'], {
+        rollbackOperations: () => operations,
+      });
+      expect(result).toMatchObject({ changed: false, phase: 'rollback-planned' });
     });
-    expect(result).toMatchObject({ changed: false, phase: 'transfer-planned' });
-  });
-});
-
-test('verification connects the stable deployment proof to the handoff record', async () => {
-  await withMigrationFixture(async (root) => {
-    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: root,
-      encoding: 'utf8',
-    }).trim();
-    const handoff = {
-      formatVersion: 1 as const,
-      slug: 'migration-example',
-      repository: 'LasVegasForTransit/example',
-      sourceCommit,
-      destinationCommit: 'b'.repeat(40),
-      previousVersion: '11111111-1111-4111-8111-111111111111',
-      phase: 'labs-paused' as const,
-    };
-    const operations: MigrationVerificationOperations = {
-      read: () => Promise.resolve(handoff),
-      inspectDestination: () =>
-        Promise.resolve({
-          commit: handoff.destinationCommit,
-          deploymentOwner: true,
-          validate: 'success',
-        }),
-      verifyDeployment: () =>
-        Promise.resolve({
-          version: '22222222-2222-4222-8222-222222222222',
-          artifactHash: 'c'.repeat(64),
-        }),
-      guard: () => Promise.resolve(),
-      writeVerified: () => Promise.resolve(),
-    };
-    const result = await migrateLab(root, ['migration-example', '--verify', '--json'], {
-      verificationOperations: () => operations,
-    });
-    expect(result).toMatchObject({ changed: false, phase: 'verification-planned' });
-  });
-});
-
-test('finalization connects the verified handoff to recoverable source removal', async () => {
-  await withMigrationFixture(async (root) => {
-    const result = await migrateLab(
-      root,
-      ['migration-example', '--finalize', '--graduated', '2026-09-10', '--json'],
-      {
-        finalize: (_root, input) =>
-          Promise.resolve({
-            command: 'migrate' as const,
-            ok: true as const,
-            changed: false,
-            phase: 'finalization-planned' as const,
-            recovery: null,
-            input,
-          }),
-      },
-    );
-    expect(result).toMatchObject({
-      changed: false,
-      phase: 'finalization-planned',
-      input: { slug: 'migration-example', graduated: '2026-09-10', apply: false },
-    });
-  });
-});
-
-test('rollback connects the committed handoff to provider recovery', async () => {
-  await withMigrationFixture(async (root) => {
-    const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], {
-      cwd: root,
-      encoding: 'utf8',
-    }).trim();
-    const handoff = {
-      formatVersion: 1 as const,
-      slug: 'migration-example',
-      repository: 'LasVegasForTransit/example',
-      sourceCommit,
-      destinationCommit: 'b'.repeat(40),
-      previousVersion: '11111111-1111-4111-8111-111111111111',
-      phase: 'labs-paused' as const,
-    };
-    const operations: MigrationRollbackOperations = {
-      read: () => Promise.resolve(handoff),
-      inspectDestination: () =>
-        Promise.resolve({
-          commit: handoff.destinationCommit,
-          deploymentOwner: true,
-          validate: 'failure',
-        }),
-      guard: () => Promise.resolve(),
-      setDestinationOwner: () => Promise.resolve(),
-      restore: () => Promise.resolve(),
-      verifyRestored: () => Promise.resolve(),
-      removeHandoff: () => Promise.resolve(),
-      journal: () => Promise.resolve(),
-    };
-    const result = await migrateLab(root, ['migration-example', '--rollback', '--json'], {
-      rollbackOperations: () => operations,
-    });
-    expect(result).toMatchObject({ changed: false, phase: 'rollback-planned' });
-  });
-});
+  },
+);

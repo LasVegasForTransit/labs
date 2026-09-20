@@ -154,7 +154,7 @@ function printCommandError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   if (process.argv.includes('--json')) {
     const changed =
-      ['retire', 'migrate', 'provision'].includes(process.argv[2] ?? '') &&
+      ['create', 'retire', 'migrate', 'provision'].includes(process.argv[2] ?? '') &&
       process.argv.includes('--apply')
         ? null
         : false;

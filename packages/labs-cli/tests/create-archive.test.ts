@@ -37,9 +37,27 @@ test.each(['site', 'app'])(
       );
       expect(files?.['playwright.archive.config.ts']).toContain('./tests/e2e/archive');
       expect(files?.['playwright.config.ts']).toContain('testIgnore');
-      expect(files?.['tests/e2e/archive/read-only.spec.ts']).toContain('createArchiveContext');
-      expect(files?.['tests/e2e/archive/read-only.spec.ts']).toContain('archive.failures');
-      expect(files?.['tests/e2e/archive/read-only.spec.ts']).toContain('page.reload()');
+      const browser = String(files?.['tests/e2e/home.spec.ts']);
+      const archive = String(files?.['tests/e2e/archive/read-only.spec.ts']);
+      for (const suite of [browser, archive]) {
+        expect(suite).toContain('expectNoAccessibilityViolations');
+        expect(suite).toContain('monitorPageHealth');
+        expect(suite).toContain("testInfo.snapshotSuffix = 'lvbt'");
+        expect(suite).toContain('toHaveScreenshot');
+        expect(suite).not.toContain('page.screenshot');
+      }
+      expect(archive).toContain('createArchiveContext');
+      expect(archive).toContain('archive.failures');
+      expect(archive).toContain('page.reload()');
+      for (const name of [
+        'tests/e2e/home.spec.ts-snapshots/page-desktop-lvbt.png',
+        'tests/e2e/home.spec.ts-snapshots/page-mobile-lvbt.png',
+        'tests/e2e/archive/read-only.spec.ts-snapshots/archive-desktop-lvbt.png',
+        'tests/e2e/archive/read-only.spec.ts-snapshots/archive-mobile-lvbt.png',
+      ]) {
+        expect(files?.[name]).toBeInstanceOf(Buffer);
+        expect((files?.[name] as Buffer).subarray(1, 4).toString()).toBe('PNG');
+      }
     } finally {
       output.mockRestore();
       vi.mocked(writeProject).mockClear();
