@@ -19,6 +19,21 @@ function jsonObject(content: string) {
   return z.record(z.string(), z.unknown()).parse(result.config);
 }
 
+function configureBrand(files: Tree) {
+  const name = 'packages/brand/package.json';
+  const file = files.get(name);
+  if (file === undefined) return;
+  const brand = jsonObject(file.content.toString());
+  const dependencies = z.record(z.string(), z.string()).parse(brand.devDependencies);
+  dependencies.astro = 'catalog:';
+  brand.devDependencies = dependencies;
+  files.set(name, {
+    content: Buffer.from(`${JSON.stringify(brand, null, 2)}\n`),
+    mode: '100644',
+    generated: true,
+  });
+}
+
 function configureRoot(files: Tree, slug: string, repository: string) {
   const read = (name: string) => {
     const file = files.get(name);
@@ -44,6 +59,7 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   scripts.deploy = `node packages/lab-runtime/src/standalone-deploy-cli.ts ${slug}`;
   pkg.scripts = scripts;
   write('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
+  configureBrand(files);
   write(
     '.prettierignore',
     `${read('.prettierignore').trimEnd()}\n.lvbt/web-platform/\n**/dist-archive/\n**/test-results/\n**/playwright-report/\n`,
@@ -61,6 +77,7 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   write('.markdownlint-cli2.jsonc', `${JSON.stringify(markdown, null, 2)}\n`);
   const turbo = jsonObject(read('turbo.json'));
   const tasks = z.record(z.string(), z.unknown()).parse(turbo.tasks);
+  turbo.globalEnv = [...new Set([...z.array(z.string()).parse(turbo.globalEnv), 'GITHUB_SHA'])];
   tasks['build:archive'] = { dependsOn: ['^build'], outputs: ['dist-archive/**'] };
   tasks['test:archive'] = {
     dependsOn: ['build:archive'],
@@ -98,6 +115,7 @@ function includesSource(name: string, directories: string[]) {
     name.startsWith('.lvbt/web-platform/') ||
     [
       '.lvbt/web-platform.json',
+      '.npmrc',
       'pnpm-workspace.yaml',
       'LICENSE',
       'docs/development/reference/brand-and-ui.md',

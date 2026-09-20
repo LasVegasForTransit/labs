@@ -67,6 +67,12 @@ jobs:
       - name: Browser tests
         run: pnpm test:e2e
 
+      - name: Migrated repository acceptance
+        env:
+          LVBT_MIGRATION_BROWSER_ACCEPTANCE: '1'
+        run: >-
+          pnpm --filter @lvbt/labs-cli exec vitest run tests/migration-export-acceptance.test.ts
+
       - name: Isolated archive tests
         run: pnpm test:archive
 

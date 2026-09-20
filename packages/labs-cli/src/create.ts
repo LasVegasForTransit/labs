@@ -46,15 +46,20 @@ async function templatePackage(reference: string, slug: string, site: boolean) {
 function browserTest(base: string): string {
   return `import { expect, test } from '@playwright/test';
 import { LabManifestV1Schema } from '@lvbt/lab-runtime/manifest';
+import { expectNoAccessibilityViolations } from '@lvbt/playwright-config/accessibility';
+import { monitorPageHealth } from '@lvbt/playwright-config/page-health';
 import config from '../../lab.config';
 const manifest = LabManifestV1Schema.parse(config);
 test('opens at its permanent path', async ({ page }, testInfo) => {
-  const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  testInfo.snapshotSuffix = 'lvbt';
+  const health = monitorPageHealth(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('${base}');
-  await expect(page.locator('h1')).toHaveText(manifest.title);
+  const heading = page.getByRole('heading', { level: 1 });
+  const summary = page.getByText(manifest.summary, { exact: true });
+  await expect(heading).toHaveText(manifest.title);
   await page.reload();
-  await expect(page.locator('h1')).toBeVisible();
+  await expect(heading).toBeVisible();
   if (manifest.status === 'deprecated' || manifest.status === 'retired') {
     const notice = page.getByRole('status');
     await expect(notice).toContainText(manifest.lifecycle?.reason ?? '');
@@ -69,10 +74,29 @@ test('opens at its permanent path', async ({ page }, testInfo) => {
     await expect(page.getByRole('status')).toHaveCount(0);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  expect(errors).toEqual([]);
-  await page.screenshot({ path: testInfo.outputPath('page.png'), fullPage: true });
+  await expectNoAccessibilityViolations(page);
+  await page.addStyleTag({ content: 'h1 { block-size: 3rem; overflow: hidden; } main > p { block-size: 3rem; overflow: hidden; }' });
+  await expect(page).toHaveScreenshot('page.png', {
+    animations: 'disabled',
+    fullPage: true,
+    mask: [heading, summary],
+    maskColor: '#e5471a',
+  });
+  health.assertNoErrors();
 });
 `;
+}
+
+async function visualBaselines(): Promise<Record<string, Buffer>> {
+  const directory = new URL('../templates/generated-project/', import.meta.url);
+  const desktop = await readFile(new URL('page-desktop-lvbt.png', directory));
+  const mobile = await readFile(new URL('page-mobile-lvbt.png', directory));
+  return {
+    'tests/e2e/home.spec.ts-snapshots/page-desktop-lvbt.png': desktop,
+    'tests/e2e/home.spec.ts-snapshots/page-mobile-lvbt.png': mobile,
+    'tests/e2e/archive/read-only.spec.ts-snapshots/archive-desktop-lvbt.png': desktop,
+    'tests/e2e/archive/read-only.spec.ts-snapshots/archive-mobile-lvbt.png': mobile,
+  };
 }
 
 export async function createLab(root: string, args: string[]): Promise<void> {
@@ -87,8 +111,9 @@ export async function createLab(root: string, args: string[]): Promise<void> {
   );
   const pkg = await templatePackage(reference, manifest.slug, site);
   const base = `/${manifest.slug}/`;
-  const files: Record<string, string> = {
+  const files: Record<string, string | Buffer> = {
     ...archiveTemplate(),
+    ...(await visualBaselines()),
     'src/styles.css':
       "@import 'tailwindcss';\n@import '@lvbt/brand/tokens.css';\n@import '@lvbt/ui/lifecycle.css';\nbody { margin: 0; font-family: var(--font-sans); color: var(--color-on-surface); background: var(--color-surface); }\nmain { max-width: 64rem; margin-inline: auto; padding: 2rem 1.5rem; }\nh1 { font-size: 2rem; font-weight: 800; }\n",
     'package.json': JSON.stringify(pkg, null, 2),
