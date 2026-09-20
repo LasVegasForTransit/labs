@@ -67,10 +67,9 @@ test('presents the Labs projects clearly without overflowing', async ({ page }) 
   ).toBeVisible();
   await expect(footer.getByText('Zero miles of rail.', { exact: false })).toBeVisible();
   const utilities = footer.getByRole('navigation', { name: 'Labs utilities' });
-  await expect(utilities.getByRole('link', { name: 'Main website' })).toHaveAttribute(
-    'href',
-    'https://lasvegasfortransit.org/',
-  );
+  await expect(
+    utilities.getByRole('link', { name: 'Las Vegas for Better Transit' }),
+  ).toHaveAttribute('href', 'https://lasvegasfortransit.org/');
   await expect(utilities.getByRole('link', { name: 'Source' })).toHaveAttribute(
     'href',
     'https://github.com/LasVegasForTransit/labs',
