@@ -1,4 +1,4 @@
-import lvbtAnalytics from '@lvbt/analytics/astro';
+import lvbtAnalytics from '@lasvegasfortransit/analytics/astro';
 
 import { LABS_SITE } from '../analytics';
 

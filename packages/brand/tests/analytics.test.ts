@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const init = vi.fn();
 
-vi.mock('@lvbt/analytics', () => ({ init }));
+vi.mock('@lasvegasfortransit/analytics', () => ({ init }));
 
 import { LABS_SITE, initLabsAnalytics } from '../src/analytics';
 import { labsAnalytics } from '../src/analytics/astro';
@@ -23,6 +23,6 @@ describe('Labs analytics', () => {
   });
 
   it('wraps the Astro integration with the same hostname', () => {
-    expect(labsAnalytics().name).toBe('@lvbt/analytics');
+    expect(labsAnalytics().name).toBe('@lasvegasfortransit/analytics');
   });
 });
