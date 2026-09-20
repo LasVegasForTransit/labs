@@ -66,4 +66,6 @@ The shared theme uses `@theme static` to retain semantic CSS variables when comp
 separately. This changes token availability, not brand values.
 
 Brand metadata includes the LVBT organization name, canonical hostname, favicons, social card
-defaults, attribution, and analytics hook. Preview and local builds omit the analytics hook.
+defaults, attribution, and analytics adapters. Astro projects use `@lvbt/brand/analytics/astro`;
+Vite and React projects use `@lvbt/brand/analytics`. Preview, local, and archive builds omit the
+analytics client.

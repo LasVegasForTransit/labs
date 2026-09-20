@@ -24,6 +24,7 @@ overrides:
 # onto different versions of one tool without it showing up as a change here.
 # Renovate keeps it current.
 catalog:
+  '@lvbt/analytics': https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz
   '@astrojs/check': 0.9.10
   '@astrojs/sitemap': 3.7.4
   '@cloudflare/vitest-pool-workers': 0.22.0

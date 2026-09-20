@@ -4,8 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./analytics": "./src/analytics.ts",
+    "./analytics/astro": "./src/analytics/astro.ts",
     "./tokens.css": "./src/tokens.css",
     "./assets/*": "./assets/*"
+  },
+  "dependencies": {
+    "@lvbt/analytics": "catalog:"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",

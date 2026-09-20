@@ -103,7 +103,8 @@ unexpected bindings or retained secrets fail verification and withhold home depl
 
 One Cloudflare Web Analytics property covers the Labs hostname. Production home and project builds
 include the shared beacon; local, test, staging, archive verification, and pull-request builds omit
-it.
+it. The [analytics reference](analytics.md) defines the application, environment, privacy, content
+security, and acceptance contracts.
 
 Projects add no other tracker without an approved manifest exception and a content-security-policy
 update. The standard headers include a restrictive content security policy, MIME sniffing

@@ -265,6 +265,9 @@ catalogs:
     '@astrojs/sitemap':
       specifier: 3.7.4
       version: 3.7.4
+    '@lvbt/analytics':
+      specifier: https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz
+      version: 0.1.0
     '@playwright/test':
       specifier: 1.62.1
       version: 1.62.1
@@ -385,6 +388,9 @@ importers:
       '@astrojs/sitemap':
         specifier: 'catalog:'
         version: 3.7.4
+      '@lvbt/analytics':
+        specifier: 'catalog:'
+        version: https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz(@playwright/test@1.62.1)(astro@7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))(react@19.2.8)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
       '@lvbt/brand':
         specifier: workspace:*
         version: link:../../packages/brand
@@ -443,6 +449,9 @@ importers:
 
   apps/transit-funding:
     dependencies:
+      '@lvbt/analytics':
+        specifier: 'catalog:'
+        version: https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz(@playwright/test@1.62.1)(astro@7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))(react@19.2.8)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
       '@lvbt/brand':
         specifier: workspace:*
         version: link:../../packages/brand
@@ -506,6 +515,10 @@ importers:
         version: 4.127.1(@types/node@24.13.3)
 
   packages/brand:
+    dependencies:
+      '@lvbt/analytics':
+        specifier: 'catalog:'
+        version: https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz(@playwright/test@1.62.1)(astro@7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))(react@19.2.8)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
     devDependencies:
       '@lvbt/eslint-config':
         specifier: file:../../.lvbt/web-platform/packages/eslint-config
@@ -1521,6 +1534,25 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
+
+  '@lvbt/analytics@https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz':
+    resolution: {integrity: sha512-gjQENNq8Qnb2bMzoZ1JV2PVNvsxQB0XeiEF80NGl2m50If1GFe2b8U4vCbkl1ZC7rQeerQPPl/b9PgzaG1EToQ==, tarball: https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz}
+    version: 0.1.0
+    hasBin: true
+    peerDependencies:
+      '@playwright/test': '>=1.62 <2'
+      astro: '>=6 <8'
+      react: '>=18 <20'
+      vite: '>=6 <9'
+    peerDependenciesMeta:
+      '@playwright/test':
+        optional: true
+      astro:
+        optional: true
+      react:
+        optional: true
+      vite:
+        optional: true
 
   '@lvbt/cli@file:.lvbt/web-platform/packages/cli':
     resolution: {directory: .lvbt/web-platform/packages/cli, type: directory}
@@ -4600,6 +4632,13 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@lvbt/analytics@https://github.com/LasVegasForTransit/analytics/releases/download/v0.1.0/lvbt-analytics-0.1.0.tgz(@playwright/test@1.62.1)(astro@7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))(react@19.2.8)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))':
+    optionalDependencies:
+      '@playwright/test': 1.62.1
+      astro: 7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
+      react: 19.2.8
+      vite: 8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)
 
   '@lvbt/cli@file:.lvbt/web-platform/packages/cli': {}
 
