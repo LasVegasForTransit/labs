@@ -5,14 +5,14 @@ names, owners, and recovery procedures without recording values.
 
 ## Platform inventory
 
-| Secret or variable               | Location                   | Purpose                                   | Blast radius                                              |
-| -------------------------------- | -------------------------- | ----------------------------------------- | --------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`           | GitHub `production` secret | Upload Workers and manage declared routes | Labs Workers and routes granted to the token              |
-| `CLOUDFLARE_PREVIEW_API_TOKEN`   | GitHub `preview` secret    | Upload and remove isolated previews       | Worker scripts granted to the token; no production routes |
-| `CLOUDFLARE_ACCOUNT_ID`          | GitHub repository variable | Select the Cloudflare account             | Identifier only                                           |
-| `CLOUDFLARE_ZONE_ID`             | GitHub repository variable | Select the LVBT DNS zone                  | Identifier only                                           |
-| `CLOUDFLARE_WEB_ANALYTICS_TOKEN` | GitHub production variable | Render the production analytics beacon    | Public site measurement only                              |
-| GitHub provisioning session      | Operator credential store  | Reconcile repositories and settings       | Permissions granted to the authenticated user or token    |
+| Secret or variable             | Location                   | Purpose                                   | Blast radius                                              |
+| ------------------------------ | -------------------------- | ----------------------------------------- | --------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`         | GitHub `production` secret | Upload Workers and manage declared routes | Labs Workers and routes granted to the token              |
+| `CLOUDFLARE_PREVIEW_API_TOKEN` | GitHub `preview` secret    | Upload and remove isolated previews       | Worker scripts granted to the token; no production routes |
+| `CLOUDFLARE_ACCOUNT_ID`        | GitHub repository variable | Select the Cloudflare account             | Identifier only                                           |
+| `CLOUDFLARE_ZONE_ID`           | GitHub repository variable | Select the LVBT DNS zone                  | Identifier only                                           |
+| `PUBLIC_LVBT_CWA_TOKEN`        | GitHub production variable | Render the production analytics beacon    | Public site measurement only                              |
+| GitHub provisioning session    | Operator credential store  | Reconcile repositories and settings       | Permissions granted to the authenticated user or token    |
 
 Project-specific credentials appear in the owning project's security reference and production
 environment. A project never reads another project's secret.

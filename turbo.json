@@ -2,7 +2,15 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "globalDependencies": ["catalog/**", "retired/**", "apps/*/lab.config.ts"],
-  "globalEnv": ["CI", "GITHUB_REF", "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT", "GITHUB_SHA"],
+  "globalEnv": [
+    "CI",
+    "GITHUB_REF",
+    "GITHUB_RUN_ID",
+    "GITHUB_RUN_ATTEMPT",
+    "GITHUB_SHA",
+    "LVBT_REQUIRE_ANALYTICS",
+    "PUBLIC_LVBT_CWA_TOKEN"
+  ],
   "globalPassThroughEnv": ["CLOUDFLARE_API_TOKEN"],
   "tasks": {
     "build": {

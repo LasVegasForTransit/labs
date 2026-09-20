@@ -341,9 +341,7 @@ export async function provisionResourceGroups(root: string, target: Target) {
     writeVariable: (method, endpoint, body) => {
       if (
         endpoint !==
-        (method === 'POST'
-          ? environmentVariables
-          : `${environmentVariables}/CLOUDFLARE_WEB_ANALYTICS_TOKEN`)
+        (method === 'POST' ? environmentVariables : `${environmentVariables}/PUBLIC_LVBT_CWA_TOKEN`)
       )
         throw new Error('Analytics variable write is outside the declared target.');
       return githubResources.write(method, endpoint, body);

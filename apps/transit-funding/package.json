@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "build:archive": "vite build --outDir dist-archive",
+    "build:archive": "env PUBLIC_LVBT_CWA_TOKEN= LVBT_REQUIRE_ANALYTICS= vite build --outDir dist-archive && tsx ../../packages/labs-cli/src/check-archive.ts dist-archive",
     "dev": "vite --host 127.0.0.1 --port 4331 --strictPort",
     "preview": "vite preview --host 127.0.0.1 --port 4331 --strictPort",
     "lint": "eslint . --max-warnings 0",
@@ -15,6 +15,7 @@
     "test:archive": "playwright test --config playwright.archive.config.ts"
   },
   "dependencies": {
+    "@lvbt/analytics": "catalog:",
     "@lvbt/brand": "workspace:*",
     "@lvbt/ui": "workspace:*",
     "react": "catalog:",

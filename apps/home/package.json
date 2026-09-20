@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "astro build",
-    "build:archive": "astro build --outDir dist-archive",
+    "build:archive": "env PUBLIC_LVBT_CWA_TOKEN= LVBT_REQUIRE_ANALYTICS= astro build --outDir dist-archive && tsx ../../packages/labs-cli/src/check-archive.ts dist-archive",
     "dev": "astro dev --host 127.0.0.1 --port 4320",
     "preview": "astro preview --host 127.0.0.1 --port 4320",
     "lint": "eslint . --max-warnings 0",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "catalog:",
+    "@lvbt/analytics": "catalog:",
     "@lvbt/brand": "workspace:*",
     "@lvbt/labs-cli": "workspace:*",
     "@lvbt/ui": "workspace:*",

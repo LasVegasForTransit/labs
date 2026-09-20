@@ -40,6 +40,7 @@ operations, product, and security form the first directory level.
 - [Brand and shared UI](development/reference/brand-and-ui.md)
 - [Metadata and discovery](development/reference/metadata-and-discovery.md)
 - [Deployment reference](operations/reference/deployment.md)
+- [Analytics](operations/reference/analytics.md)
 - [Platform resources](operations/reference/platform-resources.md)
 - [Secrets](security/reference/secrets.md)
 

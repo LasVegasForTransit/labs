@@ -62,6 +62,7 @@ Lint, format, TypeScript, and test settings extend the `@lvbt/*` packages from
 | Shared packages contain brand and foundational UI only               | Product behavior remains under project ownership              | `pnpm check` dependency validation |
 | Every published lab declares code, content, data, and asset licenses | MIT does not grant rights to unrelated material               | Manifest validation                |
 | Public slugs survive every lifecycle transition                      | Existing links remain valid                                   | Route and catalog validation       |
+| Shared analytics runs only in production                             | Previews and archives remain private and self-contained       | Build and archive validation       |
 | Root docs cover the platform; app docs cover one project             | Project knowledge remains portable                            | Structure and link checks          |
 | Each document serves one Diátaxis purpose                            | Procedures, facts, teaching, and rationale remain distinct    | Documentation review               |
 
