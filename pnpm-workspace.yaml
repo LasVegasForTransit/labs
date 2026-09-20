@@ -13,6 +13,9 @@ allowBuilds:
 # that is compromised and yanked the same day never reaches a repository.
 minimumReleaseAge: 1440
 
+minimumReleaseAgeExclude:
+  - '@lasvegasfortransit/analytics@0.1.0'
+
 # Temporary transitive pins for published security fixes not yet selected by
 # their direct dependents.
 overrides:
