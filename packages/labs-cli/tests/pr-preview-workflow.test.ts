@@ -14,9 +14,10 @@ test('preview workflow runs credentialed uploads only for enabled same-repositor
   expect(source).toContain('environment: preview');
   expect(source).toContain('CLOUDFLARE_PREVIEW_API_TOKEN');
   expect(source.indexOf('pnpm test:e2e')).toBeLessThan(
-    source.indexOf('pnpm --silent run preview:deploy --'),
+    source.indexOf('pnpm --silent preview:deploy'),
   );
-  expect(source).toContain('pnpm --silent run preview:deploy --');
+  expect(source).toContain('pnpm --silent preview:deploy');
+  expect(source).not.toContain('run preview:deploy --');
   expect(source).toContain('--apply --json');
 });
 
@@ -26,5 +27,6 @@ test('preview cleanup runs from the trusted default branch only after a pull req
   expect(source).toContain('ref: main');
   expect(source).not.toContain('pull_request_target:');
   expect(source).toContain('pnpm preview:cleanup');
+  expect(source).not.toContain('run preview:cleanup --');
   expect(source).toContain('--apply --json');
 });

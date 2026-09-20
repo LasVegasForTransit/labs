@@ -31,6 +31,6 @@ test('runs validation once for each pull request commit', async () => {
 test('captures only structured preview output in the deployment receipt', async () => {
   const source = await readFile(previewWorkflow, 'utf8');
 
-  expect(source).toContain('pnpm --silent run preview:deploy --');
-  expect(source).not.toMatch(/^\s+pnpm preview:deploy/m);
+  expect(source).toContain('pnpm --silent preview:deploy');
+  expect(source).not.toContain('run preview:deploy --');
 });
