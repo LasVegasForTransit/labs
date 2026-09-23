@@ -34,8 +34,13 @@ and appear in the owning project's operations reference.
 
 ## Reconciliation
 
-`pnpm provision` owns GitHub and Cloudflare configuration. `pnpm run doctor` compares provider
-configuration with `.lvbt/infrastructure.config.ts` and requests every published route without
-changing either provider. A provider dashboard edit appears as drift on the next run and returns to
-the repository-defined state after reviewed application. A Worker that merely exists does not pass:
-its public route serves a valid release marker identifying that project.
+`pnpm provision` owns GitHub and Cloudflare configuration for Labs-managed apps. `pnpm run doctor`
+compares provider configuration with `.lvbt/infrastructure.config.ts` and requests every published
+route without changing either provider. A provider dashboard edit appears as drift on the next run
+and returns to the repository-defined state after reviewed application.
+
+Labs-managed Workers serve a release marker identifying their project. An independently owned Worker
+under the Labs hostname is declared in `externalWorkers` with its slug, Worker name, preview policy,
+and a route-specific live probe. Doctor checks its Worker, exact and subtree routes, security
+headers, and probe. Provisioning leaves that Worker's routes and deployment under its source
+repository's control.

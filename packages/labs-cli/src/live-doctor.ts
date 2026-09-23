@@ -3,6 +3,16 @@ import { z } from 'zod';
 interface WorkerIdentity {
   slug: string;
   name: string;
+  externalProbe?: {
+    path: string;
+    status: number;
+    contentType: string;
+  };
+}
+
+interface LivePage extends WorkerIdentity {
+  path: string;
+  marker: string;
 }
 
 export interface LiveCheck {
@@ -21,11 +31,11 @@ const releaseMarker = z
   .strict();
 
 const requiredHeaders = {
-  'permissions-policy': 'camera=(), microphone=(), geolocation=()',
   'referrer-policy': 'strict-origin-when-cross-origin',
   'x-content-type-options': 'nosniff',
-  'x-frame-options': 'DENY',
 } as const;
+
+const requiredPermissions = ['camera=()', 'microphone=()', 'geolocation=()'];
 
 async function check(
   id: string,
@@ -40,8 +50,20 @@ async function check(
 }
 
 function validHeaders(response: Response) {
-  return Object.entries(requiredHeaders).every(
-    ([name, expected]) => response.headers.get(name) === expected,
+  const permissions = response.headers
+    .get('permissions-policy')
+    ?.split(',')
+    .map((directive) => directive.trim());
+  const frameAncestorsNone = response.headers
+    .get('content-security-policy')
+    ?.split(';')
+    .some((directive) => directive.trim() === "frame-ancestors 'none'");
+  return (
+    Object.entries(requiredHeaders).every(
+      ([name, expected]) => response.headers.get(name) === expected,
+    ) &&
+    requiredPermissions.every((directive) => permissions?.includes(directive)) &&
+    (response.headers.get('x-frame-options') === 'DENY' || frameAncestorsNone === true)
   );
 }
 
@@ -52,6 +74,40 @@ function validExactRoute(response: Response, origin: string, expectedPath: strin
   if (location === null) return false;
   const destination = new URL(location, origin);
   return destination.origin === origin && destination.pathname === expectedPath;
+}
+
+async function validExternalRoute(page: LivePage, get: (path: string) => Promise<Response>) {
+  const probe = page.externalProbe;
+  if (probe === undefined) return false;
+  const response = await get(probe.path);
+  return (
+    response.status === probe.status &&
+    response.headers.get('content-type')?.startsWith(probe.contentType) === true &&
+    (await get(`/${page.slug}-other/`)).status === 404
+  );
+}
+
+async function validRoutes(
+  pages: LivePage[],
+  markers: Map<string, Promise<boolean>>,
+  get: (path: string) => Promise<Response>,
+  origin: string,
+) {
+  if ((await get('/not-a-lab')).status !== 404) return false;
+  for (const page of pages) {
+    if ((await get(page.path)).status !== 200) return false;
+    const identityValid =
+      page.externalProbe === undefined
+        ? await markers.get(page.slug)
+        : await validExternalRoute(page, get);
+    if (!identityValid) return false;
+    if (
+      page.slug !== 'home' &&
+      !validExactRoute(await get(`/${page.slug}`), origin, `/${page.slug}/`)
+    )
+      return false;
+  }
+  return true;
 }
 
 export async function liveDoctor(
@@ -80,32 +136,22 @@ export async function liveDoctor(
     marker: worker.slug === 'home' ? '/lvbt-release.json' : `/${worker.slug}/lvbt-release.json`,
   }));
   const markerResults = new Map(
-    pages.map(({ slug, marker }) => [
-      slug,
-      get(marker).then(async (response) => {
-        if (response.status !== 200) return false;
-        try {
-          const parsed = releaseMarker.safeParse(await response.json());
-          return parsed.success && parsed.data.slug === slug;
-        } catch {
-          return false;
-        }
-      }),
-    ]),
+    pages
+      .filter(({ externalProbe }) => externalProbe === undefined)
+      .map(({ slug, marker }) => [
+        slug,
+        get(marker).then(async (response) => {
+          if (response.status !== 200) return false;
+          try {
+            const parsed = releaseMarker.safeParse(await response.json());
+            return parsed.success && parsed.data.slug === slug;
+          } catch {
+            return false;
+          }
+        }),
+      ]),
   );
-  const routes = async () => {
-    if ((await get('/not-a-lab')).status !== 404) return false;
-    for (const page of pages) {
-      if ((await get(page.path)).status !== 200 || !(await markerResults.get(page.slug)))
-        return false;
-      if (
-        page.slug !== 'home' &&
-        !validExactRoute(await get(`/${page.slug}`), origin, `/${page.slug}/`)
-      )
-        return false;
-    }
-    return true;
-  };
+  const routes = () => validRoutes(pages, markerResults, get, origin);
 
   return Promise.all([
     check(
@@ -119,7 +165,7 @@ export async function liveDoctor(
     }),
     check(
       'live.release-markers',
-      'Every published Worker serves its own valid release marker.',
+      'Every Labs-owned published Worker serves its own valid release marker.',
       async () => (await Promise.all(markerResults.values())).every(Boolean),
     ),
     check(

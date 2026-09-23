@@ -2,6 +2,7 @@ import { execFile, execFileSync } from 'node:child_process';
 import { lstat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { z } from 'zod';
 import {
   cloudflareCredential,
   cloudflareReader,
@@ -47,6 +48,29 @@ interface Target {
   zoneId: string;
   zoneName: string;
   hostname: string;
+  externalWorkers?: { slug: string; name: string }[];
+}
+
+export function managedRouteInventory(
+  input: unknown,
+  hostname: string,
+  externalWorkers: { slug: string; name: string }[],
+) {
+  const routes = z
+    .array(z.object({ pattern: z.string(), script: z.string().nullable().optional() }))
+    .parse(input);
+  const externalRoutes = externalWorkers.flatMap((worker) =>
+    [`${hostname}/${worker.slug}`, `${hostname}/${worker.slug}/*`].map((pattern) => ({
+      pattern,
+      script: worker.name,
+    })),
+  );
+  return routes.filter(
+    (route) =>
+      !externalRoutes.some(
+        (external) => external.pattern === route.pattern && external.script === route.script,
+      ),
+  );
 }
 
 function githubWriter(root: string) {
@@ -330,7 +354,12 @@ export async function provisionResourceGroups(root: string, target: Target) {
     ),
     ...provisionRoutes(
       { ...target, workers },
-      () => cloudflare.list(routes),
+      async () =>
+        managedRouteInventory(
+          await cloudflare.list(routes),
+          target.hostname,
+          target.externalWorkers ?? [],
+        ),
       (body) => cloudflareWrite('POST', routes, body),
     ),
   ];

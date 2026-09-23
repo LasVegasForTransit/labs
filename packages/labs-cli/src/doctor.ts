@@ -13,7 +13,7 @@ import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.j
 import { liveDoctor } from './live-doctor.js';
 
 const hostname = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/);
-const infrastructure = z.object({
+export const doctorInfrastructure = z.object({
   repository: z.string().regex(/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/),
   branch: z.string().min(1),
   environment: z.string().min(1),
@@ -26,6 +26,26 @@ const infrastructure = z.object({
   zoneId: z.string().regex(/^[a-f0-9]+$/),
   zoneName: hostname,
   hostname,
+  externalWorkers: z
+    .array(
+      z
+        .object({
+          slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+          name: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+          previewRequired: z.boolean(),
+          externalProbe: z.object({
+            path: z.string().startsWith('/'),
+            status: z.number().int().min(100).max(599),
+            contentType: z.string().min(1),
+          }),
+        })
+        .refine(
+          (worker) =>
+            worker.slug !== 'home' && worker.externalProbe.path.startsWith(`/${worker.slug}/`),
+          'External Worker probes must stay under their declared project route.',
+        ),
+    )
+    .default([]),
 });
 
 export function doctorInput(args: string[]) {
@@ -48,15 +68,22 @@ export async function doctor(root: string, args: string[]) {
   const module = (await import(
     pathToFileURL(path.join(root, '.lvbt/infrastructure.config.ts')).href
   )) as { default: unknown };
-  const target = infrastructure.parse(module.default);
+  const target = doctorInfrastructure.parse(module.default);
   if (target.hostname !== target.zoneName && !target.hostname.endsWith(`.${target.zoneName}`))
     throw new Error('The hostname must belong to the declared zone.');
   const labs = await discoverLabs(root);
-  if (input.slug !== undefined && !labs.some((lab) => lab.slug === input.slug))
+  if (target.externalWorkers.some((worker) => labs.some((lab) => lab.slug === worker.slug)))
+    throw new Error('An external Worker cannot share a slug with a Labs app.');
+  if (
+    input.slug !== undefined &&
+    !labs.some((lab) => lab.slug === input.slug) &&
+    !target.externalWorkers.some((worker) => worker.slug === input.slug)
+  )
     throw new Error(`Unknown lab: ${input.slug}`);
   const workers = labs
     .filter((lab) => lab.status !== 'draft')
-    .map((lab) => ({ slug: lab.slug, name: `lvbt-labs-${lab.slug}` }));
+    .map((lab) => ({ slug: lab.slug, name: `lvbt-labs-${lab.slug}` }))
+    .concat(target.externalWorkers);
   const ruleset: unknown = JSON.parse(
     await readFile(path.join(root, '.lvbt/web-platform/standards/ruleset.json'), 'utf8'),
   );

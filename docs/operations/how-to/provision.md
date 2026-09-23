@@ -34,6 +34,10 @@ published manifests. `pass` confirms a match, `fail` identifies missing or misma
 and `unknown` means the provider could not be inspected or returned an unrecognized response.
 Unknown results never count as success. Draft projects do not acquire production routes.
 
+`externalWorkers` records projects that use the Labs hostname while another repository owns their
+deployment. Doctor verifies their routes and live probe. Provisioning does not create their Workers
+or routes, and a mismatched route remains a conflict requiring review.
+
 Use `pnpm --silent run doctor --json` to capture only the structured report. The `run` keyword is
 required because pnpm reserves `doctor` for its own package-manager diagnostics. The same read-only
 run requests the public hostname and verifies DNS and TLS reachability, security headers, release

@@ -12,7 +12,7 @@
     "LVBT_REQUIRE_ANALYTICS",
     "PUBLIC_LVBT_CWA_TOKEN"
   ],
-  "globalPassThroughEnv": ["CLOUDFLARE_API_TOKEN"],
+  "globalPassThroughEnv": ["CLOUDFLARE_API_TOKEN", "NODE_AUTH_TOKEN"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
