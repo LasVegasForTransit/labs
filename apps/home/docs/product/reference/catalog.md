@@ -34,7 +34,9 @@ Lifecycle status forms a visible text label and never relies on color alone.
 
 Every entry contains the title, summary, kind, preview image, lifecycle state, public path, and
 maintainers. Deprecated entries add the reason, sunset date, and successor. Graduated entries add
-the canonical source repository.
+the canonical source repository and link to the project's `canonicalUrl`. When that address is on
+another host, the card's action names the host, such as "Visit lvwwd.org", and carries the same
+external-link icon as the footer's outside links.
 
 Missing images, licenses, maintainers, or required lifecycle dates fail the home build instead of
 producing partial cards.
