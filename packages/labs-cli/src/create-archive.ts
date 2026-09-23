@@ -1,7 +1,7 @@
 export function archiveTemplate(): Record<string, string> {
   return {
     'playwright.archive.config.ts': `import { defineConfig } from '@playwright/test';
-import { sharedConfig } from '@lvbt/playwright-config';
+import { sharedConfig } from '@lasvegasfortransit/playwright-config';
 
 export default defineConfig({
   ...sharedConfig,
@@ -11,8 +11,8 @@ export default defineConfig({
 `,
     'tests/e2e/archive/read-only.spec.ts': `import { expect, test } from '@playwright/test';
 import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
-import { expectNoAccessibilityViolations } from '@lvbt/playwright-config/accessibility';
-import { monitorPageHealth } from '@lvbt/playwright-config/page-health';
+import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
+import { monitorPageHealth } from '@lasvegasfortransit/playwright-config/page-health';
 import manifest from '../../../lab.config';
 
 test('reads the archived project without live services', async ({ browser, viewport }, testInfo) => {

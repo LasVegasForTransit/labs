@@ -25,9 +25,9 @@ authorizes creating an issue or pull request. It carries the organization checkl
 templates, and the only approved creation helper:
 
 ```bash
-node node_modules/@lvbt/cli/plugins/lvbt-contributions/scripts/github-create.mjs issue \
+node node_modules/@lasvegasfortransit/cli/plugins/lvbt-contributions/scripts/github-create.mjs issue \
   --type bug|feature --title <title> --body-file <file>
-node node_modules/@lvbt/cli/plugins/lvbt-contributions/scripts/github-create.mjs pr \
+node node_modules/@lasvegasfortransit/cli/plugins/lvbt-contributions/scripts/github-create.mjs pr \
   --title <title> --body-file <file> --base main
 ```
 

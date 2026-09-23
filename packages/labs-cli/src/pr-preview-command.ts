@@ -4,7 +4,10 @@ import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import { z } from 'zod';
-import { cloudflareCredential, cloudflareReader } from '@lvbt/web-platform/cloudflare';
+import {
+  cloudflareCredential,
+  cloudflareReader,
+} from '@lasvegasfortransit/web-platform/cloudflare';
 import { deploymentPlan } from './deployment-plan.js';
 import { publishPullRequestPreviews } from './pr-preview-deployment.js';
 import { previewTargets, type PreviewTarget } from './pr-preview-plan.js';

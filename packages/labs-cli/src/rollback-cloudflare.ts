@@ -4,8 +4,8 @@ import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { z } from 'zod';
-import { activeVersion, verifyArchiveVersion } from '@lvbt/web-platform/cloudflare';
-import { assertDeploymentCheckout } from '@lvbt/web-platform/release';
+import { activeVersion, verifyArchiveVersion } from '@lasvegasfortransit/web-platform/cloudflare';
+import { assertDeploymentCheckout } from '@lasvegasfortransit/web-platform/release';
 import type { LabManifestV1 } from './manifest.js';
 import type { RollbackInput, RollbackOperations } from './rollback.js';
 

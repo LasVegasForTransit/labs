@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
-import { sharedConfig } from '@lvbt/vitest-config';
+import { sharedConfig } from '@lasvegasfortransit/vitest-config';
 
 export default defineConfig({
   ...sharedConfig,

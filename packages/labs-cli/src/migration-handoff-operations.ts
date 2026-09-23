@@ -4,8 +4,11 @@ import { appendFile, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:
 import path from 'node:path';
 import { isDeepStrictEqual, promisify } from 'node:util';
 import { z } from 'zod';
-import { activeVersion } from '@lvbt/web-platform/cloudflare';
-import { assertDeploymentCheckout, verifyReleaseResponse } from '@lvbt/web-platform/release';
+import { activeVersion } from '@lasvegasfortransit/web-platform/cloudflare';
+import {
+  assertDeploymentCheckout,
+  verifyReleaseResponse,
+} from '@lasvegasfortransit/web-platform/release';
 import {
   parseMigrationHandoff,
   type MigrationHandoffV1,

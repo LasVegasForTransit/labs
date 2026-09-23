@@ -1,5 +1,5 @@
 import { defineConfig } from '@playwright/test';
-import { sharedConfig } from '@lvbt/playwright-config';
+import { sharedConfig } from '@lasvegasfortransit/playwright-config';
 
 export default defineConfig({
   ...sharedConfig,

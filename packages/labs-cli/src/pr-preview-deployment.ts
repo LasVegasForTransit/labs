@@ -3,14 +3,14 @@ import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { z } from 'zod';
-import type { CloudflareRead } from '@lvbt/web-platform/cloudflare';
+import type { CloudflareRead } from '@lasvegasfortransit/web-platform/cloudflare';
 import {
   publishPreviews,
   uploadPreview,
   verifyReleaseResponse,
   type PreviewReceipt,
   type ReleaseMarker,
-} from '@lvbt/web-platform/release';
+} from '@lasvegasfortransit/web-platform/release';
 import { preparePreviewBundle } from './pr-preview-bundle.js';
 import type { PreviewTarget } from './pr-preview-plan.js';
 

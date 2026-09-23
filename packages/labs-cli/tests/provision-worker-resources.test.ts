@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, expect, test } from 'vitest';
-import { reconcileResources } from '@lvbt/web-platform/provision';
+import { reconcileResources } from '@lasvegasfortransit/web-platform/provision';
 import type { LabManifestV1 } from '../src/manifest.js';
 import {
   provisionWorkerPreviewResources,

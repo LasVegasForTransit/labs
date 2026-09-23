@@ -7,7 +7,7 @@ import {
   cloudflareCredential,
   cloudflareReader,
   type CloudflareRead,
-} from '@lvbt/web-platform/cloudflare';
+} from '@lasvegasfortransit/web-platform/cloudflare';
 import { cleanupPreviews } from './pr-preview-cleanup.js';
 
 const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
