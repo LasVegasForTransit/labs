@@ -85,6 +85,8 @@ test('graduates only a live verified migration and keeps recoverable source', as
       status: 'graduated',
       dates: { graduated: '2026-09-10' },
       sourceRepository: 'https://github.com/LasVegasForTransit/map',
+      // Migration keeps the project's Labs route, so that stays its address.
+      canonicalUrl: 'https://labs.lasvegasfortransit.org/map/',
     });
     await expect(access(path.join(root, 'apps/map'))).rejects.toThrow();
     await expect(access(path.join(root, 'migrations/map.json'))).rejects.toThrow();

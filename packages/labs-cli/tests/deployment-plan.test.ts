@@ -110,6 +110,7 @@ test('deploys retired archives after source removal without inventing a build pa
           status: 'graduated',
           dates: { ...manifest.dates, graduated: '2026-09-05' },
           sourceRepository: 'https://github.com/LasVegasForTransit/map',
+          canonicalUrl: 'https://labs.lasvegasfortransit.org/map/',
         }),
       },
       docs,

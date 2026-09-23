@@ -23,5 +23,6 @@
     "data": "LicenseRef-LVBT-Participant-Data",
     "assets": "LicenseRef-LVBT-Brand"
   },
-  "sourceRepository": "https://github.com/LasVegasForTransit/week-without-driving"
+  "sourceRepository": "https://github.com/LasVegasForTransit/week-without-driving",
+  "canonicalUrl": "https://lvwwd.org/"
 }

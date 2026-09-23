@@ -28,3 +28,21 @@ test.each(['deprecated', 'retired', 'graduated'])(
     expect(() => LabManifestV1Schema.parse({ ...manifest, status })).toThrow();
   },
 );
+
+test('requires a graduated project to say where it is served, over HTTPS', () => {
+  const graduated = {
+    ...manifest,
+    status: 'graduated',
+    dates: { ...manifest.dates, graduated: '2026-09-23' },
+    sourceRepository: 'https://github.com/LasVegasForTransit/regional-map',
+    canonicalUrl: 'https://map.example.org/',
+  };
+  expect(LabManifestV1Schema.parse(graduated).canonicalUrl).toBe('https://map.example.org/');
+  const { canonicalUrl: _omitted, ...withoutUrl } = graduated;
+  const missing = LabManifestV1Schema.safeParse(withoutUrl);
+  expect(missing.error?.issues.map((issue) => issue.path.join('.'))).toEqual(['canonicalUrl']);
+  expect(
+    LabManifestV1Schema.safeParse({ ...graduated, canonicalUrl: 'http://map.example.org/' })
+      .success,
+  ).toBe(false);
+});
