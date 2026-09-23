@@ -7,6 +7,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 const root = path.resolve(process.cwd(), '../..');
 const labs = (await discoverLabs(root)).filter(isListedLab);
+const canonical = new URL('https://labs.lasvegasfortransit.org/');
+
+// A graduated project's card goes to its canonical URL. When that is on another host, the card
+// says where it goes and carries the external-link icon.
+function destination(manifest: (typeof labs)[number]) {
+  const href = manifest.canonicalUrl ?? `/${manifest.slug}/`;
+  const { host } = new URL(href, canonical);
+  const external = host !== canonical.host;
+  return { href, external, action: external ? `Visit ${host}` : 'Open project' };
+}
 
 const projects = [
   {
@@ -17,6 +27,7 @@ const projects = [
     image: '/catalog/transit-mapper.png',
     imageAlt: 'TransitMapper interface showing a sample Las Vegas transit network on a street map.',
     action: 'Open project',
+    external: false,
     schemaType: 'SoftwareApplication',
     manifest: undefined,
   },
@@ -24,15 +35,13 @@ const projects = [
     manifest,
     title: manifest.title,
     summary: manifest.summary,
-    href: `/${manifest.slug}/`,
+    ...destination(manifest),
     image: `/catalog/${manifest.slug}.png`,
     imageAlt: manifest.previewImage.alt,
-    action: 'Open project',
     schemaType: 'CreativeWork',
   })),
 ];
 
-const canonical = new URL('https://labs.lasvegasfortransit.org/');
 const introduction =
   'Public experiments that help Southern Nevadans understand transportation and explore what could work better.';
 const description =
@@ -164,11 +173,13 @@ const structuredData = [
                     <div class="project-copy">
                       <h2>{project.title}</h2>
                       <p>{project.summary}</p>
-                      <span class="project-action">
+                      <span class="project-action" data-external={project.external || undefined}>
                         {project.action}
-                        <span class="arrow" aria-hidden="true">
-                          →
-                        </span>
+                        {!project.external && (
+                          <span class="arrow" aria-hidden="true">
+                            →
+                          </span>
+                        )}
                       </span>
                     </div>
                   </a>

@@ -190,7 +190,8 @@ h1 {
         [href^='https://www.lasvegasfortransit.org'],
         [data-external-icon='false']
       )
-  )::after {
+  )::after,
+.project-action[data-external]::after {
   content: '\00a0';
   display: inline;
   width: var(--external-link-icon-size, 0.86em);
@@ -602,7 +603,8 @@ main {
           [href^='https://www.lasvegasfortransit.org'],
           [data-external-icon='false']
         )
-    )::after {
+    )::after,
+  .project-action[data-external]::after {
     content: ' \2197';
     width: auto;
     padding-inline-end: 0;
