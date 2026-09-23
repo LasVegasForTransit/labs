@@ -11,4 +11,16 @@ export default {
   zoneId: '7f5c9050d47580145fc50b71def46aaf',
   zoneName: 'lasvegasfortransit.org',
   hostname: 'labs.lasvegasfortransit.org',
+  externalWorkers: [
+    {
+      slug: 'transit-mapper',
+      name: 'transitmapper',
+      previewRequired: false,
+      externalProbe: {
+        path: '/transit-mapper/api/systems/zzzzzzzzzz',
+        status: 404,
+        contentType: 'application/json',
+      },
+    },
+  ],
 };

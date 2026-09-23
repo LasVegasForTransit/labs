@@ -124,3 +124,65 @@ test('rejects an exact project route that redirects away from Labs', async () =>
 
   expect(checks.find(({ id }) => id === 'live.routes')?.status).toBe('fail');
 });
+
+test('verifies an independently owned Worker without a Labs release marker', async () => {
+  const requested: string[] = [];
+  const checks = await liveDoctor(
+    'labs.example.org',
+    [
+      { slug: 'home', name: 'lvbt-labs-home' },
+      {
+        slug: 'transit-mapper',
+        name: 'transitmapper',
+        externalProbe: {
+          path: '/transit-mapper/api/systems/missing',
+          status: 404,
+          contentType: 'application/json',
+        },
+      },
+    ],
+    (input) => {
+      const url = requestUrl(input);
+      requested.push(url);
+      if (url.endsWith('/lvbt-release.json')) return fetched(release('home'));
+      if (url.endsWith('/transit-mapper/api/systems/missing'))
+        return fetched(
+          response('{}', { status: 404, headers: { 'content-type': 'application/json' } }),
+        );
+      if (url.endsWith('/transit-mapper-other/') || url.endsWith('/not-a-lab'))
+        return fetched(response('<h1>Not found</h1>', { status: 404 }));
+      return fetched(response('<h1>Project</h1>'));
+    },
+  );
+
+  expect(checks.every((check) => check.status === 'pass')).toBe(true);
+  expect(requested).toContain('https://labs.example.org/transit-mapper');
+  expect(requested).toContain('https://labs.example.org/transit-mapper/');
+  expect(requested).toContain('https://labs.example.org/transit-mapper/api/systems/missing');
+  expect(requested).toContain('https://labs.example.org/transit-mapper-other/');
+  expect(requested).not.toContain('https://labs.example.org/transit-mapper/lvbt-release.json');
+});
+
+test('accepts equivalent frame protection and additional permission restrictions', async () => {
+  const checks = await liveDoctor(
+    'labs.example.org',
+    [{ slug: 'home', name: 'lvbt-labs-home' }],
+    (input) => {
+      const url = requestUrl(input);
+      if (url.endsWith('/lvbt-release.json')) return fetched(release('home'));
+      return fetched(
+        response('<h1>Labs</h1>', {
+          status: url.endsWith('/not-a-lab') ? 404 : 200,
+          headers: {
+            'content-security-policy': "frame-ancestors 'none'",
+            'permissions-policy': 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+            'referrer-policy': 'strict-origin-when-cross-origin',
+            'x-content-type-options': 'nosniff',
+          },
+        }),
+      );
+    },
+  );
+
+  expect(checks.find(({ id }) => id === 'live.headers')?.status).toBe('pass');
+});
