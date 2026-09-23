@@ -46,12 +46,16 @@ jobs:
           set -euo pipefail
           CURRENT=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
           if [ "$CURRENT" != "$GITHUB_SHA" ]; then
-            echo "This commit was superseded on main; refusing an older production deployment." >&2
-            exit 1
+            # Not a failure: the newer commit's own run deploys, and this one must not.
+            echo "::notice::This commit was superseded on main; its newer run deploys instead."
+            exit 0
           fi
-          BASE=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs" \
-            --method GET -f branch=main -f per_page=100 | \
-            pnpm exec tsx packages/labs-cli/src/deployment-baseline.ts)
+          # Save the history to a file rather than piping gh into Node: on Node 24.21.0 the pipe
+          # made this step abort with glibc heap corruption ("corrupted double-linked list").
+          RUNS="$RUNNER_TEMP/deploy-runs.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs" \
+            --method GET -f branch=main -f per_page=100 > "$RUNS"
+          BASE=$(pnpm exec tsx packages/labs-cli/src/deployment-baseline.ts "$RUNS")
           if [ -n "$BASE" ]; then
             pnpm deploy:affected --base "$BASE" --apply --json
           else
@@ -72,3 +76,4 @@ jobs:
           include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 90
+

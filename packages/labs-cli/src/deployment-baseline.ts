@@ -27,9 +27,14 @@ export function deploymentBaseline(history: unknown, current: { id: number; atte
   return previous.head_sha;
 }
 
+// The history comes from a file that `gh api` wrote. Piping gh straight into this script made Node
+// 24.21.0 abort with glibc heap corruption on most cold runs of the Deploy workflow, while reading
+// the same bytes from a file never did.
 const entry = process.argv[1];
 if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
   try {
+    const historyFile = process.argv[2];
+    if (!historyFile) throw new Error('Pass the saved deploy workflow run history as a file path.');
     const current = z
       .object({
         id: z.coerce.number().int().positive(),
@@ -39,7 +44,7 @@ if (entry !== undefined && import.meta.url === pathToFileURL(entry).href) {
         id: process.env.GITHUB_RUN_ID,
         attempt: process.env.GITHUB_RUN_ATTEMPT,
       });
-    const base = deploymentBaseline(JSON.parse(readFileSync(0, 'utf8')), current);
+    const base = deploymentBaseline(JSON.parse(readFileSync(historyFile, 'utf8')), current);
     if (base !== null) process.stdout.write(`${base}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
