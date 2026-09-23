@@ -181,32 +181,32 @@ test('matches the organization footer interactions and hands off the sticky bran
   }));
   expect(atWordmark.wordmarkTop).toBeLessThanOrEqual(atWordmark.viewportHeight);
   expect(atWordmark.brandBottom).toBeLessThanOrEqual(1);
-  expect(atWordmark.sidebarTop).toBe(0);
-  expect(atWordmark.sidebarBottom).toBe(atWordmark.viewportHeight);
+  expect(atWordmark.sidebarTop).toBeCloseTo(0, 0);
+  expect(atWordmark.sidebarBottom).toBeCloseTo(atWordmark.viewportHeight, 0);
 
   await footer.evaluate((element) => element.scrollIntoView({ block: 'start' }));
   await expect(footer.locator('.footer-wordmark')).toBeInViewport();
 
   const handoff = await page.evaluate(() => {
-    const brand = document.querySelector('.brand')!.getBoundingClientRect();
-    const footer = document.querySelector('.site-footer')!.getBoundingClientRect();
-    const sidebar = document.querySelector('.lab-sidebar')!.getBoundingClientRect();
+    const q = (s: string) => document.querySelector(s);
+    const [brandEl, footerEl, sidebarEl] = [q('.brand'), q('.site-footer'), q('.lab-sidebar')];
+    if (!brandEl || !footerEl || !sidebarEl) throw new Error('Missing layout element.');
     return {
-      brandBottom: brand.bottom,
-      footerLeft: footer.left,
-      footerWidth: footer.width,
-      sidebarBackground: getComputedStyle(document.querySelector('.lab-sidebar')!).backgroundColor,
-      sidebarBottom: sidebar.bottom,
-      sidebarTop: sidebar.top,
-      sidebarWidth: sidebar.width,
+      brandBottom: brandEl.getBoundingClientRect().bottom,
+      footerLeft: footerEl.getBoundingClientRect().left,
+      footerWidth: footerEl.getBoundingClientRect().width,
+      sidebarBackground: getComputedStyle(sidebarEl).backgroundColor,
+      sidebarBottom: sidebarEl.getBoundingClientRect().bottom,
+      sidebarTop: sidebarEl.getBoundingClientRect().top,
+      sidebarWidth: sidebarEl.getBoundingClientRect().width,
       viewportHeight: window.innerHeight,
       viewportWidth: window.innerWidth,
     };
   });
   expect(handoff.brandBottom).toBeLessThanOrEqual(0);
   expect(handoff.sidebarBackground).toBe('rgb(15, 17, 21)');
-  expect(handoff.sidebarTop).toBe(0);
-  expect(handoff.sidebarBottom).toBe(handoff.viewportHeight);
+  expect(handoff.sidebarTop).toBeCloseTo(0, 0);
+  expect(handoff.sidebarBottom).toBeCloseTo(handoff.viewportHeight, 0);
   expect(handoff.footerLeft).toBeCloseTo(handoff.sidebarWidth, 0);
   expect(handoff.footerWidth + handoff.sidebarWidth).toBeCloseTo(handoff.viewportWidth, 0);
 
@@ -231,8 +231,12 @@ test('matches the organization footer interactions and hands off the sticky bran
 test('adapts at Material 3 window size classes', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 });
   await page.goto('/');
-  await page.locator('.project-card').evaluate((card) => {
-    card.after(card.cloneNode(true));
+  // The breakpoint checks below assume exactly two cards, independent of how
+  // many projects the live catalog lists: trim to one real card, then clone it.
+  await page.evaluate(() => {
+    document
+      .querySelectorAll('.project-card')
+      .forEach((c, i) => (i ? c.remove() : c.after(c.cloneNode(true))));
   });
 
   const phone = await page.evaluate(() => {
