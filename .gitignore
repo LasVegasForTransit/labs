@@ -16,3 +16,5 @@ dist-archive/
 playwright-report/
 test-results/
 *.tsbuildinfo
+blob-report/
+**/playwright/.cache/
