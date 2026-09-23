@@ -1,0 +1,27 @@
+{
+  "manifestVersion": 1,
+  "slug": "week-without-driving",
+  "title": "Week Without Driving Las Vegas",
+  "summary": "The campaign site for Week Without Driving Las Vegas, October 1-8, 2026. Las Vegans sign up to win LVBT's giveaway by sharing trips without driving, and use rider guides, a bus stop finder, and an offline-capable Digital Transit Bingo.",
+  "kind": "tool",
+  "profile": "site",
+  "status": "graduated",
+  "visibility": "listed",
+  "maintainers": ["williecubed"],
+  "dates": {
+    "created": "2026-09-10",
+    "published": "2026-09-10",
+    "graduated": "2026-09-23"
+  },
+  "previewImage": {
+    "path": "public/og-wwd.png",
+    "alt": "Dark card reading Las Vegas, October 1-8, 2026, Week Without Driving: take one trip without a car, post it, see the Valley the way 1 in 3 people do. lvwwd.org, a campaign by Las Vegans for Better Transit."
+  },
+  "licenses": {
+    "code": "MIT",
+    "content": "CC-BY-4.0",
+    "data": "LicenseRef-LVBT-Participant-Data",
+    "assets": "LicenseRef-LVBT-Brand"
+  },
+  "sourceRepository": "https://github.com/LasVegasForTransit/week-without-driving"
+}
