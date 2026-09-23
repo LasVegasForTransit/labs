@@ -30,7 +30,7 @@ test('presents the Labs projects clearly without overflowing', async ({ page }) 
   await expect(page.locator('.project-card-link')).toHaveCount(expectedProjects);
   await expect(page.locator('.project-card-link').first()).toHaveAttribute(
     'href',
-    'https://map.lasvegasfortransit.org/',
+    '/transit-mapper/',
   );
   await expect(page.getByRole('link', { name: 'Contribute', exact: true })).toHaveAttribute(
     'href',
