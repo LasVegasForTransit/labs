@@ -135,7 +135,7 @@ test.each(
   },
 );
 
-test('seals the build, journals rollback state before upload, and verifies the stable URL', async () => {
+test('waits for the new release marker before verifying the stable URL', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'lab-cloudflare-'));
   const app = path.join(root, 'apps/home');
   try {
@@ -192,6 +192,11 @@ test('seals the build, journals rollback state before upload, and verifies the s
         if (url.includes('lvbt-release.json')) {
           markerRequests += 1;
           if (markerRequests === 1) return new Response('Not found', { status: 404 });
+          if (markerRequests === 2)
+            return Response.json({
+              ...JSON.parse(await readFile(path.join(app, 'dist/lvbt-release.json'), 'utf8')),
+              commit: 'b'.repeat(40),
+            });
           return Response.json(
             JSON.parse(await readFile(path.join(app, 'dist/lvbt-release.json'), 'utf8')),
           );
@@ -209,6 +214,7 @@ test('seals the build, journals rollback state before upload, and verifies the s
       version: newVersion,
     });
     expect(urls).toEqual([
+      `https://labs.lasvegasfortransit.org/lvbt-release.json?commit=${'a'.repeat(40)}`,
       `https://labs.lasvegasfortransit.org/lvbt-release.json?commit=${'a'.repeat(40)}`,
       `https://labs.lasvegasfortransit.org/lvbt-release.json?commit=${'a'.repeat(40)}`,
       'https://labs.lasvegasfortransit.org/',

@@ -164,7 +164,13 @@ async function verifyPublicArtifact(
       await pause(5000);
       continue;
     }
-    await verifyReleaseResponse(response, marker);
+    try {
+      await verifyReleaseResponse(response, marker);
+    } catch (error) {
+      if (attempt === 11) throw error;
+      await pause(5000);
+      continue;
+    }
     const page = await request(base, {
       redirect: 'manual',
       cache: 'no-store',
