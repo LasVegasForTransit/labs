@@ -4,13 +4,13 @@ import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { z } from 'zod';
-import { activeVersion, uploadedVersion } from '@lvbt/web-platform/cloudflare';
+import { activeVersion, uploadedVersion } from '@lasvegasfortransit/web-platform/cloudflare';
 import {
   assertDeploymentCheckout,
   sealArtifact,
   verifyReleaseResponse,
   type ReleaseMarker,
-} from '@lvbt/web-platform/release';
+} from '@lasvegasfortransit/web-platform/release';
 import type { StandaloneDeploymentOperations } from './standalone-deploy.js';
 
 type Run = (args: string[], cwd: string, environment?: NodeJS.ProcessEnv) => Promise<string>;

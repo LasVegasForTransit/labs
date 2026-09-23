@@ -8,5 +8,5 @@ Human prompts and complete non-interactive flags call the same operations. Remot
 commands support dry-run mode, and every command can return structured JSON for agents and CI.
 
 Provider reads, reconciliation, release provenance, and Worker preview guards come from the vendored
-`@lvbt/web-platform` package. Those operations belong to the organization web standard and remain
-independent of Labs slugs, catalog records, and lifecycle states.
+`@lasvegasfortransit/web-platform` package. Those operations belong to the organization web standard
+and remain independent of Labs slugs, catalog records, and lifecycle states.

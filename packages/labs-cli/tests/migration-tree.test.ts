@@ -40,7 +40,9 @@ test(
         scripts: Record<string, string>;
         devDependencies: Record<string, string>;
       };
-      expect(pkg.devDependencies['@lvbt/cli']).toBe('file:.lvbt/web-platform/packages/cli');
+      expect(pkg.devDependencies['@lasvegasfortransit/cli']).toBe(
+        'file:.lvbt/web-platform/packages/cli',
+      );
       expect(pkg.scripts['standards:check']).toContain('web-platform-cli.ts check');
       expect(pkg.scripts.deploy).toBe(
         'node packages/lab-runtime/src/standalone-deploy-cli.ts migration-example',

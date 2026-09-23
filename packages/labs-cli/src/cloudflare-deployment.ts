@@ -10,13 +10,13 @@ import {
   activeVersion,
   uploadedVersion,
   verifyArchiveVersion,
-} from '@lvbt/web-platform/cloudflare';
+} from '@lasvegasfortransit/web-platform/cloudflare';
 import {
   assertDeploymentCheckout,
   sealArtifact,
   verifyReleaseResponse,
   type ReleaseMarker,
-} from '@lvbt/web-platform/release';
+} from '@lasvegasfortransit/web-platform/release';
 import type { DeploymentOperations } from './deployment.js';
 import { readCatalogRecords } from './catalog-records.js';
 import { prepareArchiveWorker } from './archive-worker.js';

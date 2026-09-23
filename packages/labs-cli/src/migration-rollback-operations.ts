@@ -2,8 +2,8 @@ import { appendFile, mkdir, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import { z } from 'zod';
-import { activeVersion } from '@lvbt/web-platform/cloudflare';
-import { verifyReleaseResponse } from '@lvbt/web-platform/release';
+import { activeVersion } from '@lasvegasfortransit/web-platform/cloudflare';
+import { verifyReleaseResponse } from '@lasvegasfortransit/web-platform/release';
 import type { MigrationHandoffV1, MigrationRollbackOperations } from './migration-handoff.js';
 import {
   defaultGitHub,

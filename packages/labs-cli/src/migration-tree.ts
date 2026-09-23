@@ -45,8 +45,9 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   const pkg = jsonObject(read('package.json'));
   pkg.name = repository.split('/')[1]?.toLowerCase();
   const dependencies = z.record(z.string(), z.string()).parse(pkg.devDependencies);
-  for (const name of Object.keys(dependencies).filter((name) => name.startsWith('@lvbt/')))
-    dependencies[name] = `file:.lvbt/web-platform/packages/${name.slice('@lvbt/'.length)}`;
+  const platformScope = '@lasvegasfortransit/';
+  for (const name of Object.keys(dependencies).filter((name) => name.startsWith(platformScope)))
+    dependencies[name] = `file:.lvbt/web-platform/packages/${name.slice(platformScope.length)}`;
   pkg.devDependencies = dependencies;
   dependencies['@playwright/test'] = 'catalog:';
   dependencies['prettier-plugin-astro'] = 'catalog:';

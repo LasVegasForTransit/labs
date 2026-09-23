@@ -1,4 +1,4 @@
 {
-  "extends": "@lvbt/typescript-config/react-library.json",
+  "extends": "@lasvegasfortransit/typescript-config/react-library.json",
   "include": ["src", "tests", "vitest.config.ts"]
 }

@@ -1,5 +1,8 @@
 import { parseArgs } from 'node:util';
-import { reconcileResourceGroups, type ProvisionResource } from '@lvbt/web-platform/provision';
+import {
+  reconcileResourceGroups,
+  type ProvisionResource,
+} from '@lasvegasfortransit/web-platform/provision';
 
 interface Check {
   id: string;

@@ -61,13 +61,13 @@ export async function withMigrationFixture(run: (root: string) => void | Promise
     '@lvbt/ui': 'workspace:*',
   };
   for (const dependency of [
-    '@lvbt/eslint-config',
-    '@lvbt/playwright-config',
-    '@lvbt/typescript-config',
-    '@lvbt/vitest-config',
+    '@lasvegasfortransit/eslint-config',
+    '@lasvegasfortransit/playwright-config',
+    '@lasvegasfortransit/typescript-config',
+    '@lasvegasfortransit/vitest-config',
   ])
     examplePackage.devDependencies[dependency] =
-      `file:../../.lvbt/web-platform/packages/${dependency.slice('@lvbt/'.length)}`;
+      `file:../../.lvbt/web-platform/packages/${dependency.slice('@lasvegasfortransit/'.length)}`;
   examplePackage.scripts['build:archive'] = 'vite build --outDir dist-archive';
   examplePackage.scripts['test:archive'] = 'playwright test --config playwright.archive.config.ts';
   const additions = {
@@ -95,8 +95,8 @@ export function App() {
 }
 `,
     [`${app}/tests/e2e/app.spec.ts`]: `import { expect, test } from '@playwright/test';
-import { expectNoAccessibilityViolations } from '@lvbt/playwright-config/accessibility';
-import { monitorPageHealth } from '@lvbt/playwright-config/page-health';
+import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
+import { monitorPageHealth } from '@lasvegasfortransit/playwright-config/page-health';
 test('serves the migrated lab', async ({ page }) => {
   const health = monitorPageHealth(page);
   await page.goto('/migration-example/');
@@ -107,7 +107,7 @@ test('serves the migrated lab', async ({ page }) => {
 `,
     [`${app}/playwright.config.ts`]: `import { defineConfig } from '@playwright/test';
 
-import { sharedConfig } from '@lvbt/playwright-config';
+import { sharedConfig } from '@lasvegasfortransit/playwright-config';
 
 const url = 'http://127.0.0.1:4173';
 export default defineConfig({
@@ -123,7 +123,7 @@ export default defineConfig({
 `,
     [`${app}/playwright.archive.config.ts`]: `import { defineConfig } from '@playwright/test';
 
-import { sharedConfig } from '@lvbt/playwright-config';
+import { sharedConfig } from '@lasvegasfortransit/playwright-config';
 
 export default defineConfig({
   ...sharedConfig,
@@ -133,8 +133,8 @@ export default defineConfig({
 `,
     [`${app}/tests/e2e/archive/read-only.spec.ts`]: `import { expect, test } from '@playwright/test';
 import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
-import { expectNoAccessibilityViolations } from '@lvbt/playwright-config/accessibility';
-import { monitorPageHealth } from '@lvbt/playwright-config/page-health';
+import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
+import { monitorPageHealth } from '@lasvegasfortransit/playwright-config/page-health';
 
 test('serves the migrated archive without live services', async ({ browser, viewport }) => {
   const archive = await createArchiveContext(browser, {

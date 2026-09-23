@@ -10,7 +10,7 @@ import {
   provisionRoutes,
   provisionWorkerPresence,
   provisionWorkerPreviewUrls,
-} from '@lvbt/web-platform/cloudflare';
+} from '@lasvegasfortransit/web-platform/cloudflare';
 import {
   githubReader,
   githubVariableWriter,
@@ -21,7 +21,7 @@ import {
   provisionRepositoryRuleset,
   provisionRepositoryVariable,
   provisionVariables,
-} from '@lvbt/web-platform/github';
+} from '@lasvegasfortransit/web-platform/github';
 import { discoverLabs } from './discovery.js';
 import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.js';
 import type { LabManifestV1 } from './manifest.js';

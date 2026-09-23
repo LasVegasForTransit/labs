@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { reconcileResources } from '@lvbt/web-platform/provision';
+import { reconcileResources } from '@lasvegasfortransit/web-platform/provision';
 import { previewTargets } from './pr-preview-plan.js';
 
 const identitySchema = z.object({

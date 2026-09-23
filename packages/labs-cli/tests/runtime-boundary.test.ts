@@ -20,7 +20,7 @@ test('repository operations consume the shared web platform implementation', asy
   const pkg = JSON.parse(await readFile(new URL('package.json', tooling), 'utf8')) as {
     dependencies: Record<string, string>;
   };
-  expect(pkg.dependencies['@lvbt/web-platform']).toBe(
+  expect(pkg.dependencies['@lasvegasfortransit/web-platform']).toBe(
     'file:../../.lvbt/web-platform/packages/web-platform',
   );
   for (const file of [

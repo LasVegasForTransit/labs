@@ -6,7 +6,7 @@ import {
   previewConfiguration,
   sealArtifact,
   stagingPreviewConfiguration,
-} from '@lvbt/web-platform/release';
+} from '@lasvegasfortransit/web-platform/release';
 import { readArchiveFiles } from './archive-files.js';
 
 interface PreviewIdentity {
