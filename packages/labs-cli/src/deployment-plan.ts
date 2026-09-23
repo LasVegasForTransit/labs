@@ -27,17 +27,30 @@ const packageSchema = z.object({
   peerDependencies: z.record(z.string(), z.string()).optional(),
 });
 
+type RecordReader = (input: unknown, slug: string) => { status: string };
+
+// The base commit's records passed the schema of their own time. The plan needs only each record's
+// status, so a later tightening of the schema, which the head must meet, never fails a plan
+// against an older base.
+const baseRecordSchema = z.object({ slug: z.string(), status: z.enum(['retired', 'graduated']) });
+
+function baseCatalogRecord(input: unknown, slug: string) {
+  const record = baseRecordSchema.parse(input);
+  if (record.slug !== slug) throw new Error(`Catalog record ${slug} names ${record.slug}.`);
+  return record;
+}
+
 function addCatalogRecords(
   blobs: Map<string, readonly string[]>,
   read: (file: string) => string,
-  names: Set<string>,
+  { names, readRecord }: { names: Set<string>; readRecord: RecordReader },
   projects: WorkspaceProject[],
 ) {
   for (const file of [...blobs.keys()]
     .filter((file) => /^catalog\/[^/]+\.json$/.test(file))
     .sort()) {
     const slug = file.slice('catalog/'.length, -'.json'.length);
-    const manifest = validateCatalogRecord(JSON.parse(read(file)), slug);
+    const manifest = readRecord(JSON.parse(read(file)), slug);
     if (projects.some((project) => project.slug === slug))
       throw new Error(`Duplicate app and catalog ownership for ${slug}.`);
     if (manifest.status !== 'retired') continue;
@@ -71,7 +84,11 @@ function applyMigrationHandoffs(
   }
 }
 
-function workspaceAt(root: string, commit: string): WorkspaceProject[] {
+function workspaceAt(
+  root: string,
+  commit: string,
+  readRecord: RecordReader = validateCatalogRecord,
+): WorkspaceProject[] {
   const entries = git(root, [
     'ls-tree',
     '-rz',
@@ -127,7 +144,7 @@ function workspaceAt(root: string, commit: string): WorkspaceProject[] {
       }
       return project;
     });
-  addCatalogRecords(blobs, read, names, projects);
+  addCatalogRecords(blobs, read, { names, readRecord }, projects);
   applyMigrationHandoffs(blobs, read, projects);
   return projects;
 }
@@ -136,7 +153,7 @@ export function deploymentPlan(root: string, refs: { base?: string; head?: strin
   const head = resolveCommit(root, refs.head ?? 'HEAD');
   const base = refs.base === undefined ? undefined : resolveCommit(root, refs.base);
   const current = workspaceAt(root, head);
-  const previous = base === undefined ? [] : workspaceAt(root, base);
+  const previous = base === undefined ? [] : workspaceAt(root, base, baseCatalogRecord);
   const files =
     base === undefined
       ? git(root, ['ls-tree', '-rz', '--name-only', head]).split('\0').filter(Boolean)

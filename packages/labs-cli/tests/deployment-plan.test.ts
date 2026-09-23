@@ -117,6 +117,23 @@ test('deploys retired archives after source removal without inventing a build pa
     );
     expect(deploymentPlan(root, { base: docs, head: graduated }).deploy).toEqual(['home']);
     expect(deploymentPlan(root, { head: graduated }).deploy).toEqual(['home']);
+    // A record from before canonicalUrl was required still plans as a base, but not as a head.
+    const { canonicalUrl: _added, ...older } = JSON.parse(
+      execFileSync('git', ['show', `${graduated}:catalog/map.json`], {
+        cwd: root,
+        encoding: 'utf8',
+      }),
+    ) as Record<string, unknown>;
+    const before = commit(root, { 'catalog/map.json': JSON.stringify(older) }, graduated);
+    const after = commit(
+      root,
+      {
+        'catalog/map.json': JSON.stringify({ ...older, canonicalUrl: 'https://map.example.org/' }),
+      },
+      before,
+    );
+    expect(deploymentPlan(root, { base: before, head: after }).deploy).toEqual(['home']);
+    expect(() => deploymentPlan(root, { head: before })).toThrow(/canonicalUrl/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
