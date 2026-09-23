@@ -50,6 +50,7 @@ Each active project owns one `LabManifestV1`.
 | `licenses`          | Object with non-empty `code`, `content`, `data`, and `assets` values        |
 | `successor`         | Optional object with `url` and `label`                                      |
 | `sourceRepository`  | Canonical HTTPS repository URL; required for `graduated`                    |
+| `canonicalUrl`      | HTTPS address a graduated project is served at; required for `graduated`    |
 | `exceptions`        | Optional approved exceptions with kind, reason, approver, and approval date |
 
 ### Derived values

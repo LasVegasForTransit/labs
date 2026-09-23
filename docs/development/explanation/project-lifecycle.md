@@ -24,7 +24,8 @@ A retired lab serves its last safe read-only build at the original path. The Wor
 write-capable bindings, and home places the project in the archive.
 
 Graduation transfers source and deployment ownership to another repository. The slug, route, catalog
-identity, and project documentation remain intact.
+identity, and project documentation remain intact. The catalog record's `canonicalUrl` says where
+the project is served: its Labs URL after migration, or its own site if it later moves to one.
 
 ## Transitions
 

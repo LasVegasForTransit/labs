@@ -54,6 +54,8 @@ export const LabManifestV1Schema = z
       .strict()
       .optional(),
     sourceRepository: httpsUrl.optional(),
+    // Where a graduated project is served: its Labs URL when it kept its route, or its own site.
+    canonicalUrl: httpsUrl.optional(),
     exceptions: z
       .array(
         z
@@ -127,6 +129,13 @@ export const LabManifestV1Schema = z
           code: 'custom',
           path: ['sourceRepository'],
           message: 'A source repository is required for graduated status.',
+        });
+      }
+      if (manifest.canonicalUrl === undefined) {
+        context.addIssue({
+          code: 'custom',
+          path: ['canonicalUrl'],
+          message: 'A canonical URL is required for graduated status.',
         });
       }
     }

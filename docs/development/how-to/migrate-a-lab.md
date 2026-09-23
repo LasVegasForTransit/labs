@@ -123,8 +123,10 @@ pnpm lab migrate <slug> --finalize --graduated YYYY-MM-DD --apply
 
 Finalization repeats live verification, replaces `apps/<slug>` with a graduated catalog record, and
 moves the source plus handoff record under Git's `lvbt-migrations` recovery directory. The catalog
-names the destination repository and preserves the project's Labs URL and visibility. Commit the
-catalog transition through the normal review workflow.
+names the destination repository and preserves the project's Labs URL and visibility, and its
+`canonicalUrl` is that Labs URL. If the project later moves to a site of its own, change
+`canonicalUrl` in `catalog/<slug>.json` so home links there. Commit the catalog transition through
+the normal review workflow.
 
 If transfer or destination verification fails before finalization, plan and apply rollback:
 

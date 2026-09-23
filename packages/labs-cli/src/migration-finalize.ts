@@ -65,6 +65,8 @@ function graduatedManifest(
     status: 'graduated',
     dates: { ...manifest.dates, graduated },
     sourceRepository: `https://github.com/${handoff.repository}`,
+    // Migration keeps the Labs route; a project that later moves to its own site updates this.
+    canonicalUrl: manifest.canonicalUrl ?? `https://labs.lasvegasfortransit.org/${manifest.slug}/`,
   });
 }
 

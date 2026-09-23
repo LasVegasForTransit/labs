@@ -38,6 +38,7 @@ test('discovers retired and graduated records without app source, in slug order'
         visibility: 'unlisted',
         dates: { ...home.dates, graduated: '2026-09-05' },
         sourceRepository: 'https://github.com/LasVegasForTransit/graduate',
+        canonicalUrl: 'https://graduate.example.org/',
       }),
     );
     const records = await discoverLabs(root);

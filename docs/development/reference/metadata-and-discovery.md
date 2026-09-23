@@ -76,8 +76,11 @@ override can remove itself from indexing but cannot make a restricted project in
 | `retired` tombstone exception | `noindex, follow`   |
 | `graduated`                   | `index, follow`     |
 
-A graduated page keeps its Labs URL as the canonical address even though a separate repository owns
-the Worker. Deprecation notices and successor links do not replace the canonical identity.
+A graduated project's canonical address is the `canonicalUrl` in its catalog record. Migration keeps
+the Labs route, so that address starts as the project's Labs URL even though a separate repository
+owns the Worker. A project that later moves to a site of its own sets `canonicalUrl` to that site,
+and its Labs path, where it had one, keeps working for existing links. Deprecation notices and
+successor links do not replace the canonical identity.
 
 Local builds, pull-request previews, staging Workers, and `workers.dev` URLs send
 `X-Robots-Tag: noindex, nofollow`, publish a disallowing `robots.txt`, omit analytics, and never
