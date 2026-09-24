@@ -102,6 +102,7 @@ async function observeAccess(api, account) {
     return known({
       enabled: true,
       teamDomain: organization?.auth_domain,
+      teamName: organization?.name,
       providers: providers.map((provider) => ({
         id: provider.id,
         type: provider.type,
@@ -117,11 +118,23 @@ async function observeAccess(api, account) {
   }
 }
 
-async function observeR2(api, account) {
+/**
+ * The declared buckets that exist. Each is looked up by name: the bucket list
+ * is paged by cursor, so a bucket past its first page would look missing.
+ */
+async function observeR2(api, account, manifest) {
   if (!api.client) return api.missing;
   return attempt(async () => {
-    const result = await api.client.get(`${account}/r2/buckets`);
-    return (result?.buckets ?? []).map((bucket) => bucket.name);
+    const found = [];
+    for (const bucket of manifest.r2) {
+      try {
+        await api.client.get(`${account}/r2/buckets/${encodeURIComponent(bucket.name)}`);
+        found.push(bucket.name);
+      } catch (error) {
+        if (error.kind !== 'not-found') throw error;
+      }
+    }
+    return found;
   });
 }
 
@@ -176,8 +189,9 @@ async function observeDns(resolve, manifest) {
  * @param {{ wrangler?: object, setup?: object }} input.apis Cloudflare clients
  * @param {Function} input.run the command runner
  * @param {Function} input.resolve the DNS resolver
+ * @param {Set<string>} [input.confirmed] what a person has confirmed on this computer
  */
-export async function observePlatform({ manifest, directory, apis, run, resolve }) {
+export async function observePlatform({ manifest, directory, apis, run, resolve, confirmed }) {
   const account = `accounts/${manifest.cloudflare.accountId}`;
   const configFile = path.join(directory, manifest.cloudflare.wranglerConfig ?? 'wrangler.jsonc');
   const config = await attempt(() => readWranglerConfig(configFile));
@@ -198,7 +212,7 @@ export async function observePlatform({ manifest, directory, apis, run, resolve 
     migrations,
     worker: await observeWorker(wrangler, account, manifest.cloudflare.worker),
     d1: await observeD1(wrangler, account, manifest, config.ok ? config.value : undefined),
-    r2: manifest.r2?.length ? await observeR2(wrangler, account) : known([]),
+    r2: manifest.r2?.length ? await observeR2(wrangler, account, manifest) : known([]),
     turnstile: manifest.turnstile?.length
       ? privileged.client
         ? await attempt(() => privileged.client.list(`${account}/challenges/widgets`))
@@ -208,6 +222,7 @@ export async function observePlatform({ manifest, directory, apis, run, resolve 
       ? await observeAccess(privileged, account)
       : known({ enabled: true, providers: [], apps: [], policies: [] }),
     dns: await observeDns(resolve, manifest),
+    confirmed,
     github: await observeGithub(run, directory, manifest),
   };
 }

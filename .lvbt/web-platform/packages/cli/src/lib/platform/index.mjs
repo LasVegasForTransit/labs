@@ -1,12 +1,19 @@
 import path from 'node:path';
 import { CliError } from '../arguments.mjs';
-import { applyPlan } from './apply.mjs';
+import { applyPlan, rotateSecrets } from './apply.mjs';
 import { setupTokenGuide } from './guides.mjs';
 import { findManifests, loadManifest, MANIFEST_FILE } from './manifest.mjs';
 import { observePlatform } from './observe.mjs';
 import { planPlatform, readiness, SETUP } from './plan.mjs';
 import { formatReport } from './report.mjs';
-import { cloudflareApi, dnsResolver, runCommand, wranglerToken } from './services.mjs';
+import {
+  cloudflareApi,
+  confirmationStore,
+  dnsResolver,
+  memoryConfirmations,
+  runCommand,
+  wranglerToken,
+} from './services.mjs';
 import { paint, terminalIo } from './terminal.mjs';
 
 /**
@@ -18,7 +25,12 @@ import { paint, terminalIo } from './terminal.mjs';
 export const SETUP_TOKEN_VARIABLE = 'LVBT_CLOUDFLARE_SETUP_TOKEN';
 
 export function defaultServices() {
-  return { run: runCommand, request: fetch, env: process.env };
+  return {
+    run: runCommand,
+    request: fetch,
+    env: process.env,
+    confirmations: confirmationStore(),
+  };
 }
 
 /** The manifests `--filter` selects: `apps/site`, `site`, or `.` for the root. */
@@ -54,7 +66,7 @@ function setupApiProvider({ manifest, services, io, interactive }) {
     const guide = setupTokenGuide(manifest);
     io.write(`\n${paint('bold', 'A Cloudflare API token for Turnstile and Access')}\n`);
     io.write(
-      "Wrangler's sign-in cannot manage Turnstile widgets or Access applications, so this step needs a short-lived token. It stays in this terminal's memory and is never written to disk.\n",
+      `Wrangler's sign-in cannot read or manage Turnstile widgets or Access applications, so checking them needs a short-lived token, even when they are already set up. It stays in this terminal's memory and is never written to disk. To skip this question next time, put the token in ${SETUP_TOKEN_VARIABLE} for the length of your session.\n`,
     );
     io.write(`Open: ${paint('cyan', guide.url)}\n`);
     guide.steps.forEach((step, index) => io.write(`  ${index + 1}. ${step}\n`));
@@ -96,7 +108,16 @@ async function inspect({ cwd, file, services, io, interactive, askForToken }) {
     setup: services.env[SETUP_TOKEN_VARIABLE] ? await setupApi() : undefined,
   };
   const resolve = dnsResolver(services.request);
-  const observe = () => observePlatform({ manifest, directory, apis, run: services.run, resolve });
+  const confirmations = services.confirmations ?? memoryConfirmations();
+  const observe = () =>
+    observePlatform({
+      manifest,
+      directory,
+      apis,
+      run: services.run,
+      resolve,
+      confirmed: confirmations.read(),
+    });
   let state = await observe();
   const needsToken = [state.turnstile, state.access].some(
     (part) => !part.ok && part.kind === 'unauthorized',
@@ -113,6 +134,7 @@ async function inspect({ cwd, file, services, io, interactive, askForToken }) {
     title: `${manifest.name} production (${file})`,
     items: plan(),
     setupApi,
+    confirmations,
     refresh: async () => {
       state = await observe();
       return { state, items: plan() };
@@ -150,6 +172,34 @@ export async function platformPreflight({
     );
 }
 
+/**
+ * The secrets `--rotate` names, checked against the manifests it applies to.
+ * Rotating is never implied: without the flag, a stored value is kept.
+ */
+export function rotationNames(option, manifests) {
+  if (option === undefined) return [];
+  const names = [
+    ...new Set(
+      String(option)
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
+  ];
+  if (names.length === 0)
+    throw new CliError('--rotate needs the name of a secret, such as --rotate SIGNING_SECRET.', 2);
+  const declared = new Set(
+    manifests.flatMap((manifest) => (manifest.secrets ?? []).map((secret) => secret.name)),
+  );
+  const unknownNames = names.filter((name) => !declared.has(name));
+  if (unknownNames.length > 0)
+    throw new CliError(
+      `--rotate names ${unknownNames.join(', ')}, which platform.json does not declare as a secret.`,
+      2,
+    );
+  return names;
+}
+
 /** Set up everything each manifest declares, then report what is still open. */
 export async function platformBootstrap({
   cwd,
@@ -162,8 +212,13 @@ export async function platformBootstrap({
       `${SETUP} asks for values, so it needs a terminal. To check production without changing it, run pnpm preflight --production.`,
       2,
     );
+  const files = selectManifests(cwd, options.filter);
+  const rotate = rotationNames(
+    options.rotate,
+    files.map((file) => loadManifest(path.join(cwd, file))),
+  );
   let failed = 0;
-  for (const file of selectManifests(cwd, options.filter)) {
+  for (const file of files) {
     const view = await inspect({ cwd, file, services, io, interactive: true, askForToken: true });
     io.write(`\n${formatReport({ title: view.title, items: view.items })}`);
     const context = {
@@ -174,14 +229,26 @@ export async function platformBootstrap({
       run: services.run,
       io,
       setupApi: view.setupApi,
+      confirmations: view.confirmations,
       values: new Map(),
       handled: new Set(),
+      shown: new Set(),
       created: { widgets: new Map(), apps: new Map() },
+      observe: async () => (await view.refresh()).state,
     };
+    const declared = new Set((view.manifest.secrets ?? []).map((secret) => secret.name));
+    const mine = rotate.filter((name) => declared.has(name));
+    let acted;
     try {
-      await applyPlan(context, view.items);
+      ({ acted } = await applyPlan(context, view.items));
+      if (mine.length > 0) await rotateSecrets(context, mine);
     } finally {
       context.values.clear();
+    }
+    // Nothing was done, so the report above is still the current one.
+    if (!acted && mine.length === 0) {
+      if (!readiness(view.items).ready) failed += 1;
+      continue;
     }
     const after = await view.refresh();
     io.write(`\n${formatReport({ title: `${view.title}, after setup`, items: after.items })}`);
