@@ -5,6 +5,11 @@ import { readCreateInput } from './create-input.js';
 import { writeProject } from './create-write.js';
 import { archiveTemplate } from './create-archive.js';
 
+const siteIndexTemplate = new URL(
+  '../templates/generated-project/site-index.astro',
+  import.meta.url,
+);
+
 function assertAvailableSlug(root: string, slug: string): void {
   const reserved = [
     path.join(root, 'apps', slug),
@@ -159,8 +164,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
   if (site) {
     files['astro.config.ts'] =
       `import { defineConfig } from 'astro/config';\nimport tailwindcss from '@tailwindcss/vite';\nexport default defineConfig({site:'https://labs.lasvegasfortransit.org',base:'${base}',build:{format:'directory'},vite:{plugins:[tailwindcss()]}});\n`;
-    files['src/pages/index.astro'] =
-      `---\nimport '../styles.css';\nimport LabLifecycleNotice from '@lvbt/ui/astro/lifecycle-notice';\nimport manifest from '../../lab.config';\n---\n<html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><meta name="robots" content="noindex" /><title>{manifest.title}</title></head><body><main><LabLifecycleNotice manifest={manifest} /><h1>{manifest.title}</h1><p>{manifest.summary}</p></main></body></html>\n`;
+    files['src/pages/index.astro'] = await readFile(siteIndexTemplate, 'utf8');
   } else {
     files['vite.config.ts'] =
       `import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\nimport tailwindcss from '@tailwindcss/vite';\nexport default defineConfig({base:'${base}',plugins:[react(),tailwindcss()]});\n`;
