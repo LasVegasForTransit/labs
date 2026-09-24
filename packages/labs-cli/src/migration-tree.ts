@@ -19,6 +19,28 @@ function jsonObject(content: string) {
   return z.record(z.string(), z.unknown()).parse(result.config);
 }
 
+function migrationDeployWorkflow(deploy: string) {
+  const anchor = '    name: Deploy\n    needs: validate';
+  const dispatch = '  workflow_dispatch:\n';
+  const accountSecret = 'CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}';
+  if (!deploy.includes(anchor) || !deploy.includes(dispatch) || !deploy.includes(accountSecret))
+    throw new Error('Review the preset deployment workflow before migration.');
+  return deploy
+    .replace(
+      dispatch,
+      `  workflow_dispatch:\n    inputs:\n      commit:\n        description: Exact reviewed commit to deploy\n        required: true\n        type: string\n`,
+    )
+    .replace(
+      anchor,
+      `    name: Deploy\n    if: vars.LVBT_DEPLOYMENT_OWNER == 'true' && (github.event_name != 'workflow_dispatch' || github.sha == inputs.commit)\n    needs: validate`,
+    )
+    .replace(accountSecret, 'CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}')
+    .replace(
+      '# edit) and CLOUDFLARE_ACCOUNT_ID repository secrets.',
+      '# edit) and the CLOUDFLARE_ACCOUNT_ID repository variable.',
+    );
+}
+
 function configureRoot(files: Tree, slug: string, repository: string) {
   const read = (name: string) => {
     const file = files.get(name);
@@ -71,22 +93,9 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   };
   turbo.tasks = tasks;
   write('turbo.json', `${JSON.stringify(turbo, null, 2)}\n`);
-  const deploy = read('.github/workflows/deploy.yml');
-  const anchor = '    name: Deploy\n    needs: validate';
-  const dispatch = '  workflow_dispatch:\n';
-  if (!deploy.includes(anchor) || !deploy.includes(dispatch))
-    throw new Error('Review the preset deployment workflow before migration.');
   write(
     '.github/workflows/deploy.yml',
-    deploy
-      .replace(
-        dispatch,
-        `  workflow_dispatch:\n    inputs:\n      commit:\n        description: Exact reviewed commit to deploy\n        required: true\n        type: string\n`,
-      )
-      .replace(
-        anchor,
-        `    name: Deploy\n    if: vars.LVBT_DEPLOYMENT_OWNER == 'true' && (github.event_name != 'workflow_dispatch' || github.sha == inputs.commit)\n    needs: validate`,
-      ),
+    migrationDeployWorkflow(read('.github/workflows/deploy.yml')),
   );
   write(
     '.github/workflows/ci.yml',

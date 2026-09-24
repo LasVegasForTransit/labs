@@ -33,7 +33,7 @@ Commands:
   doctor [slug]         Inspect infrastructure without changing it
   deprecate <slug>      Plan or apply a deprecation
   retire <slug>         Prepare, verify, or finalize an archive
-  migrate <slug>        Prepare, transfer, verify, or finalize a migration
+  migrate <slug>        Prepare, provision, transfer, verify, or finalize a migration
   rollback <slug>       Restore a previous Worker version
 
 Common options:

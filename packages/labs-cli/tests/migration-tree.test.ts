@@ -33,6 +33,7 @@ test(
       ).not.toContain('<this-repository>');
       const deploy = result.files.get('.github/workflows/deploy.yml')?.content.toString() ?? '';
       expect(deploy).toContain('LVBT_DEPLOYMENT_OWNER');
+      expect(deploy).toContain('CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}');
       expect(deploy).toContain('github.sha == inputs.commit');
       expect(deploy).toContain('commit:');
       expect(result.files.get('.githooks/pre-commit')?.mode).toBe('100755');
