@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+// Fake `pnpm` used only by packages/labs-cli/tests/provision-idempotent.test.ts.
+// Provisioning shells out to `pnpm exec wrangler auth token --json` for
+// Cloudflare credentials and, per published Worker, `pnpm --filter <pkg>
+// build` followed by `pnpm exec wrangler versions upload`. This fake answers
+// all three without touching a real Cloudflare account, and records the
+// Worker upload into the same JSON state file the fake Cloudflare fetch
+// reads, so a freshly "uploaded" Worker is immediately visible to the
+// reconciler's read-after-write check.
+'use strict';
+
+const fs = require('node:fs');
+
+const STATE_FILE = process.env.FAKE_STATE_FILE;
+if (!STATE_FILE) {
+  process.stderr.write('fake pnpm: FAKE_STATE_FILE is not set.\n');
+  process.exit(1);
+}
+
+function loadState() {
+  return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+}
+
+function saveState(state) {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state));
+}
+
+function record(state, entry) {
+  state._log = state._log || [];
+  state._log.push(entry);
+}
+
+const args = process.argv.slice(2);
+
+if (args[0] === 'exec' && args[1] === 'wrangler' && args[2] === 'auth' && args[3] === 'token') {
+  process.stdout.write(JSON.stringify({ type: 'api_token', token: 'fake-cloudflare-token' }));
+  process.exit(0);
+}
+
+if (args[0] === '--filter') {
+  // `pnpm --filter <package> build`: a no-op success, the fixture never
+  // builds a real Worker bundle.
+  process.exit(0);
+}
+
+if (
+  args[0] === 'exec' &&
+  args[1] === 'wrangler' &&
+  args[2] === 'versions' &&
+  args[3] === 'upload'
+) {
+  const name = args[args.indexOf('--name') + 1];
+  const state = loadState();
+  state.cloudflare = state.cloudflare || {};
+  state.cloudflare.workers = state.cloudflare.workers || [];
+  if (!state.cloudflare.workers.some((worker) => worker.id === name))
+    state.cloudflare.workers.push({ id: name });
+  state.cloudflare.subdomains = state.cloudflare.subdomains || {};
+  if (!state.cloudflare.subdomains[name])
+    state.cloudflare.subdomains[name] = { enabled: false, previews_enabled: false };
+  record(state, `wrangler-upload ${name}`);
+  saveState(state);
+  process.exit(0);
+}
+
+process.stderr.write(`fake pnpm: unsupported invocation: ${args.join(' ')}\n`);
+process.exit(1);
