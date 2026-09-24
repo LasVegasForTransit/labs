@@ -9,6 +9,7 @@
     "dev": "astro dev --host 127.0.0.1 --port 4320",
     "preview": "astro preview --host 127.0.0.1 --port 4320",
     "lint": "eslint . --max-warnings 0",
+    "sync": "astro sync",
     "check-types": "astro check",
     "test": "vitest run",
     "test:e2e": "playwright test"

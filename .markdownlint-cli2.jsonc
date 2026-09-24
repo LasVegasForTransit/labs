@@ -10,6 +10,8 @@
   },
   "globs": ["**/*.md"],
   "ignores": [
+    // Agent worktrees are other checkouts of this repository.
+    ".claude/worktrees",
     ".lvbt/web-platform",
     "node_modules",
     "**/node_modules",
