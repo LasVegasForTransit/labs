@@ -46,9 +46,31 @@ Run `pnpm bootstrap`, `pnpm check`, `pnpm build`, `pnpm test:e2e`, and `pnpm tes
 standalone directory. Resolve failures there before transferring ownership. An `exported` result
 confirms source preparation, not application acceptance or graduation.
 
-Commit and push the standalone repository, provision it with `LVBT_DEPLOYMENT_OWNER=false`, and let
-its exact `main` commit pass the required `Validate` check. Keep the Labs checkout at the source
-commit reported by preparation. Then plan the ownership pause:
+Commit the standalone repository on `main`, then plan its remote setup from the unchanged Labs
+checkout:
+
+```sh
+pnpm lab migrate <slug> --provision \
+  --repository LasVegasForTransit/<repository> \
+  --output ../<repository> --dry-run
+```
+
+Set `CLOUDFLARE_API_TOKEN` to a dedicated Workers deployment token before applying a new
+destination. The command creates or reconciles the public GitHub repository, pushes the exact local
+`main` commit, installs the standard branch rules and production environment, sets Cloudflare
+account and zone variables, stores the deployment token as an environment secret, and keeps
+`LVBT_DEPLOYMENT_OWNER=false`. It refuses dirty exports, mismatched provenance, private or archived
+destinations, different remote history, and an existing destination with deployment ownership
+enabled. It never changes the Worker or Labs route. Repeating `--apply` verifies the existing setup.
+
+```sh
+pnpm lab migrate <slug> --provision \
+  --repository LasVegasForTransit/<repository> \
+  --output ../<repository> --apply
+```
+
+Let the destination's exact `main` commit pass the required `Validate` check. Keep the Labs checkout
+at the source commit reported by preparation. Then plan the ownership pause:
 
 ```sh
 pnpm lab migrate <slug> --pause \

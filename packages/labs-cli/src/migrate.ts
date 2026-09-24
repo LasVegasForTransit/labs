@@ -22,11 +22,17 @@ import {
   migrationVerificationOperations,
 } from './migration-handoff-operations.js';
 import { migrationRollbackOperations } from './migration-rollback-operations.js';
+import {
+  migrationDestinationCommit,
+  provisionMigrationDestination,
+} from './migration-provision.js';
 
-type MigrationPhase = 'prepare' | 'pause' | 'transfer' | 'verify' | 'finalize' | 'rollback';
+type MigrationPhase =
+  'prepare' | 'provision' | 'pause' | 'transfer' | 'verify' | 'finalize' | 'rollback';
 
 const migrationPhases = [
   'prepare',
+  'provision',
   'pause',
   'transfer',
   'verify',
@@ -43,6 +49,7 @@ function migrationFlags(args: string[]) {
       repository: { type: 'string' },
       output: { type: 'string' },
       prepare: { type: 'boolean' },
+      provision: { type: 'boolean' },
       pause: { type: 'boolean' },
       transfer: { type: 'boolean' },
       verify: { type: 'boolean' },
@@ -58,7 +65,7 @@ function migrationFlags(args: string[]) {
   if (values.apply && values['dry-run']) throw new Error('Choose --apply or --dry-run.');
   if (migrationPhases.filter((phase) => values[phase]).length > 1)
     throw new Error(
-      'Choose exactly one migration phase: --prepare, --pause, --transfer, --verify, --finalize, or --rollback.',
+      'Choose exactly one migration phase: --prepare, --provision, --pause, --transfer, --verify, --finalize, or --rollback.',
     );
   if (positionals.length > 1 || (positionals.length > 0 && values.slug !== undefined))
     throw new Error('Provide one lab slug.');
@@ -89,7 +96,7 @@ async function promptedMigrationFields(
     ? []
     : ['repository' as const];
   const phaseField =
-    phase === 'prepare'
+    phase === 'prepare' || phase === 'provision'
       ? ['output' as const]
       : phase === 'pause'
         ? ['sourceCommit' as const]
@@ -103,7 +110,9 @@ async function promptedMigrationFields(
 
 async function promptedMigrationPhase(question: Question): Promise<MigrationPhase> {
   const answer = (
-    await question('Migration phase (prepare, pause, transfer, verify, finalize, rollback): ')
+    await question(
+      'Migration phase (prepare, provision, pause, transfer, verify, finalize, rollback): ',
+    )
   )
     .trim()
     .toLowerCase();
@@ -131,12 +140,17 @@ function validateMigrationFields(
     if (!output) throw new Error('Provide --output for migration preparation.');
     return { phase: 'prepare', slug, repository, output, apply } as const;
   }
+  if (phase === 'provision') {
+    if (!output) throw new Error('Provide --output for destination provisioning.');
+    return { phase: 'provision', slug, repository, output, apply } as const;
+  }
   if (!sourceCommit) throw new Error('Provide --source-commit for migration pause.');
   return { phase: 'pause', slug, repository, sourceCommit, apply } as const;
 }
 
 function selectedPhase(values: {
   prepare?: boolean;
+  provision?: boolean;
   pause?: boolean;
   transfer?: boolean;
   verify?: boolean;
@@ -144,6 +158,7 @@ function selectedPhase(values: {
   rollback?: boolean;
 }): MigrationPhase | undefined {
   if (values.prepare) return 'prepare';
+  if (values.provision) return 'provision';
   if (values.pause) return 'pause';
   if (values.transfer) return 'transfer';
   if (values.verify) return 'verify';
@@ -174,7 +189,7 @@ export async function migrationInput(args: string[], ask?: Question) {
     if (phase === undefined) {
       if (question === undefined)
         throw new Error(
-          'Choose exactly one migration phase: --prepare, --pause, --transfer, --verify, --finalize, or --rollback.',
+          'Choose exactly one migration phase: --prepare, --provision, --pause, --transfer, --verify, --finalize, or --rollback.',
         );
       phase = await promptedMigrationPhase(question);
     }
@@ -187,6 +202,10 @@ export async function migrationInput(args: string[], ask?: Question) {
 }
 
 interface MigrationDependencies {
+  provision?: (
+    root: string,
+    input: { slug: string; repository: string; output: string; commit: string; apply: boolean },
+  ) => Promise<{ command: string; ok: boolean; changed: boolean | null; phase: string }>;
   pauseOperations?: (
     root: string,
     input: { slug: string; repository: string; sourceCommit: string },
@@ -201,7 +220,7 @@ type MigrationInput = Awaited<ReturnType<typeof migrationInput>>;
 
 async function runHandoffPhase(
   root: string,
-  input: Exclude<MigrationInput, { phase: 'prepare' }>,
+  input: Exclude<MigrationInput, { phase: 'prepare' | 'provision' }>,
   dependencies: MigrationDependencies,
   repository: { git(arguments_: string[]): string; clean(): void },
 ) {
@@ -258,6 +277,19 @@ export async function migrateLab(
       throw new Error('Migration requires a clean committed source tree.');
   };
   clean();
+  if (input.phase === 'provision') {
+    const sourceCommit = git(['rev-parse', 'HEAD']);
+    const destination = await migrationDestinationCommit(
+      root,
+      input.output,
+      input.slug,
+      sourceCommit,
+    );
+    return (dependencies.provision ?? provisionMigrationDestination)(root, {
+      ...input,
+      ...destination,
+    });
+  }
   if (input.phase !== 'prepare') return runHandoffPhase(root, input, dependencies, { git, clean });
   const requested = path.resolve(root, input.output);
   const output = path.join(await realpath(path.dirname(requested)), path.basename(requested));

@@ -31,7 +31,7 @@ The full list, exit codes, and hooks are in the
 | `pnpm lab check <slug>`     | Run one lab's static analysis, tests, build, and browser acceptance                        |
 | `pnpm lab status <slug>`    | Print the lab's validated manifest (`--json` for one line)                                 |
 | `pnpm lab deprecate <slug>` | Preview deprecation metadata; `--apply` writes the manifest                                |
-| `pnpm lab migrate <slug>`   | Prepare, transfer, and verify a standalone project migration                               |
+| `pnpm lab migrate <slug>`   | Prepare, provision, transfer, and verify a standalone project migration                    |
 | `pnpm lab retire <slug>`    | Prepare, verify, and finalize a read-only retirement archive                               |
 
 A slug identifies an app under `apps/` or a retired or graduated record at `catalog/<slug>.json`.
@@ -78,6 +78,14 @@ rejects computed fields rather than replacing project-owned logic. Run `pnpm for
 standalone export. Add `--apply` to create it. The exported repository carries the pinned standard,
 project source, transitive shared packages, CI, deployment configuration, documentation, licenses,
 and exact provenance.
+
+`pnpm lab migrate <slug> --provision --repository <owner/name> --output <directory>` plans the
+destination's public GitHub repository, initial `main` push, branch rules, production environment,
+Cloudflare account and zone variables, disabled deployment-owner variable, and deploy token secret.
+The standalone export must be validated, committed on `main`, clean, and tied to the current Labs
+source commit. Add `--apply` to create or reconcile those resources. A new deploy token is read from
+`CLOUDFLARE_API_TOKEN`; an existing secret remains in place on idempotent reruns. This phase does
+not change the Labs Worker or route.
 
 `pnpm lab migrate <slug> --pause --repository <owner/name> --source-commit <commit>` verifies the
 destination's current main commit, required `Validate` result, disabled deployment-owner variable,

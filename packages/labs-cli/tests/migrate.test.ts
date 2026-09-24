@@ -131,7 +131,7 @@ test('guided input asks for the migration phase before its fields', async () => 
     apply: false,
   });
   expect(questions).toEqual([
-    'Migration phase (prepare, pause, transfer, verify, finalize, rollback): ',
+    'Migration phase (prepare, provision, pause, transfer, verify, finalize, rollback): ',
     'Lab slug: ',
     'Destination GitHub repository (owner/name): ',
     'Standalone directory outside Labs: ',
