@@ -1,5 +1,11 @@
-import { accessAppGuide, googleWorkspaceGuide, zeroTrustGuide } from './guides.mjs';
-import { item, SETUP, TOKEN_HINT, unknownItem } from './plan-items.mjs';
+import {
+  accessAppGuide,
+  googleGroupGuide,
+  googleWorkspaceGuide,
+  ZERO_TRUST,
+  zeroTrustGuide,
+} from './guides.mjs';
+import { item, manualGuide, SETUP, TOKEN_HINT, unknownItem } from './plan-items.mjs';
 
 /**
  * Cloudflare Access: Zero Trust itself, the identity provider people sign in
@@ -72,6 +78,8 @@ export function accessDifferences(found, app, provider, reusable) {
     reasons.push(`signs people in for ${found.session_duration}, not ${session}`);
   if (provider && found.allowed_idps?.length > 0 && !found.allowed_idps.includes(provider.id))
     reasons.push(`does not offer the ${app.identityProvider} identity provider`);
+  else if (provider && Array.isArray(found.allowed_idps) && found.allowed_idps.length === 0)
+    reasons.push(`accepts every identity provider, not only ${app.identityProvider}`);
   return [...reasons, ...policyReasons(found, app, reusable)];
 }
 
@@ -87,11 +95,12 @@ function providerItem(manifest, access, type) {
   const group = manifest.access.find((app) => app.allow.googleGroup)?.allow.googleGroup;
   const guide =
     type === 'google-apps'
-      ? googleWorkspaceGuide(access.teamDomain, group?.split('@')[1])
+      ? googleWorkspaceGuide(access.teamDomain, group?.split('@')[1], group)
       : {
-          url: 'https://one.dash.cloudflare.com/',
+          url: ZERO_TRUST,
           steps: [
-            'In Zero Trust, go to Integrations → Identity providers → "Add new identity provider" → "One-time PIN", and save.',
+            'Open Cloudflare One and choose the LVBT account.',
+            'Go to Integrations → Identity providers (not "Cloud & SaaS" just above it: that is a different feature that asks for a service account; leave it alone), click "Add new identity provider", choose "One-time PIN", and click "Save". People then sign in with a code emailed to them.',
           ],
         };
   return item({
@@ -103,7 +112,7 @@ function providerItem(manifest, access, type) {
   });
 }
 
-function applicationItem(access, app) {
+function applicationItem(manifest, access, app) {
   const fields = { id: `access:${app.name}`, section: SECTION, label: app.name };
   const provider = access.providers.find((candidate) => candidate.type === app.identityProvider);
   const found = findApp(access.apps, app);
@@ -111,7 +120,7 @@ function applicationItem(access, app) {
     app,
     provider,
     rule: allowRule(app.allow, provider),
-    guide: accessAppGuide(app),
+    guide: manualGuide(accessAppGuide(app, manifest.cloudflare.zone.name)),
   };
   if (!found && !provider)
     return item({
@@ -152,15 +161,57 @@ function applicationItem(access, app) {
   });
 }
 
+/**
+ * Each Google Group an application admits. Setup cannot read Google Groups,
+ * so a group is ready once a person confirms it exists, which setup then
+ * remembers on that computer. It only warns, because a check in CI cannot
+ * ask anyone.
+ */
+function groupItems({ manifest, state }) {
+  const groups = new Map();
+  for (const app of manifest.access ?? []) {
+    const group = app.allow.googleGroup;
+    if (group) groups.set(group, [...(groups.get(group) ?? []), app]);
+  }
+  return [...groups].map(([group, apps]) => {
+    const key = `google-group:${manifest.cloudflare.accountId}:${group}`;
+    const fields = {
+      id: `google-group:${group}`,
+      section: SECTION,
+      label: `Google Group ${group}`,
+      level: 'recommended',
+    };
+    if (state.confirmed?.has(key))
+      return item({ ...fields, status: 'ok', detail: 'was confirmed to exist on this computer' });
+    return item({
+      ...fields,
+      status: 'missing',
+      detail: 'is not confirmed to exist; setup cannot read Google Groups',
+      next: `${SETUP} shows how to create it, then asks`,
+      action: {
+        type: 'manual',
+        key: `google-group:${group}`,
+        guide: googleGroupGuide(group, apps),
+        confirm: {
+          key,
+          question: `Does the Google Group ${group} exist now, with the people who need in?`,
+        },
+      },
+    });
+  });
+}
+
 export function planAccess({ manifest, state }) {
   const apps = manifest.access ?? [];
   if (apps.length === 0) return [];
+  const groups = groupItems({ manifest, state });
   if (!state.access.ok)
     return [
       unknownItem(
         { id: 'access', section: SECTION, label: 'Zero Trust', credentialHint: TOKEN_HINT },
         state.access,
       ),
+      ...groups,
     ];
   const access = state.access.value;
   const zeroTrust = { id: 'access:zero-trust', section: SECTION, label: 'Zero Trust' };
@@ -171,8 +222,9 @@ export function planAccess({ manifest, state }) {
         status: 'missing',
         detail: 'is not turned on for this account',
         next: `turn it on in the dashboard; ${SETUP} shows the steps`,
-        action: { type: 'manual', key: 'zero-trust', guide: zeroTrustGuide() },
+        action: { type: 'manual', key: 'zero-trust', guide: zeroTrustGuide(manifest) },
       }),
+      ...groups,
       ...apps.map((app) =>
         item({
           id: `access:${app.name}`,
@@ -185,10 +237,15 @@ export function planAccess({ manifest, state }) {
       ),
     ];
   return [
-    item({ ...zeroTrust, status: 'ok', detail: `team domain ${access.teamDomain ?? 'unknown'}` }),
+    item({
+      ...zeroTrust,
+      status: 'ok',
+      detail: `is on; team domain ${access.teamDomain ?? 'unknown'}${access.teamName ? ` (team name "${access.teamName}")` : ''}`,
+    }),
     ...[...new Set(apps.map((app) => app.identityProvider))].map((type) =>
       providerItem(manifest, access, type),
     ),
-    ...apps.map((app) => applicationItem(access, app)),
+    ...groups,
+    ...apps.map((app) => applicationItem(manifest, access, app)),
   ];
 }

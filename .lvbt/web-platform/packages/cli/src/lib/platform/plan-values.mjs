@@ -1,4 +1,5 @@
 import { emailRecords, resendDomainGuide, varGuide } from './guides.mjs';
+import { findApp } from './plan-access.mjs';
 import { findWidget } from './plan-cloudflare.mjs';
 import { GH_HINT, item, SETUP, targetLabel, unknownItem } from './plan-items.mjs';
 import { githubEnvironments } from './observe.mjs';
@@ -45,6 +46,21 @@ export function secretSource(secret, manifest) {
   return { type: 'prompt' };
 }
 
+/** Whether a secret is a credential, which is typed hidden and never shown. */
+export function isSensitive(secret) {
+  return secret?.sensitive !== false;
+}
+
+/** The value setup would store for a non-credential secret, when it can know it. */
+function knownPlainValue(secret, source, state) {
+  if (isSensitive(secret)) return undefined;
+  if (source.type === 'value') return source.value;
+  if (!state.access.ok) return undefined;
+  if (source.type === 'access-team') return state.access.value.teamDomain;
+  if (source.type === 'access-audience') return findApp(state.access.value.apps, source.app)?.aud;
+  return undefined;
+}
+
 function sourceHint(source) {
   if (source.type === 'generate') return `${SETUP} generates and stores it`;
   if (source.type === 'prompt') return `${SETUP} asks for it, with steps`;
@@ -80,15 +96,35 @@ function secretItem({ manifest, state }, secret, target) {
     });
   if (!present.ok)
     return unknownItem({ ...fields, credentialHint: present.credentialHint }, present);
-  if (present.value) return item({ ...fields, status: 'ok', detail: 'is set' });
   const source = secretSource(secret, manifest);
+  const plain = knownPlainValue(secret, source, state);
+  if (present.value)
+    // Setup cannot read a stored value back, so for a non-credential it shows
+    // the value that belongs there, for a person to compare.
+    return item({
+      ...fields,
+      status: 'ok',
+      detail: plain === undefined ? 'is set' : `is set; it should be ${plain}`,
+    });
+  const elsewhere = (secret.targets ?? ['worker']).filter(
+    (other) => other !== target && stored(state, other, secret.name).value === true,
+  );
+  if (source.type === 'generate' && elsewhere.length > 0)
+    // A generated value cannot be read back, so minting another here would
+    // leave the targets holding different values.
+    return item({
+      ...fields,
+      status: 'mismatch',
+      detail: `is not set here but is set on ${elsewhere.map((other) => targetLabel(manifest, other)).join(', ')}, and setup cannot read that value to copy it`,
+      next: `${SETUP} --rotate ${secret.name} stores one new value everywhere`,
+    });
   return item({
     ...fields,
     status: 'missing',
     detail: secret.neededFor
       ? `is not set; needed for ${secret.neededFor}`
       : `is not set. ${secret.purpose}`,
-    next: sourceHint(source),
+    next: plain === undefined ? sourceHint(source) : `${sourceHint(source)}: ${plain}`,
     action: { type: 'secret.put', secret, target, source },
   });
 }
@@ -123,7 +159,9 @@ export function planVars({ manifest, state, configPath }) {
     const action = {
       type: 'manual',
       key: `var:${variable.name}`,
-      guide: varGuide(variable, configPath, live?.sitekey),
+      guide: varGuide(variable, configPath, live?.sitekey, widget?.name),
+      variable,
+      widget: widget?.name,
     };
     if (value === undefined || value === '')
       return item({
