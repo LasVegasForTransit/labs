@@ -323,6 +323,8 @@ export async function provisionResourceGroups(root: string, target: Target) {
   const environmentVariables = `${environment}/variables`;
   const token = cloudflareCredential(root);
   const cloudflare = cloudflareReader(token);
+  const analyticsReadToken = process.env.CLOUDFLARE_ANALYTICS_READ_TOKEN?.trim();
+  const analyticsReader = analyticsReadToken ? cloudflareReader(analyticsReadToken) : cloudflare;
   const account = `accounts/${target.accountId}`;
   const domains = `${account}/workers/domains?hostname=${encodeURIComponent(target.hostname)}`;
   const analytics = `${account}/rum/site_info/list`;
@@ -366,7 +368,7 @@ export async function provisionResourceGroups(root: string, target: Target) {
     ),
   ];
   const analyticsResources = provisionAnalytics(target, {
-    readSites: () => cloudflare.list(analytics),
+    readSites: () => analyticsReader.list(analytics),
     createSite: (body) => cloudflareWrite('POST', `${account}/rum/site_info`, body),
     readVariables: () => githubResources.github(environmentVariables),
     writeVariable: (method, endpoint, body) => {
