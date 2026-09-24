@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,6 +49,13 @@ test.each(['site', 'app'])(
       expect(archive).toContain('createArchiveContext');
       expect(archive).toContain('archive.failures');
       expect(archive).toContain('page.reload()');
+      if (profile === 'site') {
+        const template = await readFile(
+          new URL('../templates/generated-project/site-index.astro', import.meta.url),
+          'utf8',
+        );
+        expect(files?.['src/pages/index.astro']).toBe(template);
+      }
       for (const name of [
         'tests/e2e/home.spec.ts-snapshots/page-desktop-lvbt.png',
         'tests/e2e/home.spec.ts-snapshots/page-mobile-lvbt.png',
