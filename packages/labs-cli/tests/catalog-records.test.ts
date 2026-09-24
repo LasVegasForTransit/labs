@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
 import home from '../../../apps/home/lab.config.js';
-import { discoverLabs } from '../src/manifest.js';
+import { discoverLabs, discoverSourceLabs } from '../src/discovery.js';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -45,6 +45,30 @@ test('discovers retired and graduated records without app source, in slug order'
     expect(records.map((record) => record.slug)).toEqual(['graduate', 'old-map']);
     expect(records[0]?.visibility).toBe('unlisted');
     expect(records[1]).toEqual(retired);
+  });
+});
+
+test('catalog-only records do not become source-owned apps', async () => {
+  await fixture(async (root) => {
+    await mkdir(path.join(root, 'apps/home'));
+    await writeFile(
+      path.join(root, 'apps/home/lab.config.ts'),
+      `export default ${JSON.stringify(home)};`,
+    );
+    await writeFile(
+      path.join(root, 'catalog/graduate.json'),
+      JSON.stringify({
+        ...home,
+        slug: 'graduate',
+        status: 'graduated',
+        dates: { ...home.dates, graduated: '2026-09-05' },
+        sourceRepository: 'https://github.com/LasVegasForTransit/graduate',
+        canonicalUrl: 'https://graduate.example.org/',
+      }),
+    );
+
+    expect((await discoverLabs(root)).map((record) => record.slug)).toEqual(['graduate', 'home']);
+    expect((await discoverSourceLabs(root)).map((record) => record.slug)).toEqual(['home']);
   });
 });
 

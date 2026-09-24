@@ -36,8 +36,8 @@ tests still block all external network access.
 
 ## Operational acceptance
 
-`pnpm doctor` confirms the shared Web Analytics property and its production environment variable. A
-production release is accepted after browser verification observes the beacon on the stable
-hostname, finds no beacon in a preview or archive, and records an event at the first-party
+`pnpm run doctor` confirms the shared Web Analytics property and its production environment
+variable. A production release is accepted after browser verification observes the beacon on the
+stable hostname, finds no beacon in a preview or archive, and records an event at the first-party
 collector. The collector dashboard and fixed-query report provide aggregate diagnostics without
 exposing visitor-level records.

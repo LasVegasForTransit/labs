@@ -8,7 +8,7 @@ import {
   cloudflareDoctor,
 } from '@lasvegasfortransit/web-platform/cloudflare';
 import { githubDoctor, githubReader } from '@lasvegasfortransit/web-platform/github';
-import { discoverLabs } from './discovery.js';
+import { discoverLabs, discoverSourceLabs } from './discovery.js';
 import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.js';
 import { liveDoctor } from './live-doctor.js';
 
@@ -72,7 +72,8 @@ export async function doctor(root: string, args: string[]) {
   if (target.hostname !== target.zoneName && !target.hostname.endsWith(`.${target.zoneName}`))
     throw new Error('The hostname must belong to the declared zone.');
   const labs = await discoverLabs(root);
-  if (target.externalWorkers.some((worker) => labs.some((lab) => lab.slug === worker.slug)))
+  const sourceLabs = await discoverSourceLabs(root);
+  if (target.externalWorkers.some((worker) => sourceLabs.some((lab) => lab.slug === worker.slug)))
     throw new Error('An external Worker cannot share a slug with a Labs app.');
   if (
     input.slug !== undefined &&
@@ -80,7 +81,7 @@ export async function doctor(root: string, args: string[]) {
     !target.externalWorkers.some((worker) => worker.slug === input.slug)
   )
     throw new Error(`Unknown lab: ${input.slug}`);
-  const workers = labs
+  const workers = sourceLabs
     .filter((lab) => lab.status !== 'draft')
     .map((lab) => ({ slug: lab.slug, name: `lvbt-labs-${lab.slug}` }))
     .concat(target.externalWorkers);

@@ -23,7 +23,7 @@ import {
   provisionRepositoryVariable,
   provisionVariables,
 } from '@lasvegasfortransit/web-platform/github';
-import { discoverLabs } from './discovery.js';
+import { discoverSourceLabs } from './discovery.js';
 import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.js';
 import type { LabManifestV1 } from './manifest.js';
 
@@ -326,7 +326,7 @@ export async function provisionResourceGroups(root: string, target: Target) {
   const analytics = `${account}/rum/site_info/list`;
   const routes = `zones/${target.zoneId}/workers/routes`;
   const workerScripts = `${account}/workers/scripts`;
-  const labs = await discoverLabs(root);
+  const labs = await discoverSourceLabs(root);
   const workers = labs
     .filter((lab) => lab.status !== 'draft')
     .map((lab) => ({ slug: lab.slug, name: `lvbt-labs-${lab.slug}` }));
