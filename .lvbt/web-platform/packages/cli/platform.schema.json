@@ -76,7 +76,7 @@
     "steps": {
       "type": "array",
       "minItems": 1,
-      "description": "Numbered, click-by-click steps to find or create the value. Write each as one complete sentence.",
+      "description": "Numbered, click-by-click steps to find or create the value. Write each as one complete sentence. Never ask for a second copy before the first is pasted; the last step copies this value for the prompt.",
       "items": { "type": "string", "minLength": 1 }
     },
     "cloudflare": {
@@ -283,6 +283,10 @@
         "generate": {
           "type": "boolean",
           "description": "Setup mints a random value instead of asking for one."
+        },
+        "sensitive": {
+          "type": "boolean",
+          "description": "false for a value that is not a credential, such as an account ID, a team domain, or an Access audience tag. Setup then asks for it with visible input and shows its value in the report and its output. Defaults to true: the value is typed hidden and never shown."
         },
         "from": {
           "enum": ["cloudflare.accountId"],
