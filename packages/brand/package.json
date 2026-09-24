@@ -5,7 +5,6 @@
   "type": "module",
   "exports": {
     "./analytics": "./src/analytics.ts",
-    "./analytics/astro": "./src/analytics/astro.ts",
     "./tokens.css": "./src/tokens.css",
     "./assets/*": "./assets/*"
   },

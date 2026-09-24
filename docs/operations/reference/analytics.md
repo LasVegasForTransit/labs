@@ -11,7 +11,8 @@ Control and Do Not Track disable page and event measurement.
 
 ## Application contract
 
-Astro projects add `labsAnalytics()` from `@lvbt/brand/analytics/astro` to their integration list.
+Astro projects add `lvbtAnalytics({ site: LABS_SITE })` to their integration list, importing the
+integration from `@lasvegasfortransit/analytics/astro` and `LABS_SITE` from `@lvbt/brand/analytics`.
 Vite and React projects call `initLabsAnalytics()` from `@lvbt/brand/analytics` before rendering.
 The brand package fixes the site identity to `labs.lasvegasfortransit.org`; applications never copy
 the token, collector URL, privacy checks, or beacon setup.
