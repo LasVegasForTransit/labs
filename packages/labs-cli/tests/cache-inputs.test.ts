@@ -17,7 +17,11 @@ function hashes(root: string) {
   );
   return dryRun
     .parse(JSON.parse(output))
-    .tasks.filter((task) => ['@lvbt/lab-home#build', '@lvbt/labs-cli#test'].includes(task.taskId));
+    .tasks.filter((task) =>
+      ['@lasvegasfortransit/lab-home#build', '@lasvegasfortransit/labs-cli#test'].includes(
+        task.taskId,
+      ),
+    );
 }
 
 test('catalog records and app manifests invalidate home builds and catalog validation', async () => {
@@ -35,7 +39,10 @@ test('catalog records and app manifests invalidate home builds and catalog valid
       await mkdir(directory, { recursive: true });
       await writeFile(
         path.join(directory, 'package.json'),
-        JSON.stringify({ name: `@lvbt/${name}`, scripts: { build: 'true', test: 'true' } }),
+        JSON.stringify({
+          name: `@lasvegasfortransit/${name}`,
+          scripts: { build: 'true', test: 'true' },
+        }),
       );
     }
     const original = hashes(root);

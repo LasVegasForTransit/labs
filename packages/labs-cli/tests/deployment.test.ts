@@ -21,7 +21,11 @@ function operations(events: string[], failure?: string): DeploymentOperations {
   };
 }
 const plan = {
-  packages: ['@lvbt/lab-home', '@lvbt/lab-map', '@lvbt/lab-budget'],
+  packages: [
+    '@lasvegasfortransit/lab-home',
+    '@lasvegasfortransit/lab-map',
+    '@lasvegasfortransit/lab-budget',
+  ],
   deploy: ['home', 'map', 'budget'],
 };
 
@@ -30,7 +34,7 @@ test('builds all affected artifacts before deploying and verifying apps, with ho
   const result = await deployProjects(plan, operations(events));
   expect(result.ok).toBe(true);
   expect(events).toEqual([
-    'build:@lvbt/lab-home,@lvbt/lab-map,@lvbt/lab-budget',
+    'build:@lasvegasfortransit/lab-home,@lasvegasfortransit/lab-map,@lasvegasfortransit/lab-budget',
     'deploy:map',
     'verify:map',
     'deploy:budget',

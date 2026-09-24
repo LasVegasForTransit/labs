@@ -30,10 +30,10 @@ async function templatePackage(reference: string, slug: string, site: boolean) {
     devDependencies: Record<string, string>;
     scripts: Record<string, string>;
   };
-  pkg.name = `@lvbt/lab-${slug}`;
-  pkg.dependencies['@lvbt/lab-runtime'] = 'workspace:*';
-  pkg.dependencies['@lvbt/brand'] = 'workspace:*';
-  pkg.dependencies['@lvbt/ui'] = 'workspace:*';
+  pkg.name = `@lasvegasfortransit/lab-${slug}`;
+  pkg.dependencies['@lasvegasfortransit/lab-runtime'] = 'workspace:*';
+  pkg.dependencies['@lasvegasfortransit/brand'] = 'workspace:*';
+  pkg.dependencies['@lasvegasfortransit/ui'] = 'workspace:*';
   const platformScope = '@lasvegasfortransit/';
   for (const name of Object.keys(pkg.devDependencies).filter((name) =>
     name.startsWith(platformScope),
@@ -53,7 +53,7 @@ async function templatePackage(reference: string, slug: string, site: boolean) {
 
 function browserTest(base: string): string {
   return `import { expect, test } from '@playwright/test';
-import { LabManifestV1Schema } from '@lvbt/lab-runtime/manifest';
+import { LabManifestV1Schema } from '@lasvegasfortransit/lab-runtime/manifest';
 import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
 import { monitorPageHealth } from '@lasvegasfortransit/playwright-config/page-health';
 import config from '../../lab.config';
@@ -123,7 +123,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
     ...archiveTemplate(),
     ...(await visualBaselines()),
     'src/styles.css':
-      "@import 'tailwindcss';\n@import '@lvbt/brand/tokens.css';\n@import '@lvbt/ui/lifecycle.css';\nbody { margin: 0; font-family: var(--font-sans); color: var(--color-on-surface); background: var(--color-surface); }\nmain { max-width: 64rem; margin-inline: auto; padding: 2rem 1.5rem; }\nh1 { font-size: 2rem; font-weight: 800; }\n",
+      "@import 'tailwindcss';\n@import '@lasvegasfortransit/brand/tokens.css';\n@import '@lasvegasfortransit/ui/lifecycle.css';\nbody { margin: 0; font-family: var(--font-sans); color: var(--color-on-surface); background: var(--color-surface); }\nmain { max-width: 64rem; margin-inline: auto; padding: 2rem 1.5rem; }\nh1 { font-size: 2rem; font-weight: 800; }\n",
     'package.json': JSON.stringify(pkg, null, 2),
     'lab.config.ts': `export default ${JSON.stringify(manifest, null, 2)} as const;\n`,
     'README.md': `# ${manifest.title}\n\n${manifest.summary}\n\nRun \`pnpm lab dev ${manifest.slug}\`.\n\n[Project documentation](docs/README.md) contains ownership and operation details.\n`,
@@ -153,7 +153,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
       null,
       2,
     ),
-    'tests/manifest.test.ts': `import { expect, test } from 'vitest';\nimport { LabManifestV1Schema } from '@lvbt/lab-runtime/manifest';\nimport manifest from '../lab.config';\ntest('declares project ownership', () => { expect(LabManifestV1Schema.parse(manifest).slug).toBe(${JSON.stringify(manifest.slug)}); });\n`,
+    'tests/manifest.test.ts': `import { expect, test } from 'vitest';\nimport { LabManifestV1Schema } from '@lasvegasfortransit/lab-runtime/manifest';\nimport manifest from '../lab.config';\ntest('declares project ownership', () => { expect(LabManifestV1Schema.parse(manifest).slug).toBe(${JSON.stringify(manifest.slug)}); });\n`,
     'src/worker.ts': `export default { fetch(request: Request, env: { ASSETS: { fetch(request: Request): Promise<Response> } }) { const url = new URL(request.url); url.pathname = url.pathname.replace(/^\\/${manifest.slug}(?:\\/|$)/, '/'); return env.ASSETS.fetch(new Request(url, request)); } };\n`,
     'playwright.config.ts': `import { defineConfig } from '@playwright/test';\nimport { sharedConfig } from '@lasvegasfortransit/playwright-config';\nexport default defineConfig({ ...sharedConfig, testIgnore: ['**/archive/**'], use: { ...sharedConfig.use, baseURL: 'http://127.0.0.1:8899' }, webServer: { command: 'pnpm build && pnpm exec wrangler dev --port 8899', url: 'http://127.0.0.1:8899${base}', reuseExistingServer: false } });\n`,
     'tests/e2e/home.spec.ts': browserTest(base),
@@ -171,7 +171,7 @@ export async function createLab(root: string, args: string[]): Promise<void> {
     files['index.html'] =
       '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="robots" content="noindex"><title>Lab</title></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>\n';
     files['src/main.tsx'] =
-      `import { createRoot } from 'react-dom/client';\nimport { LabLifecycleNotice } from '@lvbt/ui';\nimport './styles.css';\nimport manifest from '../lab.config';\ndocument.title = manifest.title;\nconst root = document.getElementById('root');\nif (root) createRoot(root).render(<main><LabLifecycleNotice manifest={manifest} /><h1>{manifest.title}</h1><p>{manifest.summary}</p></main>);\n`;
+      `import { createRoot } from 'react-dom/client';\nimport { LabLifecycleNotice } from '@lasvegasfortransit/ui';\nimport './styles.css';\nimport manifest from '../lab.config';\ndocument.title = manifest.title;\nconst root = document.getElementById('root');\nif (root) createRoot(root).render(<main><LabLifecycleNotice manifest={manifest} /><h1>{manifest.title}</h1><p>{manifest.summary}</p></main>);\n`;
   }
   if (apply) await writeProject(directory, files);
   process.stdout.write(

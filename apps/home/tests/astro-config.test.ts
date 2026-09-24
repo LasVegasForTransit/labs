@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
 
-import { LABS_SITE } from '@lvbt/brand/analytics';
+import { LABS_SITE } from '@lasvegasfortransit/brand/analytics';
 
 const { lvbtAnalytics } = vi.hoisted(() => ({
   lvbtAnalytics: vi.fn(() => ({ name: '@lasvegasfortransit/analytics', hooks: {} })),

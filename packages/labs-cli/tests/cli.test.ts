@@ -162,7 +162,7 @@ describe('parseLabCommand', () => {
 
 describe('projectFilter', () => {
   it('derives the workspace package name from the permanent slug', () => {
-    expect(projectFilter('transit-funding')).toBe('@lvbt/lab-transit-funding');
+    expect(projectFilter('transit-funding')).toBe('@lasvegasfortransit/lab-transit-funding');
   });
 });
 

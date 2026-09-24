@@ -205,7 +205,7 @@ test('waits for the new release marker before verifying the stable URL', async (
       },
     });
     const result = await deployProjects(
-      { packages: ['@lvbt/lab-home'], deploy: ['home'] },
+      { packages: ['@lasvegasfortransit/lab-home'], deploy: ['home'] },
       operations,
     );
     expect(result.ok).toBe(true);
@@ -259,7 +259,7 @@ test.each([1, 2])(
         },
       });
       const result = await deployProjects(
-        { packages: ['@lvbt/lab-home'], deploy: ['home'] },
+        { packages: ['@lasvegasfortransit/lab-home'], deploy: ['home'] },
         operations,
       );
       expect(result.ok).toBe(false);

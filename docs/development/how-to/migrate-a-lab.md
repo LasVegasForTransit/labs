@@ -24,7 +24,7 @@ directory must exist outside Labs.
 
 Resolve every missing workspace dependency before exporting. A standalone project never imports
 another Labs app or the Labs management CLI. Portable manifest and archive helpers come from
-`@lvbt/lab-runtime`.
+`@lasvegasfortransit/lab-runtime`.
 
 ### Export and validate
 

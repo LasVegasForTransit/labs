@@ -1,5 +1,5 @@
 import { ActOne } from './story/ActOne.tsx';
-import { LabLifecycleNotice } from '@lvbt/ui';
+import { LabLifecycleNotice } from '@lasvegasfortransit/ui';
 import manifest from '../lab.config';
 
 export function App() {

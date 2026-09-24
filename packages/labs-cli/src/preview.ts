@@ -78,7 +78,7 @@ function startWorker(target: PreviewTarget): ChildProcess {
     'pnpm',
     [
       '--filter',
-      `@lvbt/lab-${target.slug}`,
+      `@lasvegasfortransit/lab-${target.slug}`,
       'exec',
       'wrangler',
       'dev',

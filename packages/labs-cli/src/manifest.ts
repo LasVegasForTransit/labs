@@ -1,2 +1,2 @@
 export { discoverLabs } from './discovery.js';
-export * from '@lvbt/lab-runtime/manifest';
+export * from '@lasvegasfortransit/lab-runtime/manifest';

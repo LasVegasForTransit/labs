@@ -63,9 +63,9 @@ Run the complete project bar:
 
 ```sh
 pnpm check
-pnpm --filter @lvbt/lab-curb-space-notes build
-pnpm --filter @lvbt/lab-curb-space-notes build:archive
-pnpm --filter @lvbt/lab-curb-space-notes test:e2e
+pnpm --filter @lasvegasfortransit/lab-curb-space-notes build
+pnpm --filter @lasvegasfortransit/lab-curb-space-notes build:archive
+pnpm --filter @lasvegasfortransit/lab-curb-space-notes test:e2e
 ```
 
 These commands run the repository checks, production and archive builds, and Playwright scenarios.

@@ -10,7 +10,7 @@ export default defineConfig({
 });
 `,
     'tests/e2e/archive/read-only.spec.ts': `import { expect, test } from '@playwright/test';
-import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
+import { createArchiveContext, readProjectArchiveFiles } from '@lasvegasfortransit/lab-runtime/archive';
 import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
 import { monitorPageHealth } from '@lasvegasfortransit/playwright-config/page-health';
 import manifest from '../../../lab.config';

@@ -23,7 +23,7 @@ pnpm lab preview <slug>
 Update screenshot baselines only after inspecting the rendered difference:
 
 ```sh
-pnpm --filter @lvbt/lab-<slug> exec playwright test --update-snapshots
+pnpm --filter @lasvegasfortransit/lab-<slug> exec playwright test --update-snapshots
 ```
 
 Inspect every changed desktop and mobile image, then rerun the same suite without

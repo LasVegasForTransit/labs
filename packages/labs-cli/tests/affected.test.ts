@@ -3,24 +3,28 @@ import { expect, test } from 'vitest';
 import { affectedProjects, type WorkspaceProject } from '../src/affected.js';
 
 const projects: WorkspaceProject[] = [
-  { name: '@lvbt/brand', directory: 'packages/brand', dependencies: [] },
-  { name: '@lvbt/ui', directory: 'packages/ui', dependencies: ['@lvbt/brand'] },
+  { name: '@lasvegasfortransit/brand', directory: 'packages/brand', dependencies: [] },
   {
-    name: '@lvbt/lab-home',
+    name: '@lasvegasfortransit/ui',
+    directory: 'packages/ui',
+    dependencies: ['@lasvegasfortransit/brand'],
+  },
+  {
+    name: '@lasvegasfortransit/lab-home',
     directory: 'apps/home',
-    dependencies: ['@lvbt/brand'],
+    dependencies: ['@lasvegasfortransit/brand'],
     slug: 'home',
     status: 'active',
   },
   {
-    name: '@lvbt/lab-map',
+    name: '@lasvegasfortransit/lab-map',
     directory: 'apps/map',
-    dependencies: ['@lvbt/ui'],
+    dependencies: ['@lasvegasfortransit/ui'],
     slug: 'map',
     status: 'active',
   },
   {
-    name: '@lvbt/lab-map-two',
+    name: '@lasvegasfortransit/lab-map-two',
     directory: 'apps/map-two',
     dependencies: [],
     slug: 'map-two',
@@ -30,7 +34,12 @@ const projects: WorkspaceProject[] = [
 
 test('shared changes rebuild direct and transitive dependents', () => {
   const result = affectedProjects(projects, ['packages/brand/src/tokens.css']);
-  expect(result.packages).toEqual(['@lvbt/brand', '@lvbt/lab-home', '@lvbt/lab-map', '@lvbt/ui']);
+  expect(result.packages).toEqual([
+    '@lasvegasfortransit/brand',
+    '@lasvegasfortransit/lab-home',
+    '@lasvegasfortransit/lab-map',
+    '@lasvegasfortransit/ui',
+  ]);
   expect(result.deploy).toEqual(['map', 'home']);
 });
 
@@ -45,7 +54,7 @@ test('manifest changes rebuild home and keep drafts out of deployment', () => {
 });
 
 test('a removed package still invalidates its surviving dependents', () => {
-  const current = projects.filter((project) => project.name !== '@lvbt/ui');
+  const current = projects.filter((project) => project.name !== '@lasvegasfortransit/ui');
   expect(affectedProjects(current, ['packages/ui/src/control.tsx'], projects).deploy).toEqual([
     'map',
   ]);
@@ -70,7 +79,9 @@ test('root documentation does not trigger deployment', () => {
 
 test('cycles terminate and include each dependent once', () => {
   const cycle = projects.map((project) =>
-    project.name === '@lvbt/brand' ? { ...project, dependencies: ['@lvbt/ui'] } : project,
+    project.name === '@lasvegasfortransit/brand'
+      ? { ...project, dependencies: ['@lasvegasfortransit/ui'] }
+      : project,
   );
   expect(affectedProjects(cycle, ['packages/ui/src/control.tsx']).deploy).toEqual(['map', 'home']);
 });
@@ -78,7 +89,7 @@ test('cycles terminate and include each dependent once', () => {
 test('a paused migration remains buildable but is not deployed by Labs', () => {
   const paused: WorkspaceProject[] = [
     {
-      name: '@lvbt/lab-example',
+      name: '@lasvegasfortransit/lab-example',
       directory: 'apps/example',
       dependencies: [],
       slug: 'example',
@@ -86,7 +97,7 @@ test('a paused migration remains buildable but is not deployed by Labs', () => {
       deploymentOwner: 'standalone',
     },
     {
-      name: '@lvbt/lab-home',
+      name: '@lasvegasfortransit/lab-home',
       directory: 'apps/home',
       dependencies: [],
       slug: 'home',
@@ -95,7 +106,7 @@ test('a paused migration remains buildable but is not deployed by Labs', () => {
   ];
 
   expect(affectedProjects(paused, ['migrations/example.json'])).toEqual({
-    packages: ['@lvbt/lab-example'],
+    packages: ['@lasvegasfortransit/lab-example'],
     apps: ['example'],
     deploy: [],
   });

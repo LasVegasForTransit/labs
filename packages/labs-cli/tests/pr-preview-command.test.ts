@@ -69,7 +69,7 @@ test('plans version previews for existing Workers and temporary Workers for new 
     {
       deploymentPlan: () => ({
         head: commit,
-        packages: ['@lvbt/lab-map'],
+        packages: ['@lasvegasfortransit/lab-map'],
         deploy: ['map', 'home'],
       }),
       deployedWorkers: () => Promise.resolve(['lvbt-labs-home']),
@@ -110,7 +110,11 @@ test('discovers Durable Object projects only when they declare isolated staging'
 test('publishes only in apply mode and preserves the machine-readable plan', async () => {
   let publishes = 0;
   const dependencies = {
-    deploymentPlan: () => ({ head: commit, packages: ['@lvbt/lab-home'], deploy: ['home'] }),
+    deploymentPlan: () => ({
+      head: commit,
+      packages: ['@lasvegasfortransit/lab-home'],
+      deploy: ['home'],
+    }),
     deployedWorkers: () => Promise.resolve(['lvbt-labs-home']),
     statefulProjects: () => Promise.resolve([]),
     publish: () => {

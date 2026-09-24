@@ -43,7 +43,7 @@ change crosses boundaries; never invent one for a feature, file, task, or role.
 
 ## The repository standard
 
-Lint, format, TypeScript, and test settings extend the `@lvbt/*` packages from
+Lint, format, TypeScript, and test settings extend the `@lasvegasfortransit/*` packages from
 `LasVegasForTransit/repository-tooling`. Change a shared rule there, not here.
 
 ## Documentation ownership

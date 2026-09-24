@@ -60,7 +60,7 @@ test('plans and uploads each missing source-backed published Worker once', async
   expect(commands).toEqual([
     {
       command: 'pnpm',
-      args: ['--filter', '@lvbt/lab-home', 'build'],
+      args: ['--filter', '@lasvegasfortransit/lab-home', 'build'],
       cwd: root,
     },
     {

@@ -1,7 +1,7 @@
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import lvbtAnalytics from '@lasvegasfortransit/analytics/astro';
-import { LABS_SITE } from '@lvbt/brand/analytics';
+import { LABS_SITE } from '@lasvegasfortransit/brand/analytics';
 import { defineConfig } from 'astro/config';
 
 export default defineConfig({

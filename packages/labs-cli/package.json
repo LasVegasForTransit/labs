@@ -1,5 +1,5 @@
 {
-  "name": "@lvbt/labs-cli",
+  "name": "@lasvegasfortransit/labs-cli",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@lvbt/lab-runtime": "workspace:*",
+    "@lasvegasfortransit/lab-runtime": "workspace:*",
     "@lasvegasfortransit/web-platform": "file:../../.lvbt/web-platform/packages/web-platform",
     "zod": "catalog:"
   },

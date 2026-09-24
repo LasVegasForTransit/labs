@@ -153,7 +153,9 @@ export async function provisionWorkerResources(
     const worker = `lvbt-labs-${lab.slug}`;
     resources.push(
       provisionWorkerPresence({ name: worker }, readWorkers, async () => {
-        await run('pnpm', ['--filter', `@lvbt/lab-${lab.slug}`, 'build'], { cwd: root });
+        await run('pnpm', ['--filter', `@lasvegasfortransit/lab-${lab.slug}`, 'build'], {
+          cwd: root,
+        });
         await run(
           'pnpm',
           [

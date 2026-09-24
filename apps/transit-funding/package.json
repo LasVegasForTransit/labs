@@ -1,5 +1,5 @@
 {
-  "name": "@lvbt/lab-transit-funding",
+  "name": "@lasvegasfortransit/lab-transit-funding",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,13 +16,13 @@
   },
   "dependencies": {
     "@lasvegasfortransit/analytics": "catalog:",
-    "@lvbt/brand": "workspace:*",
-    "@lvbt/ui": "workspace:*",
+    "@lasvegasfortransit/brand": "workspace:*",
+    "@lasvegasfortransit/ui": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@lvbt/lab-runtime": "workspace:*",
+    "@lasvegasfortransit/lab-runtime": "workspace:*",
     "@lasvegasfortransit/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
     "@lasvegasfortransit/playwright-config": "file:../../.lvbt/web-platform/packages/playwright-config",
     "@lasvegasfortransit/typescript-config": "file:../../.lvbt/web-platform/packages/typescript-config",

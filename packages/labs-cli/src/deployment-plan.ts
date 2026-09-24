@@ -40,12 +40,38 @@ function baseCatalogRecord(input: unknown, slug: string) {
   return record;
 }
 
+// Workspace packages moved from the `@lvbt/` scope to `@lasvegasfortransit/`. A base commit from
+// before that rename still has the old scope committed, so base processing accepts either scope
+// while head processing (the current scope) requires the new one. `scopeFor` resolves which scope
+// a legacy-tolerant snapshot actually used, for building matching synthetic dependency names.
+const currentScope = '@lasvegasfortransit';
+const legacyScope = '@lvbt';
+
+function labPackageName(scope: string, slug: string): string {
+  return `${scope}/lab-${slug}`;
+}
+
+function cliPackageName(scope: string): string {
+  return `${scope}/labs-cli`;
+}
+
+function scopeFor(name: string, slug: string, allowLegacyScope: boolean): string | undefined {
+  if (name === labPackageName(currentScope, slug)) return currentScope;
+  if (!allowLegacyScope) return undefined;
+  return name === labPackageName(legacyScope, slug) ? legacyScope : undefined;
+}
+
 function addCatalogRecords(
   blobs: Map<string, readonly string[]>,
   read: (file: string) => string,
-  { names, readRecord }: { names: Set<string>; readRecord: RecordReader },
+  {
+    names,
+    readRecord,
+    allowLegacyScope,
+  }: { names: Set<string>; readRecord: RecordReader; allowLegacyScope: boolean },
   projects: WorkspaceProject[],
 ) {
+  const scope = allowLegacyScope ? legacyScope : currentScope;
   for (const file of [...blobs.keys()]
     .filter((file) => /^catalog\/[^/]+\.json$/.test(file))
     .sort()) {
@@ -54,12 +80,12 @@ function addCatalogRecords(
     if (projects.some((project) => project.slug === slug))
       throw new Error(`Duplicate app and catalog ownership for ${slug}.`);
     if (manifest.status !== 'retired') continue;
-    if (names.has(`@lvbt/lab-${slug}`))
-      throw new Error(`Duplicate deployment identity for ${slug}.`);
+    const name = labPackageName(scope, slug);
+    if (names.has(name)) throw new Error(`Duplicate deployment identity for ${slug}.`);
     projects.push({
-      name: `@lvbt/lab-${slug}`,
+      name,
       directory: `retired/${slug}`,
-      dependencies: ['@lvbt/labs-cli'],
+      dependencies: [cliPackageName(scope)],
       slug,
       status: 'retired',
       archive: true,
@@ -88,6 +114,7 @@ function workspaceAt(
   root: string,
   commit: string,
   readRecord: RecordReader = validateCatalogRecord,
+  allowLegacyScope = false,
 ): WorkspaceProject[] {
   const entries = git(root, [
     'ls-tree',
@@ -133,18 +160,18 @@ function workspaceAt(
       if (directory.startsWith('apps/')) {
         const slug = directory.slice('apps/'.length);
         const { manifest } = parseManifestSource(read(`${directory}/lab.config.ts`), slug);
-        if (pkg.name !== `@lvbt/lab-${slug}`)
-          throw new Error(`Package name must match lab slug ${slug}.`);
+        const scope = scopeFor(pkg.name, slug, allowLegacyScope);
+        if (scope === undefined) throw new Error(`Package name must match lab slug ${slug}.`);
         project.slug = slug;
         project.status = manifest.status;
         if (manifest.status === 'retired') {
           project.archive = true;
-          project.dependencies = ['@lvbt/labs-cli'];
+          project.dependencies = [cliPackageName(scope)];
         }
       }
       return project;
     });
-  addCatalogRecords(blobs, read, { names, readRecord }, projects);
+  addCatalogRecords(blobs, read, { names, readRecord, allowLegacyScope }, projects);
   applyMigrationHandoffs(blobs, read, projects);
   return projects;
 }
@@ -153,7 +180,7 @@ export function deploymentPlan(root: string, refs: { base?: string; head?: strin
   const head = resolveCommit(root, refs.head ?? 'HEAD');
   const base = refs.base === undefined ? undefined : resolveCommit(root, refs.base);
   const current = workspaceAt(root, head);
-  const previous = base === undefined ? [] : workspaceAt(root, base, baseCatalogRecord);
+  const previous = base === undefined ? [] : workspaceAt(root, base, baseCatalogRecord, true);
   const files =
     base === undefined
       ? git(root, ['ls-tree', '-rz', '--name-only', head]).split('\0').filter(Boolean)
