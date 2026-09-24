@@ -4,6 +4,7 @@ import { readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
+import { format, resolveConfig } from 'prettier';
 import { parseManifestSource } from './manifest-source.js';
 
 export interface DeprecationDetails {
@@ -134,7 +135,10 @@ export async function deprecateLab(
   const original = await readFile(file, 'utf8');
   const parsed = parseManifestSource(original, input.slug);
   const manifest = deprecateManifest(parsed.manifest, input.details, date);
-  const updated = parsed.update(manifest);
+  const updated = await format(parsed.update(manifest), {
+    ...(await resolveConfig(file)),
+    filepath: file,
+  });
   const wouldChange = original !== updated;
   if (input.apply && wouldChange) {
     const temporary = `${file}.${randomUUID()}.tmp`;

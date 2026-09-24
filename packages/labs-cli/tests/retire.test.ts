@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { check, getFileInfo } from 'prettier';
 import { expect, test } from 'vitest';
 import home from '../../../apps/home/lab.config.js';
 import { retireLab, retirementInput } from '../src/retire.js';
@@ -85,6 +86,11 @@ test(
       expect(await readFile(path.join(app, 'lab.config.ts'), 'utf8')).toContain(
         '// Keep project attribution.',
       );
+      expect(
+        await check(await readFile(path.join(app, 'lab.config.ts'), 'utf8'), {
+          parser: 'typescript',
+        }),
+      ).toBe(true);
       expect(await readFile(path.join(root, 'retired/map/site/index.html'), 'utf8')).toContain(
         'Map archive',
       );
@@ -97,6 +103,15 @@ test(
     });
   },
 );
+
+test('keeps immutable retirement archives outside formatter writes', async () => {
+  const root = path.resolve(process.cwd(), '../..');
+  const ignorePath = path.join(root, '.prettierignore');
+  for (const name of ['manifest.json', 'site/index.html', 'site/_astro/app.css']) {
+    const info = await getFileInfo(path.join(root, 'retired/example', name), { ignorePath });
+    expect(info.ignored).toBe(true);
+  }
+});
 
 test('refuses uncommitted project changes before preparation', async () => {
   await fixture(async (root) => {
