@@ -16,7 +16,7 @@ test('presents the Labs projects clearly without overflowing', async ({ page }) 
   await expect(programIntroduction).toBeVisible();
   await expect(
     programIntroduction.getByText(
-      'LVBT Labs is where Las Vegas for Better Transit publishes experimental maps, tools, and visualizations about transportation in Southern Nevada.',
+      'LVBT Labs is where Las Vegans for Better Transit publishes experimental maps, tools, and visualizations about transportation in Southern Nevada.',
       { exact: false },
     ),
   ).toBeVisible();
@@ -68,7 +68,7 @@ test('presents the Labs projects clearly without overflowing', async ({ page }) 
   await expect(footer.getByText('Zero miles of rail.', { exact: false })).toBeVisible();
   const utilities = footer.getByRole('navigation', { name: 'Labs utilities' });
   await expect(
-    utilities.getByRole('link', { name: 'Las Vegas for Better Transit' }),
+    utilities.getByRole('link', { name: 'Las Vegans for Better Transit' }),
   ).toHaveAttribute('href', 'https://lasvegasfortransit.org/');
   await expect(utilities.getByRole('link', { name: 'Source' })).toHaveAttribute(
     'href',
