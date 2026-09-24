@@ -6,6 +6,7 @@ import { z } from 'zod';
 import {
   authenticatedCloudflareReader,
   cloudflareDoctor,
+  cloudflareReader,
 } from '@lasvegasfortransit/web-platform/cloudflare';
 import { githubDoctor, githubReader } from '@lasvegasfortransit/web-platform/github';
 import { discoverLabs, discoverSourceLabs } from './discovery.js';
@@ -102,9 +103,17 @@ export async function doctor(root: string, args: string[]) {
     const unavailable = () => Promise.reject(new Error('Cloudflare authentication unavailable.'));
     cloudflare = { get: unavailable, list: unavailable };
   }
+  const analyticsReadToken = process.env.CLOUDFLARE_ANALYTICS_READ_TOKEN?.trim();
+  const analyticsReader = analyticsReadToken ? cloudflareReader(analyticsReadToken) : cloudflare;
+  const analyticsEndpoint = `accounts/${target.accountId}/rum/site_info/list`;
+  const cloudflareChecks = {
+    get: (endpoint: string) => cloudflare.get(endpoint),
+    list: (endpoint: string) =>
+      endpoint === analyticsEndpoint ? analyticsReader.list(endpoint) : cloudflare.list(endpoint),
+  };
   const checks = [
     ...github,
-    ...(await cloudflareDoctor({ ...target, workers }, cloudflare)),
+    ...(await cloudflareDoctor({ ...target, workers }, cloudflareChecks)),
     ...(await liveDoctor(target.hostname, workers)),
   ];
   return {

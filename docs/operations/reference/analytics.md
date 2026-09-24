@@ -39,7 +39,11 @@ tests still block all external network access.
 ## Operational acceptance
 
 `pnpm run doctor` confirms the shared Web Analytics property and its production environment
-variable. A production release is accepted after browser verification observes the beacon on the
-stable hostname, finds no beacon in a preview or archive, and records an event at the first-party
+variable. For a local read-only check, `CLOUDFLARE_ANALYTICS_READ_TOKEN` accepts a token scoped to
+the LVBT account with Account Settings Read permission; all other Cloudflare checks continue to use
+the normal Wrangler or `CLOUDFLARE_API_TOKEN` credential.
+
+A production release is accepted after browser verification observes the beacon on the stable
+hostname, finds no beacon in a preview or archive, and records an event at the first-party
 collector. The collector dashboard and fixed-query report provide aggregate diagnostics without
 exposing visitor-level records.
