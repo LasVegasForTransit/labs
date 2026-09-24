@@ -379,7 +379,7 @@ function createFakeFetch(stateFile: string, control: FetchControl) {
     for (const handler of cloudflareHandlers) {
       const response = handler(request, context);
       if (response) {
-        await writeFile(stateFile, JSON.stringify(state));
+        if (request.method !== 'GET') await writeFile(stateFile, JSON.stringify(state));
         return response;
       }
     }
