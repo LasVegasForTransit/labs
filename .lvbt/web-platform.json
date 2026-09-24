@@ -1,7 +1,7 @@
 {
   "formatVersion": 1,
   "preset": "lvbt-web",
-  "release": null,
+  "release": "v0.4.2",
   "commit": "a841b8c34d20cb3f1ff6130213ca75d561e0ddb8",
   "contentHash": "53052f1d6e00b590f189da7c7edc70210ca4ea4f09a4972ca94bb0a3351910b7",
   "executables": [
