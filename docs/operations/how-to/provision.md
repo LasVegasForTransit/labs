@@ -23,36 +23,42 @@ shell and the `production` and `preview` GitHub environments already list them. 
 idempotent, so a re-run only fills in whatever is still missing; it never asks for a value it
 already has.
 
-1. Open <https://dash.cloudflare.com/profile/api-tokens> and click **Create Token**.
-2. Next to **Edit Cloudflare Workers**, click **Use template**. This grants exactly the permissions
-   provisioning needs: Account · Workers Scripts · Edit, Account · Workers KV Storage · Edit,
-   Account · Workers R2 Storage · Edit, Account · Workers Tail · Read, Account · Account Settings ·
-   Read, Zone · Workers Routes · Edit, User · User Details · Read, and User · Memberships · Read. Do
-   not add Account · D1 · Edit unless the deploy workflow applies D1 migrations.
-3. Under **Account Resources**, choose **Include** and select the LVBT account, **Las Vegans for
-   Better Transit** (never "All accounts").
-4. Under **Zone Resources**, choose **Include → Specific zone** and select `lasvegasfortransit.org`,
+Both tokens are account API tokens, which belong to the LVBT account rather than to the person who
+creates them, so provisioning and deploys keep working after that person leaves. Creating one needs
+the Super Administrator role on the LVBT account. Wrangler accepts an account API token because the
+workflows and provisioning also set `CLOUDFLARE_ACCOUNT_ID`.
+
+1. In the Cloudflare dashboard, choose the LVBT account, **Las Vegans for Better Transit**, and go
+   to **Manage Account → Account API Tokens**
+   (<https://dash.cloudflare.com/2557b5c2e166292ded0f8425b73075e9/api-tokens>). Click **Create
+   Token**, then **Create Custom Token**.
+2. Name it `labs deploy (GitHub Actions)`. Under **Permissions**, add exactly these rows, which are
+   what provisioning, `pnpm run doctor`, and the Deploy workflow call:
+   - **Account · Workers Scripts · Edit**: Worker versions, workers.dev previews, and the Labs
+     custom domain;
+   - **Account · Account Settings · Edit**: creating the Web Analytics site, the one step that needs
+     more than read access;
+   - **Zone · Workers Routes · Edit**: the project routes on `lasvegasfortransit.org`;
+   - **Zone · Zone · Read**: the zone check provisioning makes before any write.
+3. Under **Zone Resources**, choose **Include → Specific zone** and select `lasvegasfortransit.org`,
    the zone `.lvbt/infrastructure.config.ts` names.
-5. Name the token `labs deploy (GitHub Actions)`, leave the TTL empty so deploys keep working, click
-   **Continue to summary**, then **Create Token**, and copy it immediately; Cloudflare shows it only
-   once.
-6. Before doing anything else, paste that value in two places: as the GitHub **environment secret**
-   `CLOUDFLARE_API_TOKEN` on the `production` environment (repository → Settings → Environments →
-   `production` → Environment secrets → Add environment secret, or
-   `gh secret set CLOUDFLARE_API_TOKEN --env production` with the value on standard input, never as
-   a command argument), and exported in your own shell before running `pnpm provision --apply` from
-   your machine.
-7. Repeat steps 1–5 for a second token named `labs preview (GitHub Actions)`, then paste it as the
-   environment secret `CLOUDFLARE_PREVIEW_API_TOKEN` on the `preview` GitHub environment before you
-   create any further token. Give this token the same permissions as the deploy token, then remove
-   any it does not need: the preview token should not reach production routes, analytics, or
-   application secrets, so pull-request previews stay isolated from production.
-8. Provisioning also creates the account's Web Analytics property automatically; see
-   [Web Analytics token](#web-analytics-token-usually-automatic) below. If that step fails with a
-   permission error, the deploy token needs Web Analytics management access too. Cloudflare does not
-   offer that as a pre-built template permission, so either add it to the token's custom
-   permissions, or create the Web Analytics site by hand once and let provisioning pick it up on the
-   next run.
+4. Leave the expiration empty so deploys keep working, click **Continue to summary**, then **Create
+   Token**. Copy the token; Cloudflare shows it only once.
+5. Before copying anything else, paste it in both places it goes: as the GitHub **environment
+   secret** `CLOUDFLARE_API_TOKEN` on the `production` environment (repository → Settings →
+   Environments → `production` → Environment secrets → Add environment secret), and as
+   `CLOUDFLARE_API_TOKEN` in your own shell's environment for `pnpm provision --apply`. Never put it
+   in a command argument.
+6. Create the preview token the same way, named `labs preview (GitHub Actions)`, with only these
+   rows: **Account · Workers Scripts · Edit** (upload and delete pull-request preview Workers) and
+   **Zone · Workers Routes · Read** (the cleanup checks that a preview Worker has no routes before
+   deleting it). With read-only routes, a preview can never change production traffic. Choose the
+   same zone, leave the expiration empty, create it, and copy it.
+7. Before copying anything else, paste it in both places: the `preview` environment secret
+   `CLOUDFLARE_PREVIEW_API_TOKEN`, and `CLOUDFLARE_PREVIEW_API_TOKEN` in your shell.
+
+If a token ever leaks, roll it on the same Account API Tokens page, then paste the new value in both
+of its places before doing anything else.
 
 `CLOUDFLARE_ACCOUNT_ID` (`2557b5c2e166292ded0f8425b73075e9`, the LVBT account, **Las Vegans for
 Better Transit**) is also a `production` environment secret. Provisioning reads the account and zone
