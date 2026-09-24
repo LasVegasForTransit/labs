@@ -5,6 +5,60 @@ repository state. Dashboard-only setup is drift, not an accepted installation st
 
 ## Authenticate and inspect
 
+### GitHub environments (first time only)
+
+Skip this if `production` and `preview` already appear under repository → **Settings →
+Environments**; provisioning creates them itself when they are missing. Do this before creating the
+Cloudflare tokens below, because the next section pastes each token straight into one of these
+environments.
+
+1. Repository → **Settings → Environments → New environment**, name it `production`, then
+   **Configure environment**. Only repository admins can do this.
+2. Repeat step 1 for a second environment named `preview`.
+
+### Get Cloudflare tokens ready (first time only)
+
+Skip this section if `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_PREVIEW_API_TOKEN` already work in your
+shell and the `production` and `preview` GitHub environments already list them. Provisioning is
+idempotent, so a re-run only fills in whatever is still missing; it never asks for a value it
+already has.
+
+1. Open <https://dash.cloudflare.com/profile/api-tokens> and click **Create Token**.
+2. Next to **Edit Cloudflare Workers**, click **Use template**. This grants exactly the permissions
+   provisioning needs: Account · Workers Scripts · Edit, Account · Workers KV Storage · Edit,
+   Account · Workers R2 Storage · Edit, Account · Workers Tail · Read, Account · Account Settings ·
+   Read, Zone · Workers Routes · Edit, User · User Details · Read, and User · Memberships · Read. Do
+   not add Account · D1 · Edit unless the deploy workflow applies D1 migrations.
+3. Under **Account Resources**, choose **Include** and select the LVBT account, **Las Vegans for
+   Better Transit** (never "All accounts").
+4. Under **Zone Resources**, choose **Include → Specific zone** and select `lasvegasfortransit.org`,
+   the zone `.lvbt/infrastructure.config.ts` names.
+5. Name the token `labs deploy (GitHub Actions)`, leave the TTL empty so deploys keep working, click
+   **Continue to summary**, then **Create Token**, and copy it immediately; Cloudflare shows it only
+   once.
+6. Before doing anything else, paste that value in two places: as the GitHub **environment secret**
+   `CLOUDFLARE_API_TOKEN` on the `production` environment (repository → Settings → Environments →
+   `production` → Environment secrets → Add environment secret, or
+   `gh secret set CLOUDFLARE_API_TOKEN --env production` with the value on standard input, never as
+   a command argument), and exported in your own shell before running `pnpm provision --apply` from
+   your machine.
+7. Repeat steps 1–5 for a second token named `labs preview (GitHub Actions)`, then paste it as the
+   environment secret `CLOUDFLARE_PREVIEW_API_TOKEN` on the `preview` GitHub environment before you
+   create any further token. Give this token the same permissions as the deploy token, then remove
+   any it does not need: the preview token should not reach production routes, analytics, or
+   application secrets, so pull-request previews stay isolated from production.
+8. Provisioning also creates the account's Web Analytics property automatically; see
+   [Web Analytics token](#web-analytics-token-usually-automatic) below. If that step fails with a
+   permission error, the deploy token needs Web Analytics management access too. Cloudflare does not
+   offer that as a pre-built template permission, so either add it to the token's custom
+   permissions, or create the Web Analytics site by hand once and let provisioning pick it up on the
+   next run.
+
+`CLOUDFLARE_ACCOUNT_ID` (`2557b5c2e166292ded0f8425b73075e9`, the LVBT account, **Las Vegans for
+Better Transit**) is also a `production` environment secret. Provisioning reads the account and zone
+IDs from `.lvbt/infrastructure.config.ts` and writes the matching repository variables itself; you
+do not set those by hand.
+
 Authenticate the local CLIs without placing credentials in shell arguments:
 
 ```sh
@@ -13,10 +67,9 @@ pnpm exec wrangler login
 ```
 
 Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_PREVIEW_API_TOKEN` in the command environment before
-applying changes. GitHub CLI reads both tokens from standard input; neither appears in a command
-argument. The production token needs Workers Routes, Workers Scripts, Account Analytics, and Zone
-DNS permissions for the configured account and zone. The preview token needs Worker Scripts access
-without production routes, analytics, or application secrets.
+applying changes; see [Get Cloudflare tokens ready](#get-cloudflare-tokens-ready-first-time-only) if
+you do not have them yet. GitHub CLI reads both tokens from standard input; neither appears in a
+command argument.
 
 Run a read-only comparison:
 
@@ -74,13 +127,33 @@ version after every affected artifact has built successfully. Draft labs and cat
 graduated records never receive bootstrap uploads.
 
 Provisioning is idempotent. Matching resources produce no change; drift creates an explicit update.
-Resources outside the manifest remain untouched.
+Resources outside the manifest remain untouched. Running `pnpm provision --apply` again after a
+successful run changes nothing: every check already matches what is configured, so nothing is
+created, updated, secrets are not reset, and no Worker is rebuilt or re-uploaded; the command simply
+confirms the result and reports success. Running it again after a failed or interrupted run resumes
+from the first resource that did not finish — everything that already succeeded is left alone, and
+only the remaining resources are created.
 
 Use `pnpm --silent run provision --dry-run --json` for a machine-readable plan. The `managed` field
 identifies resources handled by the command, and `remaining` lists failed or inaccessible
 infrastructure checks. A verified write does not imply a complete installation: exit code `1`
 indicates unresolved configuration even when some operations succeeded. `changed: null` indicates an
 unconfirmed write; inspect provider state before retrying.
+
+### Web Analytics token (usually automatic)
+
+`pnpm provision --apply` creates the Cloudflare Web Analytics property for the Labs hostname and
+writes its token into the `production` GitHub environment as the variable `PUBLIC_LVBT_CWA_TOKEN`.
+This value is public (it ships inside the page), so it is a repository **variable**, not a secret.
+Most volunteers never need to touch this by hand. To create the property yourself first instead:
+
+1. Open <https://dash.cloudflare.com/2557b5c2e166292ded0f8425b73075e9/web-analytics> → **Add a
+   site** → enter the Labs hostname.
+2. Choose **Enable with JS Snippet installation**, not the automatic "Enable" option, because Labs
+   loads the beacon itself, then finish adding the site.
+3. Run `pnpm provision --apply`. It finds the site you just created by hostname, so it does not make
+   a duplicate, and it reads and writes `PUBLIC_LVBT_CWA_TOKEN` for you — you never need to copy the
+   token yourself.
 
 ## Verify the result
 
