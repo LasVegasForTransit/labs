@@ -10,15 +10,18 @@ async function fixture(dependencies: Record<string, string>, run: (root: string)
   try {
     execFileSync('git', ['init', '--quiet'], { cwd: root });
     const files = {
-      'apps/map/package.json': JSON.stringify({ name: '@lvbt/lab-map', dependencies }),
-      'apps/map/icon.bin': 'binary asset',
-      'apps/other/package.json': JSON.stringify({ name: '@lvbt/lab-other' }),
-      'packages/ui/package.json': JSON.stringify({
-        name: '@lvbt/ui',
-        dependencies: { '@lvbt/brand': 'workspace:*' },
+      'apps/map/package.json': JSON.stringify({
+        name: '@lasvegasfortransit/lab-map',
+        dependencies,
       }),
-      'packages/brand/package.json': JSON.stringify({ name: '@lvbt/brand' }),
-      'packages/unused/package.json': JSON.stringify({ name: '@lvbt/unused' }),
+      'apps/map/icon.bin': 'binary asset',
+      'apps/other/package.json': JSON.stringify({ name: '@lasvegasfortransit/lab-other' }),
+      'packages/ui/package.json': JSON.stringify({
+        name: '@lasvegasfortransit/ui',
+        dependencies: { '@lasvegasfortransit/brand': 'workspace:*' },
+      }),
+      'packages/brand/package.json': JSON.stringify({ name: '@lasvegasfortransit/brand' }),
+      'packages/unused/package.json': JSON.stringify({ name: '@lasvegasfortransit/unused' }),
     };
     let input =
       'commit refs/heads/fixture\ncommitter Test <test@example.org> 1 +0000\ndata 7\nfixture\n';
@@ -33,7 +36,7 @@ async function fixture(dependencies: Record<string, string>, run: (root: string)
 }
 
 test('reads committed source and includes the transitive shared-package closure', async () => {
-  await fixture({ '@lvbt/ui': 'workspace:*' }, (root) => {
+  await fixture({ '@lasvegasfortransit/ui': 'workspace:*' }, (root) => {
     const source = migrationSource(root);
     expect(source.commit).toMatch(/^[a-f0-9]{40}$/);
     expect(source.read('apps/map/icon.bin').toString()).toBe('binary asset');
@@ -42,8 +45,8 @@ test('reads committed source and includes the transitive shared-package closure'
 });
 
 test.each([
-  { '@lvbt/lab-other': 'workspace:*' },
-  { '@lvbt/labs-cli': 'workspace:*' },
+  { '@lasvegasfortransit/lab-other': 'workspace:*' },
+  { '@lasvegasfortransit/labs-cli': 'workspace:*' },
   { outside: 'file:../../../outside' },
 ])('rejects nonportable dependencies: %j', async (dependencies) => {
   await fixture(dependencies, (root) => {

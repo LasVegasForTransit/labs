@@ -54,8 +54,11 @@
       "dependsOn": ["^build"],
       "outputs": ["dist-archive/**"]
     },
-    "@lvbt/labs-cli#test:e2e": {
-      "dependsOn": ["@lvbt/lab-home#build", "@lvbt/lab-transit-funding#build"],
+    "@lasvegasfortransit/labs-cli#test:e2e": {
+      "dependsOn": [
+        "@lasvegasfortransit/lab-home#build",
+        "@lasvegasfortransit/lab-transit-funding#build"
+      ],
       "cache": false,
       "outputs": ["playwright-report/**", "test-results/**"]
     }

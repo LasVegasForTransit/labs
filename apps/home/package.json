@@ -1,5 +1,5 @@
 {
-  "name": "@lvbt/lab-home",
+  "name": "@lasvegasfortransit/lab-home",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,9 +17,9 @@
   "dependencies": {
     "@astrojs/sitemap": "catalog:",
     "@lasvegasfortransit/analytics": "catalog:",
-    "@lvbt/brand": "workspace:*",
-    "@lvbt/labs-cli": "workspace:*",
-    "@lvbt/ui": "workspace:*",
+    "@lasvegasfortransit/brand": "workspace:*",
+    "@lasvegasfortransit/labs-cli": "workspace:*",
+    "@lasvegasfortransit/ui": "workspace:*",
     "@tailwindcss/vite": "catalog:",
     "astro": "catalog:",
     "tailwindcss": "catalog:"

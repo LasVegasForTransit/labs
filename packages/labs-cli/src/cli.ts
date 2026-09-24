@@ -95,7 +95,7 @@ export function parseLabCommand(arguments_: readonly string[]): ParsedLabCommand
 }
 
 export function projectFilter(slug: string): string {
-  return `@lvbt/lab-${slug}`;
+  return `@lasvegasfortransit/lab-${slug}`;
 }
 
 async function loadManifest(root: string, slug: string): Promise<LabManifestV1> {

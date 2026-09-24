@@ -137,7 +137,7 @@ test('builds every affected package before uploading and verifying previews', as
   const result = await publishPullRequestPreviews({
     root: '/repo',
     identity: { ...identity, accountId: 'abc123' },
-    plan: { head: commit, packages: ['@lvbt/lab-home'], deploy: ['home'] },
+    plan: { head: commit, packages: ['@lasvegasfortransit/lab-home'], deploy: ['home'] },
     targets: [target],
     read: { get: () => Promise.resolve({}), list: () => Promise.resolve([]) },
     dependencies: {
@@ -170,7 +170,7 @@ test('builds every affected package before uploading and verifying previews', as
   expect(result.ok).toBe(true);
   expect(events).toEqual([
     'run:check',
-    'run:exec turbo run build --filter=@lvbt/lab-home',
+    'run:exec turbo run build --filter=@lasvegasfortransit/lab-home',
     'assert',
     'prepare',
     'assert',
@@ -201,7 +201,7 @@ test('publishes a stateful project through its dedicated staging Worker', async 
   const result = await publishPullRequestPreviews({
     root: '/repo',
     identity: { ...identity, accountId: 'abc123' },
-    plan: { head: commit, packages: ['@lvbt/lab-map'], deploy: ['map'] },
+    plan: { head: commit, packages: ['@lasvegasfortransit/lab-map'], deploy: ['map'] },
     targets: [target],
     read: { get: () => Promise.resolve({}), list: () => Promise.resolve([]) },
     dependencies: {

@@ -1,8 +1,8 @@
 # LVBT brand
 
-`@lvbt/brand` publishes the shared Public Sans font, LVBT marks, and semantic color tokens used by
-every lab. Applications own their composition and import the foundation through
-`@lvbt/brand/tokens.css`.
+`@lasvegasfortransit/brand` publishes the shared Public Sans font, LVBT marks, and semantic color
+tokens used by every lab. Applications own their composition and import the foundation through
+`@lasvegasfortransit/brand/tokens.css`.
 
 The brand package owns design tokens, Public Sans, shared assets, metadata defaults, and
 attribution. It establishes a recognizable LVBT identity without prescribing application layout or

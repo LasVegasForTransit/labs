@@ -1,5 +1,8 @@
 import { expect, test } from '@playwright/test';
-import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
+import {
+  createArchiveContext,
+  readProjectArchiveFiles,
+} from '@lasvegasfortransit/lab-runtime/archive';
 import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
 
 test('reads the funding story with all live services unavailable', async ({

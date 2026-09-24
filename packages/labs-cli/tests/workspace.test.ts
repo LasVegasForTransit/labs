@@ -20,6 +20,8 @@ describe('validateWorkspaceImport', () => {
   });
 
   it('accepts imports from a shared package', () => {
-    expect(validateWorkspaceImport('apps/home/src/page.ts', '@lvbt/brand/tokens.css')).toBeNull();
+    expect(
+      validateWorkspaceImport('apps/home/src/page.ts', '@lasvegasfortransit/brand/tokens.css'),
+    ).toBeNull();
   });
 });

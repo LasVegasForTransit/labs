@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { initLabsAnalytics } from '@lvbt/brand/analytics';
+import { initLabsAnalytics } from '@lasvegasfortransit/brand/analytics';
 import { App } from './App.tsx';
 import './ui/app.css';
 

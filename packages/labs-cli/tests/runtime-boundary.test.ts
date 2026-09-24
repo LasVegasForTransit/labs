@@ -10,8 +10,8 @@ test('independent apps use the shared runtime without repository-management tool
       devDependencies: Record<string, string>;
     };
     const dependencies = { ...pkg.dependencies, ...pkg.devDependencies };
-    expect(dependencies['@lvbt/labs-cli'], entry.name).toBeUndefined();
-    expect(dependencies['@lvbt/lab-runtime'], entry.name).toBe('workspace:*');
+    expect(dependencies['@lasvegasfortransit/labs-cli'], entry.name).toBeUndefined();
+    expect(dependencies['@lasvegasfortransit/lab-runtime'], entry.name).toBe('workspace:*');
   }
 });
 

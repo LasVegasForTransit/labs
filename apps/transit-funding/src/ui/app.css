@@ -1,6 +1,6 @@
 @import 'tailwindcss';
-@import '@lvbt/brand/tokens.css';
-@import '@lvbt/ui/lifecycle.css';
+@import '@lasvegasfortransit/brand/tokens.css';
+@import '@lasvegasfortransit/ui/lifecycle.css';
 @import '../theme/tokens.css';
 
 * {

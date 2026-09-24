@@ -53,12 +53,12 @@ export async function withMigrationFixture(run: (root: string) => void | Promise
     scripts: Record<string, string>;
     [key: string]: unknown;
   };
-  examplePackage.name = '@lvbt/lab-migration-example';
+  examplePackage.name = '@lasvegasfortransit/lab-migration-example';
   examplePackage.dependencies = {
     ...examplePackage.dependencies,
-    '@lvbt/brand': 'workspace:*',
-    '@lvbt/lab-runtime': 'workspace:*',
-    '@lvbt/ui': 'workspace:*',
+    '@lasvegasfortransit/brand': 'workspace:*',
+    '@lasvegasfortransit/lab-runtime': 'workspace:*',
+    '@lasvegasfortransit/ui': 'workspace:*',
   };
   for (const dependency of [
     '@lasvegasfortransit/eslint-config',
@@ -80,7 +80,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 export default defineConfig({ base: '/migration-example/', plugins: [react(), tailwindcss()] });
 `,
-    [`${app}/src/App.tsx`]: `import { LabLifecycleNotice } from '@lvbt/ui';
+    [`${app}/src/App.tsx`]: `import { LabLifecycleNotice } from '@lasvegasfortransit/ui';
 
 import manifest from '../lab.config';
 
@@ -132,7 +132,7 @@ export default defineConfig({
 });
 `,
     [`${app}/tests/e2e/archive/read-only.spec.ts`]: `import { expect, test } from '@playwright/test';
-import { createArchiveContext, readProjectArchiveFiles } from '@lvbt/lab-runtime/archive';
+import { createArchiveContext, readProjectArchiveFiles } from '@lasvegasfortransit/lab-runtime/archive';
 import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
 import { monitorPageHealth } from '@lasvegasfortransit/playwright-config/page-health';
 

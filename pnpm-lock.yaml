@@ -391,13 +391,13 @@ importers:
       '@lasvegasfortransit/analytics':
         specifier: 'catalog:'
         version: 0.1.0(@playwright/test@1.62.1)(astro@7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))(react@19.2.8)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
-      '@lvbt/brand':
+      '@lasvegasfortransit/brand':
         specifier: workspace:*
         version: link:../../packages/brand
-      '@lvbt/labs-cli':
+      '@lasvegasfortransit/labs-cli':
         specifier: workspace:*
         version: link:../../packages/labs-cli
-      '@lvbt/ui':
+      '@lasvegasfortransit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@tailwindcss/vite':
@@ -452,10 +452,10 @@ importers:
       '@lasvegasfortransit/analytics':
         specifier: 'catalog:'
         version: 0.1.0(@playwright/test@1.62.1)(astro@7.2.10(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@24.13.3)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))(react@19.2.8)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
-      '@lvbt/brand':
+      '@lasvegasfortransit/brand':
         specifier: workspace:*
         version: link:../../packages/brand
-      '@lvbt/ui':
+      '@lasvegasfortransit/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       react:
@@ -468,6 +468,9 @@ importers:
       '@lasvegasfortransit/eslint-config':
         specifier: file:../../.lvbt/web-platform/packages/eslint-config
         version: file:.lvbt/web-platform/packages/eslint-config(eslint@10.9.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(turbo@2.10.12)(typescript@6.0.3)
+      '@lasvegasfortransit/lab-runtime':
+        specifier: workspace:*
+        version: link:../../packages/lab-runtime
       '@lasvegasfortransit/playwright-config':
         specifier: file:../../.lvbt/web-platform/packages/playwright-config
         version: file:.lvbt/web-platform/packages/playwright-config(@playwright/test@1.62.1)
@@ -477,9 +480,6 @@ importers:
       '@lasvegasfortransit/vitest-config':
         specifier: file:../../.lvbt/web-platform/packages/vitest-config
         version: file:.lvbt/web-platform/packages/vitest-config(vitest@4.1.11(@types/node@24.13.3)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0)))
-      '@lvbt/lab-runtime':
-        specifier: workspace:*
-        version: link:../../packages/lab-runtime
       '@playwright/test':
         specifier: 'catalog:'
         version: 1.62.1
@@ -578,12 +578,12 @@ importers:
 
   packages/labs-cli:
     dependencies:
+      '@lasvegasfortransit/lab-runtime':
+        specifier: workspace:*
+        version: link:../lab-runtime
       '@lasvegasfortransit/web-platform':
         specifier: file:../../.lvbt/web-platform/packages/web-platform
         version: file:.lvbt/web-platform/packages/web-platform
-      '@lvbt/lab-runtime':
-        specifier: workspace:*
-        version: link:../lab-runtime
       zod:
         specifier: 'catalog:'
         version: 4.5.4

@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
-import { discoverLabs } from '@lvbt/labs-cli/manifest';
-import { isListedLab } from '@lvbt/labs-cli/catalog';
+import { discoverLabs } from '@lasvegasfortransit/labs-cli/manifest';
+import { isListedLab } from '@lasvegasfortransit/labs-cli/catalog';
 
 const labsHost = 'labs.lasvegasfortransit.org';
 

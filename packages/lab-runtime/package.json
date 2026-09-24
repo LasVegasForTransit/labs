@@ -1,5 +1,5 @@
 {
-  "name": "@lvbt/lab-runtime",
+  "name": "@lasvegasfortransit/lab-runtime",
   "private": true,
   "type": "module",
   "exports": {

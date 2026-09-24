@@ -34,9 +34,9 @@ Components consume semantic roles rather than raw hexadecimal values.
 
 ## Shared UI boundary
 
-`@lvbt/ui` contains accessible buttons, links, fields, toggles, menus, tabs, dialogs, notices,
-metadata blocks, and lifecycle banners. Astro and React exports share tokens and behavior without
-forcing a common renderer.
+`@lasvegasfortransit/ui` contains accessible buttons, links, fields, toggles, menus, tabs, dialogs,
+notices, metadata blocks, and lifecycle banners. Astro and React exports share tokens and behavior
+without forcing a common renderer.
 
 The package does not contain page shells, dashboards, project navigation, domain forms, maps,
 charts, or application state. Repetition enters the shared package only after two projects need the
@@ -53,10 +53,11 @@ project content.
 
 ### Lifecycle imports
 
-React apps import `LabLifecycleNotice` from `@lvbt/ui` and include
-`@import '@lvbt/ui/lifecycle.css';` in their application stylesheet. Astro sites import the default
-component from `@lvbt/ui/astro/lifecycle-notice`; that component includes its stylesheet. Both
-receive the project manifest as the `manifest` prop. Generated projects include these imports.
+React apps import `LabLifecycleNotice` from `@lasvegasfortransit/ui` and include
+`@import '@lasvegasfortransit/ui/lifecycle.css';` in their application stylesheet. Astro sites
+import the default component from `@lasvegasfortransit/ui/astro/lifecycle-notice`; that component
+includes its stylesheet. Both receive the project manifest as the `manifest` prop. Generated
+projects include these imports.
 
 The notice renders only for deprecated and retired projects. Deprecated projects include the sunset
 date; retired archives omit future-tense retirement copy. Missing required lifecycle metadata fails
@@ -68,5 +69,5 @@ separately. This changes token availability, not brand values.
 Brand metadata includes the LVBT organization name, canonical hostname, favicons, social card
 defaults, attribution, and the Labs analytics site. The brand package doesn't depend on any
 framework: Astro projects pass its `LABS_SITE` to the integration from
-`@lasvegasfortransit/analytics/astro`, and Vite and React projects use `@lvbt/brand/analytics`.
-Preview, local, and archive builds omit the analytics client.
+`@lasvegasfortransit/analytics/astro`, and Vite and React projects use
+`@lasvegasfortransit/brand/analytics`. Preview, local, and archive builds omit the analytics client.

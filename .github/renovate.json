@@ -13,7 +13,7 @@
   },
   "customManagers": [
     {
-      "description": "The @lvbt/* packages install from git tags of repository-tooling with a path: suffix that the npm manager does not parse, and the Claude Code marketplace pins the same tag. Track both as one dependency on the repository's tags.",
+      "description": "The @lasvegasfortransit/* packages install from git tags of repository-tooling with a path: suffix that the npm manager does not parse, and the Claude Code marketplace pins the same tag. Track both as one dependency on the repository's tags.",
       "customType": "regex",
       "managerFilePatterns": ["/(^|/)package\\.json$/", "/(^|/)\\.claude/settings\\.json$/"],
       "matchStrings": [

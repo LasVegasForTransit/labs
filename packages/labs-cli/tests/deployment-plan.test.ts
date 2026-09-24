@@ -28,15 +28,15 @@ function commit(
 }
 
 const files = {
-  'packages/brand/package.json': JSON.stringify({ name: '@lvbt/brand' }),
+  'packages/brand/package.json': JSON.stringify({ name: '@lasvegasfortransit/brand' }),
   'apps/home/package.json': JSON.stringify({
-    name: '@lvbt/lab-home',
-    dependencies: { '@lvbt/brand': 'workspace:*' },
+    name: '@lasvegasfortransit/lab-home',
+    dependencies: { '@lasvegasfortransit/brand': 'workspace:*' },
   }),
   'apps/home/lab.config.ts': `export default ${JSON.stringify(home)} as const;`,
   'apps/map/package.json': JSON.stringify({
-    name: '@lvbt/lab-map',
-    dependencies: { '@lvbt/brand': 'workspace:*' },
+    name: '@lasvegasfortransit/lab-map',
+    dependencies: { '@lasvegasfortransit/brand': 'workspace:*' },
   }),
   'apps/map/lab.config.ts': `export default ${JSON.stringify({ ...home, slug: 'map' })} as const;`,
 };
@@ -54,6 +54,36 @@ test('plans from committed trees, resolving refs and rebuilding shared dependent
     expect(plan.files).toEqual(['packages/brand/src/tokens.css']);
     expect(deploymentPlan(root, { head: 'main' }).apps).toEqual(['home', 'map']);
     expect(() => deploymentPlan(root, { base: 'missing', head: 'main' })).toThrow();
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('plans across the @lvbt to @lasvegasfortransit package rename without failing on the pre-rename base', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lab-deployment-plan-rename-'));
+  try {
+    execFileSync('git', ['init', '--quiet'], { cwd: root });
+    const base = commit(root, {
+      'packages/brand/package.json': JSON.stringify({ name: '@lvbt/brand' }),
+      'apps/home/package.json': JSON.stringify({
+        name: '@lvbt/lab-home',
+        dependencies: { '@lvbt/brand': 'workspace:*' },
+      }),
+      'apps/home/lab.config.ts': `export default ${JSON.stringify(home)} as const;`,
+    });
+    const head = commit(
+      root,
+      {
+        'packages/brand/package.json': JSON.stringify({ name: '@lasvegasfortransit/brand' }),
+        'apps/home/package.json': JSON.stringify({
+          name: '@lasvegasfortransit/lab-home',
+          dependencies: { '@lasvegasfortransit/brand': 'workspace:*' },
+        }),
+      },
+      base,
+    );
+    const plan = deploymentPlan(root, { base, head });
+    expect(plan.deploy).toEqual(['home']);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -96,7 +126,7 @@ test('deploys retired archives after source removal without inventing a build pa
     );
     const plan = deploymentPlan(root, { base, head });
     expect(plan.deploy).toEqual(['map', 'home']);
-    expect(plan.packages).not.toContain('@lvbt/lab-map');
+    expect(plan.packages).not.toContain('@lasvegasfortransit/lab-map');
     const update = commit(root, { 'retired/map/site/index.html': '<h1>Corrected map</h1>' }, head);
     expect(deploymentPlan(root, { base: head, head: update }).deploy).toEqual(['map', 'home']);
     const docs = commit(root, { 'docs/guide.md': 'Updated guide' }, update);
@@ -145,7 +175,7 @@ test('deploys the archive before removing retired project source', async () => {
     execFileSync('git', ['init', '--quiet'], { cwd: root });
     const base = commit(root, {
       ...files,
-      'packages/labs-cli/package.json': JSON.stringify({ name: '@lvbt/labs-cli' }),
+      'packages/labs-cli/package.json': JSON.stringify({ name: '@lasvegasfortransit/labs-cli' }),
     });
     const manifest = {
       ...home,
@@ -164,7 +194,7 @@ test('deploys the archive before removing retired project source', async () => {
     );
     const plan = deploymentPlan(root, { base, head });
     expect(plan.deploy).toEqual(['map', 'home']);
-    expect(plan.packages).not.toContain('@lvbt/lab-map');
+    expect(plan.packages).not.toContain('@lasvegasfortransit/lab-map');
     const update = commit(
       root,
       { 'retired/map/site/index.html': '<h1>Updated archive</h1>' },
@@ -205,7 +235,7 @@ test('a committed migration handoff pauses only that lab deployment', async () =
 
     expect(deploymentPlan(root, { base, head })).toMatchObject({
       files: ['migrations/map.json'],
-      packages: ['@lvbt/lab-map'],
+      packages: ['@lasvegasfortransit/lab-map'],
       apps: ['map'],
       deploy: [],
     });

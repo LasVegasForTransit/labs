@@ -28,8 +28,9 @@ creates them, so provisioning and deploys keep working after that person leaves.
 the Super Administrator role on the LVBT account. Wrangler accepts an account API token because the
 workflows and provisioning also set `CLOUDFLARE_ACCOUNT_ID`.
 
-1. In the Cloudflare dashboard, choose the LVBT account, **Las Vegans for Better Transit**, and go
-   to **Manage Account → Account API Tokens**
+1. In the Cloudflare dashboard, choose the LVBT account. Check that its name is **Las Vegans for
+   Better Transit**; if it still says "Las Vegas for Better Transit", correct it under the account's
+   settings before continuing. Go to **Manage Account → Account API Tokens**
    (<https://dash.cloudflare.com/2557b5c2e166292ded0f8425b73075e9/api-tokens>). Click **Create
    Token**, then **Create Custom Token**.
 2. Name it `labs deploy (GitHub Actions)`. Under **Permissions**, add exactly these rows, which are
@@ -40,30 +41,38 @@ workflows and provisioning also set `CLOUDFLARE_ACCOUNT_ID`.
      more than read access;
    - **Zone · Workers Routes · Edit**: the project routes on `lasvegasfortransit.org`;
    - **Zone · Zone · Read**: the zone check provisioning makes before any write.
-3. Under **Zone Resources**, choose **Include → Specific zone** and select `lasvegasfortransit.org`,
-   the zone `.lvbt/infrastructure.config.ts` names.
+3. Under **Account Resources**, choose **Include** and the LVBT account by name. Leave **All
+   accounts** off so the token cannot act on another account. Under **Zone Resources**, choose
+   **Include → Specific zone** and select `lasvegasfortransit.org`, the zone
+   `.lvbt/infrastructure.config.ts` names. Leave **All zones** off so it cannot change another zone.
 4. Leave the expiration empty so deploys keep working, click **Continue to summary**, then **Create
    Token**. Copy the token; Cloudflare shows it only once.
-5. Before copying anything else, paste it in both places it goes: as the GitHub **environment
-   secret** `CLOUDFLARE_API_TOKEN` on the `production` environment (repository → Settings →
-   Environments → `production` → Environment secrets → Add environment secret), and as
-   `CLOUDFLARE_API_TOKEN` in your own shell's environment for `pnpm provision --apply`. Never put it
-   in a command argument.
+5. Before copying anything else, run
+   `gh secret set CLOUDFLARE_API_TOKEN --env production --repo LasVegasForTransit/labs`, paste the
+   token at the prompt, and press Enter. Check that `CLOUDFLARE_API_TOKEN` now appears under
+   repository → **Settings → Environments → production → Environment secrets**. Add the same value
+   to your local shell's `CLOUDFLARE_API_TOKEN` environment for `pnpm provision --apply`; do not put
+   it in a command argument or tracked file.
 6. Create the preview token the same way, named `labs preview (GitHub Actions)`, with only these
    rows: **Account · Workers Scripts · Edit** (upload and delete pull-request preview Workers) and
    **Zone · Workers Routes · Read** (the cleanup checks that a preview Worker has no routes before
-   deleting it). With read-only routes, a preview can never change production traffic. Choose the
-   same zone, leave the expiration empty, create it, and copy it.
-7. Before copying anything else, paste it in both places: the `preview` environment secret
-   `CLOUDFLARE_PREVIEW_API_TOKEN`, and `CLOUDFLARE_PREVIEW_API_TOKEN` in your shell.
+   deleting it). Read-only route access prevents this token from changing production routing; its
+   Workers Scripts permission can still edit Worker code, so restrict who can use the token. Select
+   only the LVBT account and `lasvegasfortransit.org` zone, leave the expiration empty, create it,
+   and copy it.
+7. Before copying anything else, run
+   `gh secret set CLOUDFLARE_PREVIEW_API_TOKEN --env preview --repo LasVegasForTransit/labs`, paste
+   the token at the prompt, and press Enter. Check that it appears under **Settings → Environments →
+   preview → Environment secrets**. Add the same value to your local shell's
+   `CLOUDFLARE_PREVIEW_API_TOKEN` environment for provisioning.
 
 If a token ever leaks, roll it on the same Account API Tokens page, then paste the new value in both
 of its places before doing anything else.
 
-`CLOUDFLARE_ACCOUNT_ID` (`2557b5c2e166292ded0f8425b73075e9`, the LVBT account, **Las Vegans for
-Better Transit**) is also a `production` environment secret. Provisioning reads the account and zone
-IDs from `.lvbt/infrastructure.config.ts` and writes the matching repository variables itself; you
-do not set those by hand.
+`CLOUDFLARE_ACCOUNT_ID` (`2557b5c2e166292ded0f8425b73075e9`, the LVBT account) and
+`CLOUDFLARE_ZONE_ID` are repository variables, not secrets. Provisioning reads both IDs from
+`.lvbt/infrastructure.config.ts` and writes the matching variables itself; you do not set them by
+hand.
 
 Authenticate the local CLIs without placing credentials in shell arguments:
 
@@ -72,10 +81,11 @@ gh auth login
 pnpm exec wrangler login
 ```
 
-Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_PREVIEW_API_TOKEN` in the command environment before
-applying changes; see [Get Cloudflare tokens ready](#get-cloudflare-tokens-ready-first-time-only) if
-you do not have them yet. GitHub CLI reads both tokens from standard input; neither appears in a
-command argument.
+Set `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_PREVIEW_API_TOKEN` in the local command environment
+before applying changes; see
+[Get Cloudflare tokens ready](#get-cloudflare-tokens-ready-first-time-only) if you do not have them
+yet. The `gh secret set` commands above read token values from standard input; neither token belongs
+in a command argument.
 
 Run a read-only comparison:
 
