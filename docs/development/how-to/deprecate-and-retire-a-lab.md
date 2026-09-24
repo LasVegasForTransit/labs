@@ -19,10 +19,11 @@ pnpm lab deprecate <slug> \
 Omit `--apply` to inspect the change first. Running the command without complete flags prompts for
 the slug, reason, and sunset date. Use `--json` with complete flags for automation.
 
-Run `pnpm format`, `pnpm check`, `pnpm build`, and `pnpm test:e2e`, then inspect the lab preview.
-The shared lifecycle notice presents the reason, sunset date, and successor without replacing
-project content. Listed deprecated projects remain in the home catalog. Confirm the primary workflow
-still works and the successor link has a visible keyboard focus indicator before deployment.
+Run `pnpm check`, `pnpm build`, and `pnpm test:e2e`, then inspect the lab preview. Review and update
+the desktop and mobile screenshot baselines for the deprecation notice. The shared lifecycle notice
+presents the reason, sunset date, and successor without replacing project content. Listed deprecated
+projects remain in the home catalog. Confirm the primary workflow still works and the successor link
+has a visible keyboard focus indicator before deployment.
 
 ## Verify the archive
 

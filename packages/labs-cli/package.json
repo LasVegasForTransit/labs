@@ -17,6 +17,7 @@
   "dependencies": {
     "@lasvegasfortransit/lab-runtime": "workspace:*",
     "@lasvegasfortransit/web-platform": "file:../../.lvbt/web-platform/packages/web-platform",
+    "prettier": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

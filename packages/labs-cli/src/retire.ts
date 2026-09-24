@@ -4,6 +4,7 @@ import { lstat, readFile, realpath, rename, rm, writeFile } from 'node:fs/promis
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import { isDeepStrictEqual, parseArgs } from 'node:util';
+import { format, resolveConfig } from 'prettier';
 import { verifyStoredArchive } from './archive-store.js';
 import { LabManifestV1Schema, type LabManifestV1 } from './manifest.js';
 import { parseManifestSource } from './manifest-source.js';
@@ -247,7 +248,10 @@ export async function retireLab(
     };
   const archive = await prepareRetirementArchive(root, identity);
   checkSource();
-  const updated = parsed.update(manifest);
+  const updated = await format(parsed.update(manifest), {
+    ...(await resolveConfig(file)),
+    filepath: file,
+  });
   const changed = updated !== original;
   if ((await readFile(file, 'utf8')) !== original)
     throw new Error(

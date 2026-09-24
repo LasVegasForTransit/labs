@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { check } from 'prettier';
 
 import { deprecateLab, deprecateManifest, deprecationInput } from '../src/deprecate.js';
 import { LabManifestV1Schema } from '../src/manifest.js';
@@ -107,6 +108,7 @@ describe('deprecateLab', () => {
       const applied = await readFile(file, 'utf8');
       expect(applied).toContain('// Project-owned license declarations.');
       expect(applied).toContain('deprecated');
+      expect(await check(applied, { parser: 'typescript' })).toBe(true);
       expect((await deprecateLab(root, [...args, '--apply'], '2026-09-06')).changed).toBe(false);
       expect(await readFile(file, 'utf8')).toBe(applied);
     } finally {
