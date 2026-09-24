@@ -1,0 +1,321 @@
+#!/usr/bin/env node
+// Fake `gh` used only by packages/labs-cli/tests/provision-idempotent.test.ts.
+// It emulates the small slice of the GitHub REST API that provisioning reads
+// and writes, backed by a JSON state file named by FAKE_STATE_FILE. Every
+// invocation is a fresh process, so state lives on disk and every mutation is
+// appended to state._log so the test can assert exactly what happened between
+// two `provision --apply` runs.
+'use strict';
+
+const fs = require('node:fs');
+
+const STATE_FILE = process.env.FAKE_STATE_FILE;
+if (!STATE_FILE) {
+  process.stderr.write('fake gh: FAKE_STATE_FILE is not set.\n');
+  process.exit(1);
+}
+
+function loadState() {
+  return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+}
+
+function saveState(state) {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state));
+}
+
+function record(state, entry) {
+  state._log = state._log || [];
+  state._log.push(entry);
+}
+
+function readStdin() {
+  try {
+    return fs.readFileSync(0, 'utf8');
+  } catch {
+    return '';
+  }
+}
+
+function fail(message) {
+  process.stderr.write(`${message}\n`);
+  process.exit(1);
+}
+
+function notFound() {
+  process.stderr.write('gh: Not Found (HTTP 404)\n');
+  process.exit(1);
+}
+
+function emit(result) {
+  // gh api --paginate --slurp always prints a JSON array of pages. The fake
+  // never needs more than one page: pagination truncation is covered by a
+  // focused unit test against optionalGitHubRead itself.
+  process.stdout.write(JSON.stringify([result]));
+  process.exit(0);
+}
+
+function ensureEnvironment(state, name) {
+  state.environments = state.environments || {};
+  if (!state.environments[name]) {
+    state.environments[name] = {
+      deployment_branch_policy: null,
+      can_admins_bypass: true,
+      protection_rules: [],
+      branch_policies: [],
+      secrets: [],
+      variables: [],
+    };
+  }
+  return state.environments[name];
+}
+
+const args = process.argv.slice(2);
+
+if (args[0] === 'secret' && args[1] === 'set') {
+  const name = args[2];
+  const environment = args[args.indexOf('--env') + 1];
+  const repository = args[args.indexOf('--repo') + 1];
+  const state = loadState();
+  if (repository !== state.repository) fail(`fake gh: unexpected repository ${repository}.`);
+  const value = readStdin();
+  if (!value.trim()) fail('fake gh: secret value must not be empty.');
+  const environmentState = ensureEnvironment(state, environment);
+  if (!environmentState.secrets.some((secret) => secret.name === name))
+    environmentState.secrets.push({ name });
+  record(state, `secret-set ${environment} ${name}`);
+  saveState(state);
+  process.exit(0);
+}
+
+if (args[0] !== 'api') fail(`fake gh: unsupported invocation: ${args.join(' ')}`);
+
+const methodFlagIndex = args.indexOf('--method');
+const method = methodFlagIndex === -1 ? 'GET' : args[methodFlagIndex + 1];
+const endpoint = args[args.length - 1];
+const pathOnly = endpoint.split('?')[0];
+const state = loadState();
+
+function isRepository(owner, repo) {
+  return `${owner}/${repo}` === state.repository;
+}
+
+function readBody() {
+  const raw = readStdin();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    fail('fake gh: expected a JSON request body on stdin.');
+    return undefined;
+  }
+}
+
+let match;
+
+if (method === 'GET') {
+  if ((match = /^repos\/([^/]+)\/([^/]+)$/.exec(pathOnly)) && isRepository(match[1], match[2])) {
+    if (!state.repo) notFound();
+    emit(state.repo);
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/rulesets$/.exec(pathOnly)) &&
+    isRepository(match[1], match[2])
+  ) {
+    emit(
+      (state.rulesets || []).map(({ id, name, target, source_type }) => ({
+        id,
+        name,
+        target,
+        source_type,
+      })),
+    );
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/rulesets\/(\d+)$/.exec(pathOnly)) &&
+    isRepository(match[1], match[2])
+  ) {
+    const ruleset = (state.rulesets || []).find((entry) => entry.id === Number(match[3]));
+    if (!ruleset) notFound();
+    emit(ruleset);
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/rules\/branches\/([^/]+)$/.exec(pathOnly)) &&
+    isRepository(match[1], match[2])
+  ) {
+    const effective = (state.rulesets || [])
+      .filter((ruleset) => ruleset.enforcement === 'active' && ruleset.target === 'branch')
+      .flatMap((ruleset) => ruleset.rules);
+    emit(effective);
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/actions\/variables$/.exec(pathOnly)) &&
+    isRepository(match[1], match[2])
+  ) {
+    const variables = state.variables || [];
+    emit({ total_count: variables.length, variables });
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/environments\/([^/]+)$/.exec(pathOnly)) &&
+    isRepository(match[1], match[2])
+  ) {
+    const environmentState = (state.environments || {})[decodeURIComponent(match[3])];
+    if (!environmentState) notFound();
+    emit({
+      deployment_branch_policy: environmentState.deployment_branch_policy,
+      can_admins_bypass: environmentState.can_admins_bypass,
+      protection_rules: environmentState.protection_rules,
+    });
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/environments\/([^/]+)\/deployment-branch-policies$/.exec(
+      pathOnly,
+    )) &&
+    isRepository(match[1], match[2])
+  ) {
+    const environmentState = (state.environments || {})[decodeURIComponent(match[3])];
+    if (!environmentState) notFound();
+    emit({ branch_policies: environmentState.branch_policies });
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/environments\/([^/]+)\/secrets$/.exec(pathOnly)) &&
+    isRepository(match[1], match[2])
+  ) {
+    const environmentState = (state.environments || {})[decodeURIComponent(match[3])];
+    if (!environmentState) notFound();
+    emit({ total_count: environmentState.secrets.length, secrets: environmentState.secrets });
+  }
+  if (
+    (match = /^repos\/([^/]+)\/([^/]+)\/environments\/([^/]+)\/variables$/.exec(pathOnly)) &&
+    isRepository(match[1], match[2])
+  ) {
+    const environmentState = (state.environments || {})[decodeURIComponent(match[3])];
+    if (!environmentState) notFound();
+    emit({ total_count: environmentState.variables.length, variables: environmentState.variables });
+  }
+  fail(`fake gh: unhandled GET ${pathOnly}`);
+}
+
+if (method === 'POST' && (match = /^orgs\/([^/]+)\/repos$/.exec(pathOnly))) {
+  const body = readBody();
+  if (`${match[1]}/${body.name}` !== state.repository)
+    fail(`fake gh: unexpected repository create for ${match[1]}/${body.name}.`);
+  state.repo = {
+    full_name: state.repository,
+    private: body.private,
+    archived: false,
+    default_branch: state.branch,
+    allow_merge_commit: body.allow_merge_commit,
+    allow_squash_merge: body.allow_squash_merge,
+    allow_rebase_merge: body.allow_rebase_merge,
+  };
+  record(state, `POST ${pathOnly}`);
+  saveState(state);
+  emit({});
+}
+
+if (
+  method === 'PATCH' &&
+  (match = /^repos\/([^/]+)\/([^/]+)$/.exec(pathOnly)) &&
+  isRepository(match[1], match[2])
+) {
+  const body = readBody();
+  state.repo = { ...state.repo, ...body };
+  record(state, `PATCH ${pathOnly}`);
+  saveState(state);
+  emit(state.repo);
+}
+
+if (
+  method === 'POST' &&
+  (match = /^repos\/([^/]+)\/([^/]+)\/rulesets$/.exec(pathOnly)) &&
+  isRepository(match[1], match[2])
+) {
+  const body = readBody();
+  state.rulesets = state.rulesets || [];
+  state.nextRulesetId = state.nextRulesetId || 1;
+  const ruleset = { ...body, id: state.nextRulesetId, source_type: 'Repository' };
+  state.nextRulesetId += 1;
+  state.rulesets.push(ruleset);
+  record(state, `POST ${pathOnly}`);
+  saveState(state);
+  emit(ruleset);
+}
+
+if (
+  method === 'PUT' &&
+  (match = /^repos\/([^/]+)\/([^/]+)\/rulesets\/(\d+)$/.exec(pathOnly)) &&
+  isRepository(match[1], match[2])
+) {
+  const body = readBody();
+  const id = Number(match[3]);
+  const index = (state.rulesets || []).findIndex((entry) => entry.id === id);
+  if (index === -1) notFound();
+  state.rulesets[index] = { ...body, id, source_type: 'Repository' };
+  record(state, `PUT ${pathOnly}`);
+  saveState(state);
+  emit(state.rulesets[index]);
+}
+
+if (
+  (method === 'POST' || method === 'PATCH') &&
+  (match = /^repos\/([^/]+)\/([^/]+)\/actions\/variables(?:\/([^/]+))?$/.exec(pathOnly)) &&
+  isRepository(match[1], match[2])
+) {
+  const body = readBody();
+  state.variables = state.variables || [];
+  const name = match[3] || body.name;
+  const index = state.variables.findIndex((variable) => variable.name === name);
+  if (index === -1) state.variables.push({ name: body.name, value: body.value });
+  else state.variables[index] = { name, value: body.value };
+  record(state, `${method} ${pathOnly}`);
+  saveState(state);
+  emit({});
+}
+
+if (
+  method === 'PUT' &&
+  (match = /^repos\/([^/]+)\/([^/]+)\/environments\/([^/]+)$/.exec(pathOnly)) &&
+  isRepository(match[1], match[2])
+) {
+  const body = readBody();
+  const environmentState = ensureEnvironment(state, decodeURIComponent(match[3]));
+  if (Object.prototype.hasOwnProperty.call(body, 'deployment_branch_policy'))
+    environmentState.deployment_branch_policy = body.deployment_branch_policy;
+  record(state, `PUT ${pathOnly}`);
+  saveState(state);
+  emit({});
+}
+
+if (
+  method === 'POST' &&
+  (match = /^repos\/([^/]+)\/([^/]+)\/environments\/([^/]+)\/deployment-branch-policies$/.exec(
+    pathOnly,
+  )) &&
+  isRepository(match[1], match[2])
+) {
+  const body = readBody();
+  const environmentState = ensureEnvironment(state, decodeURIComponent(match[3]));
+  environmentState.branch_policies.push({ name: body.name, type: body.type });
+  record(state, `POST ${pathOnly}`);
+  saveState(state);
+  emit({});
+}
+
+if (
+  (method === 'POST' || method === 'PATCH') &&
+  (match = /^repos\/([^/]+)\/([^/]+)\/environments\/([^/]+)\/variables(?:\/([^/]+))?$/.exec(
+    pathOnly,
+  )) &&
+  isRepository(match[1], match[2])
+) {
+  const body = readBody();
+  const environmentState = ensureEnvironment(state, decodeURIComponent(match[3]));
+  const name = match[4] || body.name;
+  const index = environmentState.variables.findIndex((variable) => variable.name === name);
+  if (index === -1) environmentState.variables.push({ name: body.name, value: body.value });
+  else environmentState.variables[index] = { name, value: body.value };
+  record(state, `${method} ${pathOnly}`);
+  saveState(state);
+  emit({});
+}
+
+fail(`fake gh: unhandled ${method} ${pathOnly}`);
