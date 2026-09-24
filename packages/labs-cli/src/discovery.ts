@@ -4,14 +4,14 @@ import { pathToFileURL } from 'node:url';
 import { readCatalogRecords } from './catalog-records.js';
 import { validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
 
-export async function discoverLabs(root: string): Promise<LabManifestV1[]> {
+export async function discoverSourceLabs(root: string): Promise<LabManifestV1[]> {
   const appsDirectory = path.join(root, 'apps');
   const entries = await readdir(appsDirectory, { withFileTypes: true });
   const appDirectories = entries
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort((left, right) => left.localeCompare(right));
-  const manifests = await Promise.all(
+  return Promise.all(
     appDirectories.map(async (directoryName) => {
       const configPath = path.join(appsDirectory, directoryName, 'lab.config.ts');
       const module = (await import(/* @vite-ignore */ pathToFileURL(configPath).href)) as {
@@ -20,7 +20,10 @@ export async function discoverLabs(root: string): Promise<LabManifestV1[]> {
       return validateManifestForDirectory(module.default, directoryName);
     }),
   );
-  const records = [...manifests, ...(await readCatalogRecords(root))];
+}
+
+export async function discoverLabs(root: string): Promise<LabManifestV1[]> {
+  const records = [...(await discoverSourceLabs(root)), ...(await readCatalogRecords(root))];
   const slugs = new Set<string>();
   for (const record of records) {
     if (slugs.has(record.slug)) throw new Error(`Duplicate ownership of lab slug ${record.slug}.`);
