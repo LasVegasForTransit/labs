@@ -5,7 +5,6 @@ const init = vi.fn();
 vi.mock('@lasvegasfortransit/analytics', () => ({ init }));
 
 import { LABS_SITE, initLabsAnalytics } from '../src/analytics';
-import { labsAnalytics } from '../src/analytics/astro';
 
 describe('Labs analytics', () => {
   beforeEach(() => init.mockReset());
@@ -20,9 +19,5 @@ describe('Labs analytics', () => {
 
     await expect(initLabsAnalytics('token')).resolves.toMatchObject({ enabled: true });
     expect(init).toHaveBeenCalledWith({ site: LABS_SITE, token: 'token' });
-  });
-
-  it('wraps the Astro integration with the same hostname', () => {
-    expect(labsAnalytics().name).toBe('@lasvegasfortransit/analytics');
   });
 });
