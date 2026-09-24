@@ -69,7 +69,7 @@ change how a visitor should interpret the work.
 
 ## Footer
 
-The footer adapts the main Las Vegas for Better Transit footer rather than introducing a separate
+The footer adapts the main Las Vegans for Better Transit footer rather than introducing a separate
 Labs convention. The LVBT wordmark, organization directory, involvement directory, mission
 statement, ember stripe, and utility row make the relationship between the two sites visible.
 Labs-specific contribution and source links sit in the utility row without repeating the project

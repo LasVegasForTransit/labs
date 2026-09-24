@@ -9,7 +9,7 @@ export function App() {
         <a className="lab-brand" href="/" aria-label="LVBT Labs home">
           <img
             src="/transit-funding/brand/lvbt-wordmark.svg"
-            alt="Las Vegas for Better Transit"
+            alt="Las Vegans for Better Transit"
             width="214"
             height="49"
           />
