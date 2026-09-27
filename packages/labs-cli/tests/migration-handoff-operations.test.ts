@@ -45,6 +45,30 @@ test('inspects the exact destination commit, disabled owner, and successful Vali
   expect(commands).toHaveLength(3);
 });
 
+test('accepts the Validate check from a reusable deployment workflow', async () => {
+  const commit = 'b'.repeat(40);
+  const operations = migrationPauseOperations('/tmp/labs', input, {
+    github: (args) => {
+      if (args[0] === 'variable') return 'false\n';
+      if (args.at(-1)?.endsWith('/commits/main')) return JSON.stringify({ sha: commit });
+      return JSON.stringify({
+        check_runs: [
+          {
+            name: 'Validate / Validate',
+            status: 'completed',
+            conclusion: 'success',
+            head_sha: commit,
+          },
+        ],
+      });
+    },
+    wrangler: () => Promise.resolve('[]'),
+    guard: () => undefined,
+  });
+
+  await expect(operations.inspectDestination()).resolves.toMatchObject({ validate: 'success' });
+});
+
 test('reads and writes the handoff record without replacing existing state', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-migration-handoff-'));
   try {
