@@ -15,6 +15,7 @@
   "globalPassThroughEnv": [
     "CLOUDFLARE_API_TOKEN",
     "CLOUDFLARE_ANALYTICS_READ_TOKEN",
+    "LVBT_SKIP_PREVIEW_SERVER",
     "NODE_AUTH_TOKEN",
     "PATH"
   ],

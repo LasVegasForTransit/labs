@@ -7,5 +7,13 @@ const url = 'http://127.0.0.1:8797';
 export default defineConfig({
   ...sharedConfig,
   use: { ...sharedConfig.use, baseURL: url },
-  webServer: { command: 'pnpm -w preview', url: `${url}/`, reuseExistingServer: !process.env.CI },
+  ...(process.env.LVBT_SKIP_PREVIEW_SERVER
+    ? {}
+    : {
+        webServer: {
+          command: 'pnpm -w preview',
+          url: `${url}/`,
+          reuseExistingServer: !process.env.CI,
+        },
+      }),
 });

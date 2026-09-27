@@ -25,7 +25,10 @@ desktop and mobile profiles, then runs the shared preview navigation test. Publi
 organization Axe baseline and store portable project-specific screenshots beside their browser
 specs. `pnpm build:archive` produces the read-only archive of every lab, and `pnpm test:archive`
 checks the result with live services blocked. Archive builds also reject executable assets that
-reference the production analytics beacon or first-party event collector.
+reference the production analytics beacon or first-party event collector. PR previews receive a
+second browser check after upload. It opens and refreshes each Worker URL at desktop and mobile
+sizes and rejects inaccessible controls, horizontal overflow, browser errors, and a production
+analytics beacon.
 
 ## GitHub validation
 
