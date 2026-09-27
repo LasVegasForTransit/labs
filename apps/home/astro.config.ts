@@ -10,5 +10,6 @@ export default defineConfig({
   integrations: [sitemap(), lvbtAnalytics({ site: LABS_SITE })],
   vite: {
     plugins: [tailwindcss()],
+    build: { assetsInlineLimit: 0 },
   },
 });

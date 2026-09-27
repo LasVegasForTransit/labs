@@ -12,6 +12,7 @@ import {
   type ReleaseMarker,
 } from '@lasvegasfortransit/web-platform/release';
 import { preparePreviewBundle } from './pr-preview-bundle.js';
+import { verifyPreviewBrowser } from './pr-preview-browser.js';
 import type { PreviewTarget } from './pr-preview-plan.js';
 
 const execute = promisify(execFile);
@@ -141,6 +142,7 @@ interface PreviewDeploymentDependencies {
     read: CloudflareRead,
   ) => Promise<PreviewReceipt>;
   verify?: typeof verifyPreviewReceipt;
+  verifyBrowser?: typeof verifyPreviewBrowser;
   record?: (entry: unknown) => Promise<void>;
 }
 
@@ -168,6 +170,7 @@ export async function publishPullRequestPreviews(input: {
   const prepare = dependencies.prepare ?? preparePreviewBundle;
   const upload = dependencies.upload ?? ((target, reader) => uploadPreview(target, reader));
   const verify = dependencies.verify ?? verifyPreviewReceipt;
+  const verifyBrowser = dependencies.verifyBrowser ?? verifyPreviewBrowser;
   const bundles = new Map<string, { directory: string; marker: ReleaseMarker }>();
   const parent = path.join(root, '.wrangler', 'previews', `pr-${identity.pullRequest}`);
   const journal = path.join(parent, 'journal.jsonl');
@@ -225,6 +228,7 @@ export async function publishPullRequestPreviews(input: {
       const bundle = bundles.get(target.slug);
       if (bundle === undefined) throw new Error(`No preview bundle exists for ${target.slug}.`);
       await verify(target, receipt, bundle.marker);
+      await verifyBrowser(target, receipt);
     },
   });
 }

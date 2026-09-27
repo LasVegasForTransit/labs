@@ -161,6 +161,10 @@ test('builds every affected package before uploading and verifying previews', as
         events.push('verify');
         return Promise.resolve();
       },
+      verifyBrowser: () => {
+        events.push('browser');
+        return Promise.resolve();
+      },
       record: () => {
         events.push('record');
         return Promise.resolve();
@@ -178,6 +182,7 @@ test('builds every affected package before uploading and verifying previews', as
     'upload',
     'record',
     'verify',
+    'browser',
     'assert',
     'record',
   ]);
@@ -216,6 +221,7 @@ test('publishes a stateful project through its dedicated staging Worker', async 
         return Promise.resolve({ version: 'version', url: 'https://staging.example/' });
       },
       verify: () => Promise.resolve(),
+      verifyBrowser: () => Promise.resolve(),
       record: () => Promise.resolve(),
     },
   });
