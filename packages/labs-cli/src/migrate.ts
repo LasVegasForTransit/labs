@@ -224,7 +224,10 @@ async function runHandoffPhase(
   dependencies: MigrationDependencies,
   repository: { git(arguments_: string[]): string; clean(): void },
 ) {
-  if (input.phase === 'finalize') return (dependencies.finalize ?? finalizeMigration)(root, input);
+  if (input.phase === 'finalize') {
+    const { slug, graduated, apply } = input;
+    return (dependencies.finalize ?? finalizeMigration)(root, { slug, graduated, apply });
+  }
   if (input.phase === 'rollback')
     return rollbackMigration(
       { slug: input.slug, apply: input.apply },
