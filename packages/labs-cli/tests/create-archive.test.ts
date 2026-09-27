@@ -37,6 +37,9 @@ test.each(['site', 'app'])(
       );
       expect(files?.['playwright.archive.config.ts']).toContain('./tests/e2e/archive');
       expect(files?.['playwright.config.ts']).toContain('testIgnore');
+      expect(files?.['src/worker.ts']).toContain(
+        "if (url.pathname === '/archive-example/lvbt-release.json') return env.ASSETS.fetch(request)",
+      );
       const browser = String(files?.['tests/e2e/home.spec.ts']);
       const archive = String(files?.['tests/e2e/archive/read-only.spec.ts']);
       for (const suite of [browser, archive]) {
