@@ -101,3 +101,16 @@ test('still resolves a missing resource to null on a 404, even while paginating'
     optionalGitHubRead('/repo', 'repos/example/labs/environments/preview'),
   ).resolves.toBeNull();
 });
+
+test('treats an empty repository main as absent during initial provisioning', async () => {
+  mockedExecFileSync.mockImplementation(() => {
+    const error = new Error('exit status 1') as Error & { stderr: string };
+    error.stderr = 'gh: Git Repository is empty. (HTTP 409)';
+    throw error;
+  });
+
+  await expect(optionalGitHubRead('/repo', 'repos/example/labs/commits/main')).resolves.toBeNull();
+  await expect(optionalGitHubRead('/repo', 'repos/example/labs/rulesets')).rejects.toThrow(
+    'GitHub read was not confirmed.',
+  );
+});
