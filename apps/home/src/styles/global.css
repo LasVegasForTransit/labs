@@ -47,14 +47,14 @@ a {
   top: 0.75rem;
   left: 0.75rem;
   padding: 0.75rem 1rem;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--color-slab);
+  color: var(--color-on-slab);
   font-weight: 700;
   transform: translateY(calc(-100% - 1rem));
 }
 
 .skip-link:focus-visible {
-  outline-color: var(--color-on-primary);
+  outline-color: var(--color-primary);
   transform: translateY(0);
 }
 

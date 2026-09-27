@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { expectNoAccessibilityViolations } from '@lasvegasfortransit/playwright-config/accessibility';
 import { monitorPageHealth } from '@lasvegasfortransit/playwright-config/page-health';
 
 test('runs the footer handoff under the Worker script policy', async ({ page }) => {
@@ -19,6 +20,8 @@ test('runs the footer handoff under the Worker script policy', async ({ page }) 
     });
   });
   await page.goto('/');
+  await page.keyboard.press('Tab');
+  await expectNoAccessibilityViolations(page);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect(page.locator('.brand')).toHaveAttribute('inert', '');
   health.assertNoErrors();
