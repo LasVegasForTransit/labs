@@ -51,6 +51,11 @@ export function optionalGitHubRead(root: string, endpoint: string) {
     const stderr =
       typeof error === 'object' && error !== null && 'stderr' in error ? String(error.stderr) : '';
     if (stderr.includes('HTTP 404')) return Promise.resolve(null);
+    if (
+      endpoint.endsWith('/commits/main') &&
+      stderr.includes('Git Repository is empty. (HTTP 409)')
+    )
+      return Promise.resolve(null);
     return Promise.reject(new Error('GitHub read was not confirmed.'));
   }
 }
