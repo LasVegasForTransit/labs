@@ -44,9 +44,10 @@ test(
       expect(pkg.devDependencies['@lasvegasfortransit/cli']).toBe(
         'file:.lvbt/web-platform/packages/cli',
       );
+      expect(pkg.devDependencies.tsx).toBe('catalog:');
       expect(pkg.scripts['standards:check']).toContain('web-platform-cli.ts check');
       expect(pkg.scripts.deploy).toBe(
-        'node packages/lab-runtime/src/standalone-deploy-cli.ts migration-example',
+        'tsx packages/lab-runtime/src/standalone-deploy-cli.ts migration-example',
       );
     });
   },
