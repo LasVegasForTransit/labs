@@ -130,7 +130,11 @@ export function inspectDestination(github: GitHub, identity: PauseIdentity) {
         github(['api', '--hostname', 'github.com', `${endpoint}/commits/${commit}/check-runs`]),
       ),
     )
-    .check_runs.filter((check) => check.name === 'Validate' && check.head_sha === commit)
+    .check_runs.filter(
+      (check) =>
+        (check.name === 'Validate' || check.name === 'Validate / Validate') &&
+        check.head_sha === commit,
+    )
     .sort((left, right) => (right.id ?? 0) - (left.id ?? 0));
   const latest = checks[0];
   const validate =
