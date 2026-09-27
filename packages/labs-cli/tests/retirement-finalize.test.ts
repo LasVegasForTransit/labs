@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { format } from 'prettier';
 import { expect, test } from 'vitest';
 import home from '../../../apps/home/lab.config.js';
 import { archiveChecksums, readArchiveFiles } from '../src/archive-files.js';
@@ -83,6 +84,8 @@ test('finalizes only after verification and keeps a recoverable source directory
     expect(JSON.parse(await readFile(path.join(root, 'catalog/map.json'), 'utf8'))).toEqual(
       manifest,
     );
+    const catalog = await readFile(path.join(root, 'catalog/map.json'), 'utf8');
+    expect(catalog).toBe(await format(catalog, { parser: 'json' }));
     await expect(access(path.join(root, 'apps/map'))).rejects.toThrow();
     if (result.recovery === null) throw new Error('Missing recovery directory');
     expect(await readFile(path.join(result.recovery, 'source/source.ts'), 'utf8')).toContain(

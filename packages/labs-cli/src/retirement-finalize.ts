@@ -13,6 +13,7 @@ import {
 } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { format } from 'prettier';
 import { archiveChecksums } from './archive-files.js';
 import { verifyStoredArchive } from './archive-store.js';
 import { parseManifestSource } from './manifest-source.js';
@@ -97,7 +98,7 @@ async function moveSource(
   const recovery = await mkdtemp(
     path.join(state.recoveryParent, `${state.archive.manifest.slug}-`),
   );
-  const content = `${JSON.stringify(state.archive.manifest, null, 2)}\n`;
+  const content = await format(JSON.stringify(state.archive.manifest), { parser: 'json' });
   const stagedRecord = path.join(recovery, 'catalog.json');
   await writeFile(stagedRecord, content, { flag: 'wx' });
   await writeFile(
