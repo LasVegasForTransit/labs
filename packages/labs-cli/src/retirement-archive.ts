@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { lstat, readFile } from 'node:fs/promises';
+import { lstat, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { isDeepStrictEqual, promisify } from 'node:util';
 import { z } from 'zod';
@@ -8,6 +8,7 @@ import {
   storeRetirementArchive,
   verifyStoredArchive,
 } from './archive-store.js';
+import { parseManifestSource } from './manifest-source.js';
 
 type ArchiveScript = 'build:archive' | 'test:archive';
 type RunArchiveScript = (
@@ -58,7 +59,21 @@ export async function prepareRetirementArchive(
       run('test:archive', { cwd, archiveDirectory: staged }),
     );
   }
-  await run('build:archive', { cwd });
+  const file = path.join(cwd, 'lab.config.ts');
+  const source = await readFile(file, 'utf8');
+  const retiredSource = parseManifestSource(source, manifest.slug).update(manifest);
+  if (retiredSource !== source) await writeFile(file, retiredSource);
+  let sourceChanged = false;
+  try {
+    await run('build:archive', { cwd });
+  } finally {
+    if (retiredSource !== source) {
+      sourceChanged = (await readFile(file, 'utf8')) !== retiredSource;
+      if (!sourceChanged) await writeFile(file, source);
+    }
+  }
+  if (sourceChanged)
+    throw new Error('The manifest changed during the archive build; source was preserved.');
   return storeRetirementArchive(root, identity, path.join(cwd, 'dist-archive'), (staged) =>
     run('test:archive', { cwd, archiveDirectory: staged }),
   );

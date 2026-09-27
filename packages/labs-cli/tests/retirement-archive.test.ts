@@ -27,6 +27,15 @@ async function fixture(run: (root: string, app: string) => Promise<void>) {
       path.join(app, 'package.json'),
       JSON.stringify({ scripts: { 'build:archive': 'build', 'test:archive': 'test' } }),
     );
+    await writeFile(
+      path.join(app, 'lab.config.ts'),
+      `export default ${JSON.stringify({
+        ...identity.manifest,
+        status: 'active',
+        dates: { ...identity.manifest.dates, retired: undefined },
+        lifecycle: undefined,
+      })};\n`,
+    );
     await run(root, app);
   } finally {
     await rm(root, { recursive: true, force: true });
@@ -56,6 +65,42 @@ test('builds before testing the captured archive, leaving project source intact'
       'Captured',
     );
     await expect(access(path.join(app, 'package.json'))).resolves.toBeUndefined();
+  });
+});
+
+test('builds the retired notice while restoring the source manifest', async () => {
+  await fixture(async (root, app) => {
+    const file = path.join(app, 'lab.config.ts');
+    const source = `export default ${JSON.stringify({
+      ...identity.manifest,
+      status: 'deprecated',
+      dates: { ...identity.manifest.dates, retired: undefined, deprecated: '2026-09-01' },
+      lifecycle: { reason: 'The project ended.', sunset: '2026-09-05' },
+    })};\n`;
+    await writeFile(file, source);
+    await prepareRetirementArchive(root, identity, async (script) => {
+      if (script === 'build:archive') {
+        expect(await readFile(file, 'utf8')).toContain('"status":"retired"');
+        await mkdir(path.join(app, 'dist-archive'));
+        await writeFile(path.join(app, 'dist-archive/index.html'), '<h1>Retired</h1>');
+      }
+    });
+    expect(await readFile(file, 'utf8')).toBe(source);
+  });
+});
+
+test('restores the source manifest when the archive build fails', async () => {
+  await fixture(async (root, app) => {
+    const file = path.join(app, 'lab.config.ts');
+    const source = await readFile(file, 'utf8');
+    await expect(
+      prepareRetirementArchive(root, identity, (script) => {
+        if (script === 'build:archive') return Promise.reject(new Error('Build failed'));
+        return Promise.resolve();
+      }),
+    ).rejects.toThrow('Build failed');
+    expect(await readFile(file, 'utf8')).toBe(source);
+    await expect(access(path.join(root, 'retired/old-map'))).rejects.toThrow();
   });
 });
 
