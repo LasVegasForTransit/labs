@@ -344,15 +344,21 @@ test(
         root,
         ['migration-example', '--finalize', '--graduated', '2026-09-10', '--json'],
         {
-          finalize: (_root, input) =>
-            Promise.resolve({
+          finalize: (_root, input) => {
+            expect(input).toEqual({
+              slug: 'migration-example',
+              graduated: '2026-09-10',
+              apply: false,
+            });
+            return Promise.resolve({
               command: 'migrate' as const,
               ok: true as const,
               changed: false,
               phase: 'finalization-planned' as const,
               recovery: null,
               input,
-            }),
+            });
+          },
         },
       );
       expect(result).toMatchObject({
