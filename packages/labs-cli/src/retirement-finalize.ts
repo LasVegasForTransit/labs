@@ -29,6 +29,26 @@ async function optionalStat(file: string) {
   });
 }
 
+function assertSourceClean(
+  git: (args: string[]) => string,
+  identity: Identity,
+  finalized: boolean,
+) {
+  const baseline = finalized ? 'HEAD' : identity.commit;
+  const changed = [
+    ...git(['diff', '--name-only', '-z', baseline, '--']).split('\0'),
+    ...git(['diff', '--cached', '--name-only', '-z', baseline, '--']).split('\0'),
+    ...git(['ls-files', '--others', '--exclude-standard', '-z']).split('\0'),
+  ].filter(Boolean);
+  const allowed = (name: string) =>
+    finalized &&
+    (name.startsWith(`apps/${identity.slug}/`) ||
+      name === `catalog/${identity.slug}.json` ||
+      name === 'pnpm-lock.yaml');
+  if (changed.some((name) => !allowed(name)))
+    throw new Error('Commit or move uncommitted changes before finalization.');
+}
+
 async function finalizationState(root: string, identity: Identity) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(identity.slug) || identity.slug === 'home')
     throw new Error('Finalization requires a non-home lab slug.');
@@ -68,16 +88,7 @@ async function finalizationState(root: string, identity: Identity) {
       throw new Error('The app manifest differs from the stored archive.');
   }
   const finalized = appStat === undefined;
-  const changed = [
-    ...git(['diff', '--name-only', '-z', identity.commit, '--']).split('\0'),
-    ...git(['diff', '--cached', '--name-only', '-z', identity.commit, '--']).split('\0'),
-    ...git(['ls-files', '--others', '--exclude-standard', '-z']).split('\0'),
-  ].filter(Boolean);
-  const allowed = (name: string) =>
-    finalized &&
-    (name.startsWith(`apps/${identity.slug}/`) || name === `catalog/${identity.slug}.json`);
-  if (changed.some((name) => !allowed(name)))
-    throw new Error('Commit or move uncommitted changes before finalization.');
+  assertSourceClean(git, identity, finalized);
   return {
     archive,
     app,

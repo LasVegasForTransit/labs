@@ -91,6 +91,7 @@ test('finalizes only after verification and keeps a recoverable source directory
     expect(await readFile(path.join(result.recovery, 'source/source.ts'), 'utf8')).toContain(
       'map = 1',
     );
+    await writeFile(path.join(root, 'pnpm-lock.yaml'), 'lockfileVersion: 9.0\n');
     const repeated = await finalizeRetirement(root, identity, true, verify);
     expect(await readFile(path.join(result.recovery, 'source/local-note.txt'), 'utf8')).toBe(
       'Keep this ignored local file.',
