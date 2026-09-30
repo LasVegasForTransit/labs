@@ -38,6 +38,14 @@ Worker code unless the application declares route handling.
 Secrets never appear in Wrangler configuration. Non-secret environment values live under `vars`;
 resource bindings match the owning project manifest.
 
+The `cf` beta configurations for home and transit funding live in `deploy/<slug>/`. Those packages
+hold no Astro or Vite dependency, so `cf` delegates bundling to Wrangler and reads the apps' built
+static assets. `pnpm deploy:cf:dry-run` builds both apps and validates both `cf` deployment bundles;
+CI runs that command after its production build. Config tests compare Worker identity, asset paths,
+and existing route settings with the current Wrangler configs. Production deployment, previews,
+archive deployment, and rollback still use Wrangler while their version receipts and verification
+are adapted to `cf`.
+
 Retirement replaces the application configuration with an asset-only bundle. Its handler accepts GET
 and HEAD for captured URLs, redirects the bare slug to its trailing-slash URL, and rejects
 uncaptured paths. The bundle uses one `ASSETS` binding and no application entry point, Node

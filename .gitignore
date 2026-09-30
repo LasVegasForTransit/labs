@@ -3,6 +3,7 @@ dist/
 coverage/
 .turbo/
 .wrangler/
+.cloudflare/
 .env
 .env.*
 !.env.example
