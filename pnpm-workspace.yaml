@@ -1,5 +1,6 @@
 packages:
   - 'apps/*'
+  - 'deploy/*'
   - 'packages/*'
 
 # Dependencies allowed to run install scripts. Everything else installs
@@ -19,8 +20,11 @@ minimumReleaseAgeExclude:
 # Temporary transitive pins for published security fixes not yet selected by
 # their direct dependents.
 overrides:
+  fast-uri: 3.1.7
   sharp: 0.35.4
   smol-toml: 1.8.0
+  'undici@^7.0.0': 7.29.1
+  'undici@^8.0.0': 8.10.2
 
 # The organization version baseline. Every LVBT repository carries this same
 # catalog, so a package declares "catalog:" and two repositories cannot drift
@@ -32,6 +36,7 @@ catalog:
   '@astrojs/sitemap': 3.7.4
   '@cloudflare/vitest-pool-workers': 0.22.0
   '@cloudflare/workers-types': 5.20260901.1
+  cf: 1.0.0-beta.5
   '@eslint-community/eslint-plugin-eslint-comments': 4.7.2
   '@eslint/js': 10.0.1
   '@playwright/test': 1.62.1
@@ -62,5 +67,5 @@ catalog:
   typescript-eslint: 8.69.0
   vite: 8.2.2
   vitest: 4.1.11
-  wrangler: 4.127.1
+  wrangler: 4.141.0
   zod: 4.5.4

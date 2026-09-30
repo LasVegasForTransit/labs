@@ -38,6 +38,9 @@ jobs:
       - name: Production builds
         run: pnpm build
 
+      - name: cf deployment dry run
+        run: pnpm deploy:cf:dry-run
+
       - name: Dependency audit
         run: pnpm audit --audit-level=high
 

@@ -34,3 +34,15 @@ test('captures only structured preview output in the deployment receipt', async 
   expect(source).toContain('pnpm --silent preview:deploy');
   expect(source).not.toContain('run preview:deploy --');
 });
+
+test('checks cf bundles after app builds without switching production deployment', async () => {
+  const source = await readFile(workflow, 'utf8');
+  const deploy = await readFile(
+    fileURLToPath(new URL('../../../.github/workflows/deploy.yml', import.meta.url)),
+    'utf8',
+  );
+
+  expect(source.indexOf('Production builds')).toBeLessThan(source.indexOf('cf deployment dry run'));
+  expect(source).toContain('pnpm deploy:cf:dry-run');
+  expect(deploy).toContain('pnpm deploy:affected');
+});
