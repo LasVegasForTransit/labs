@@ -3,6 +3,12 @@ import { migrationTree } from '../src/migration-tree.js';
 import { migrationSource } from '../src/migration-source.js';
 import { withMigrationFixture } from '../test-support/migration-fixture.js';
 
+function content(files: Map<string, { content: Buffer }>, name: string): string {
+  const file = files.get(name);
+  if (!file) throw new Error(`Missing generated file: ${name}`);
+  return file.content.toString();
+}
+
 test(
   'exports one project with its pinned preset and keeps deployment gated',
   { timeout: 30000 },
@@ -33,7 +39,14 @@ test(
       ).not.toContain('<this-repository>');
       const deploy = result.files.get('.github/workflows/deploy.yml')?.content.toString() ?? '';
       expect(deploy).toContain('LVBT_DEPLOYMENT_OWNER');
-      expect(deploy).toContain('CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}');
+      expect(deploy).toContain('release-build.yml@');
+      expect(deploy).toContain('release-attest.yml@');
+      expect(deploy).toContain('target: preview');
+      expect(deploy).not.toContain('target: production');
+      const promotion = content(result.files, '.github/workflows/promote.yml');
+      expect(promotion).toContain("vars.LVBT_DEPLOYMENT_OWNER == 'true'");
+      expect(promotion).toContain('target: production');
+      expect(promotion).toContain('attestation-prefix: attestation-app-release');
       expect(deploy).toContain('github.sha == inputs.commit');
       expect(deploy).toContain('commit:');
       expect(result.files.get('.githooks/pre-commit')?.mode).toBe('100755');
@@ -46,8 +59,23 @@ test(
       );
       expect(pkg.devDependencies.tsx).toBe('catalog:');
       expect(pkg.scripts['standards:check']).toContain('web-platform-cli.ts check');
-      expect(pkg.scripts.deploy).toBe(
-        'tsx packages/lab-runtime/src/standalone-deploy-cli.ts migration-example',
+      expect(pkg.scripts.deploy).toBe('lvbt promote --app migration-example');
+      expect(pkg.scripts.validate).toContain('pnpm test:e2e');
+      expect(pkg.scripts.validate).toContain('pnpm test:archive');
+      const tooling = JSON.parse(content(result.files, '.lvbt/tooling.json')) as {
+        release: { repository: string; apps: Record<string, unknown> };
+      };
+      expect(tooling.release.repository).toBe('LasVegasForTransit/example');
+      expect(tooling.release.apps['migration-example']).toMatchObject({
+        productionWorker: 'lvbt-labs-migration-example',
+        previewWorker: 'lvbt-labs-migration-example-staging',
+        publicPath: '/migration-example/',
+        artifactSource: 'typed-worker',
+        assetsDirectory: '../../apps/migration-example/dist',
+      });
+      expect(result.files.has('deploy/migration-example/cloudflare.config.ts')).toBe(true);
+      expect(result.files.get('.github/workflows/ci.yml')?.content.toString()).not.toContain(
+        'pnpm test:archive',
       );
     });
   },

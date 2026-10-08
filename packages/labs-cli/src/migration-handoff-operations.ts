@@ -2,6 +2,12 @@ import {
   readReleaseConfiguration,
   readReleaseIdentity,
 } from '@lasvegasfortransit/web-platform/release';
+import {
+  destinationArtifact,
+  legacyReleaseSchema,
+  sharedDestinationHash,
+  type DestinationArtifact,
+} from './migration-destination-release.js';
 import type { publishRetainedLab } from './retained-publication.js';
 import { execFile, execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -38,6 +44,7 @@ export interface MigrationProviderDependencies {
   fetch?: typeof fetch;
   guard?: () => void | Promise<void>;
   promote?: typeof publishRetainedLab;
+  destinationArtifact?: DestinationArtifact;
 }
 
 const commitSchema = z.object({ sha: z.string().regex(/^[a-f0-9]{40}$/) });
@@ -56,15 +63,6 @@ const versionSchema = z.object({
   id: z.uuid(),
   annotations: z.object({ 'workers/message': z.string() }),
 });
-const releaseSchema = z
-  .object({
-    formatVersion: z.literal(1),
-    slug: z.string(),
-    commit: z.string().regex(/^[a-f0-9]{40}$/),
-    artifactHash: z.string().regex(/^[a-f0-9]{64}$/),
-  })
-  .strict();
-
 async function optionalStat(file: string) {
   return lstat(file).catch((error: unknown) => {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
@@ -303,11 +301,12 @@ export function migrationVerificationGuard(
 }
 
 async function verifyDestinationDeployment(
-  slug: string,
+  artifact: DestinationArtifact,
   handoff: MigrationHandoffV1,
   wrangler: Wrangler,
   request: typeof fetch,
 ) {
+  const slug = handoff.slug;
   const worker = `lvbt-labs-${slug}`;
   const currentVersion = async () =>
     activeVersion(JSON.parse(await wrangler(['deployments', 'list', '--json', '--name', worker])));
@@ -316,10 +315,7 @@ async function verifyDestinationDeployment(
   const details = versionSchema.parse(
     JSON.parse(await wrangler(['versions', 'view', version, '--json', '--name', worker])),
   );
-  if (
-    details.id !== version ||
-    details.annotations['workers/message'] !== `Commit ${handoff.destinationCommit}`
-  )
+  if (details.id !== version)
     throw new Error('The active destination version lacks migration release provenance.');
   const base = `https://labs.lasvegasfortransit.org/${slug}/`;
   const options = {
@@ -331,18 +327,34 @@ async function verifyDestinationDeployment(
     `${base}lvbt-release.json?commit=${handoff.destinationCommit}`,
     options,
   );
-  const marker = releaseSchema.parse(await response.clone().json());
-  await verifyReleaseResponse(response, {
-    formatVersion: 1,
-    slug,
-    commit: handoff.destinationCommit,
-    artifactHash: marker.artifactHash,
-  });
+  if (response.status !== 200)
+    throw new Error('Destination release marker is unavailable or protected.');
+  const value: unknown = await response.clone().json();
+  const legacy = legacyReleaseSchema.safeParse(value);
+  let artifactHash: string;
+  if (legacy.success) {
+    if (details.annotations['workers/message'] !== `Commit ${handoff.destinationCommit}`)
+      throw new Error('The active destination version lacks migration release provenance.');
+    await verifyReleaseResponse(response, {
+      formatVersion: 1,
+      slug,
+      commit: handoff.destinationCommit,
+      artifactHash: legacy.data.artifactHash,
+    });
+    artifactHash = legacy.data.artifactHash;
+  } else {
+    artifactHash = await sharedDestinationHash(
+      handoff,
+      value,
+      details.annotations['workers/message'],
+      artifact,
+    );
+  }
   const page = await request(base, { ...options, signal: AbortSignal.timeout(15000) });
   if (page.status !== 200) throw new Error(`The migrated project returned HTTP ${page.status}.`);
   if ((await currentVersion()) !== version)
     throw new Error('The active destination version changed during stable-route verification.');
-  return { version, artifactHash: marker.artifactHash };
+  return { version, artifactHash };
 }
 
 async function writeVerifiedHandoff(
@@ -381,7 +393,13 @@ export function migrationVerificationOperations(
       return inspectDestination(github, handoff);
     },
     async verifyDeployment(handoff) {
-      return verifyDestinationDeployment(slug, handoff, wrangler, request);
+      return verifyDestinationDeployment(
+        dependencies.destinationArtifact ??
+          ((record, identity) => destinationArtifact(record, identity, github)),
+        handoff,
+        wrangler,
+        request,
+      );
     },
     guard,
     async writeVerified(record: MigrationVerifiedHandoffV1) {

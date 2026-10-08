@@ -182,7 +182,7 @@ test('enables and dispatches the reviewed destination after the committed pause'
     'owner:true',
     'journal:destination-enabled',
     `dispatch:${handoff.destinationCommit}`,
-    'journal:deployment-dispatched',
+    'journal:staging-dispatched',
   ]);
 });
 

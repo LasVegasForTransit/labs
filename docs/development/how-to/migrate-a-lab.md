@@ -108,19 +108,28 @@ pnpm lab migrate <slug> --transfer --dry-run
 ```
 
 The command rechecks the committed pause, destination commit, required check, and disabled owner.
-Apply the transfer to enable the destination and dispatch its deployment workflow:
+Apply the transfer to enable the destination and dispatch signed retained staging:
 
 ```sh
 pnpm lab migrate <slug> --transfer --apply
 ```
 
-The workflow accepts the recorded commit as a required input and stops if destination `main` has
-advanced. Operations are recorded under `.wrangler/migrations/`. An unconfirmed result means that
-the owner variable changed but dispatch or confirmation failed; inspect the journal, destination
+The staging workflow accepts the recorded commit and stops if destination `main` has advanced. It
+builds, signs and verifies preview bytes without publishing production. Configure the reviewed
+preview URL/account, independent preview credentials and Access protection in the destination before
+staging. Operations are recorded under `.wrangler/migrations/`. An unconfirmed result means that the
+owner variable changed but dispatch or confirmation failed; inspect the journal, destination
 variable, workflow runs, and active Worker version before retrying.
 
-The new repository deploys to the existing Worker and routes. Diagnostics check the stable Labs URL
-before the local app source leaves the workspace.
+Inspect the exact successful destination staging run, then request its explicit promotion from the
+destination checkout, retaining the active provider version as the optimistic precondition:
+
+```sh
+pnpm promote --run-id <destination-staging-run-id> --expected-version <active-Worker-version>
+```
+
+The owner guard remains required. Production publishes the signed retained bytes to the existing
+Worker and routes. Diagnostics check the stable Labs URL before local source leaves the workspace.
 
 Verify the deployed handoff from the clean Labs checkout:
 
@@ -132,9 +141,11 @@ pnpm lab migrate <slug> --verify --apply
 Verification requires the recorded destination commit to remain on `main` with a successful
 `Validate` check and `LVBT_DEPLOYMENT_OWNER=true`. It confirms the active Worker version carries
 that commit's deployment annotation, then reads the release marker and project page through the
-stable Labs route. The active version is checked again after both requests. Applying the command
-records the exact Worker version and artifact hash in `migrations/<slug>.json`; commit that change
-before completing graduation.
+stable Labs route. Shared markers additionally require the exact trusted destination source run,
+retained inventory, saved Worker namespaces and pinned signature proof; legacy handoff markers keep
+their original verification contract. The active version is checked again after both requests.
+Applying the command records the exact Worker version and artifact hash in `migrations/<slug>.json`;
+commit that change before completing graduation.
 
 ## Complete and recover
 
