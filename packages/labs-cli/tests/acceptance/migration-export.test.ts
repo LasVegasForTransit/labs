@@ -7,8 +7,8 @@ import {
   verifyRelease,
   verifyWorkerReleaseConfiguration,
 } from '@lasvegasfortransit/web-platform/release';
-import { migrateLab } from '../src/migrate.js';
-import { withMigrationFixture } from '../test-support/migration-fixture.js';
+import { migrateLab } from '../../src/migrate.js';
+import { withMigrationFixture } from '../../test-support/migration-fixture.js';
 
 function runPnpm(directory: string, args: string[], env: NodeJS.ProcessEnv = {}) {
   const result = spawnSync('pnpm', args, {

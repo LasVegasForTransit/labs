@@ -8,8 +8,10 @@ import {
 } from 'node:http';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import { validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
+import { preparePreviewAssets } from './preview-assets.js';
 
 const previewHost = '127.0.0.1';
 const publicPort = 8797;
@@ -141,7 +143,13 @@ function proxyRequest(
 async function main(): Promise<void> {
   const root = process.cwd();
   const targets = await discoverTargets(root);
-  await run('pnpm', ['build']);
+  const { values } = parseArgs({ options: { prebuilt: { type: 'boolean', default: false } } });
+  await preparePreviewAssets(
+    root,
+    targets.map((target) => target.slug),
+    values.prebuilt,
+    () => run('pnpm', ['build']),
+  );
 
   const workers = targets.map((target) => startWorker(target));
   const stopWorkers = (): void => {

@@ -4,5 +4,5 @@ import { sharedConfig } from '@lasvegasfortransit/vitest-config';
 
 export default defineConfig({
   ...sharedConfig,
-  test: { ...sharedConfig.test, exclude: [...sharedConfig.test.exclude, 'tests/acceptance/**'] },
+  test: { ...sharedConfig.test, include: ['tests/acceptance/**/*.test.ts'] },
 });
