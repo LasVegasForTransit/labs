@@ -306,7 +306,7 @@ export async function transferMigration(
       throw new Error('The destination ownership change was not confirmed.');
     await operations.journal('destination-enabled', handoff);
     await operations.dispatch(handoff.destinationCommit);
-    await operations.journal('deployment-dispatched', handoff);
+    await operations.journal('staging-dispatched', handoff);
     return {
       command: 'migrate',
       ok: true,

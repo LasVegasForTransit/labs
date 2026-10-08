@@ -167,99 +167,125 @@ test('transfer operations change only the destination owner and dispatch main', 
   }
 });
 
-test('verification operations prove the active version and replace the pause record', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-migration-verification-'));
-  const version = '22222222-2222-4222-8222-222222222222';
-  const artifactHash = 'c'.repeat(64);
-  const record = {
-    formatVersion: 1 as const,
-    ...input,
-    destinationCommit: 'b'.repeat(40),
-    previousVersion: '11111111-1111-4111-8111-111111111111',
-    phase: 'labs-paused' as const,
-  };
-  try {
-    await migrationPauseOperations(root, input, {
-      github: () => '',
-      wrangler: () => Promise.resolve('[]'),
-      guard: () => undefined,
-    }).write(record);
-    const operations = migrationVerificationOperations(root, input.slug, {
-      github: (args) => {
-        if (args[0] === 'variable') return 'true\n';
-        if (args.at(-1)?.endsWith('/commits/main'))
-          return JSON.stringify({ sha: record.destinationCommit });
-        return JSON.stringify({
-          check_runs: [
-            {
-              id: 1,
-              name: 'Validate',
-              status: 'completed',
-              conclusion: 'success',
-              head_sha: record.destinationCommit,
-            },
-          ],
-        });
-      },
-      wrangler: (args) => {
-        if (args[0] === 'versions')
+test.each(['legacy', 'shared', 'foreign'] as const)(
+  'verification %s proves the active version and exact retained source before replacing the pause',
+  async (mode) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-migration-verification-'));
+    const version = '22222222-2222-4222-8222-222222222222';
+    const artifactHash = 'c'.repeat(64);
+    const record = {
+      formatVersion: 1 as const,
+      ...input,
+      destinationCommit: 'b'.repeat(40),
+      previousVersion: '11111111-1111-4111-8111-111111111111',
+      phase: 'labs-paused' as const,
+    };
+    try {
+      await migrationPauseOperations(root, input, {
+        github: () => '',
+        wrangler: () => Promise.resolve('[]'),
+        guard: () => undefined,
+      }).write(record);
+      const operations = migrationVerificationOperations(root, input.slug, {
+        github: (args) => {
+          if (args[0] === 'variable') return 'true\n';
+          if (args.at(-1)?.endsWith('/commits/main'))
+            return JSON.stringify({ sha: record.destinationCommit });
+          return JSON.stringify({
+            check_runs: [
+              {
+                id: 1,
+                name: 'Validate',
+                status: 'completed',
+                conclusion: 'success',
+                head_sha: record.destinationCommit,
+              },
+            ],
+          });
+        },
+        wrangler: (args) => {
+          if (args[0] === 'versions')
+            return Promise.resolve(
+              JSON.stringify({
+                id: version,
+                annotations: {
+                  'workers/message':
+                    mode === 'legacy'
+                      ? `Commit ${record.destinationCommit}`
+                      : `Release 123 at ${record.destinationCommit}`,
+                },
+              }),
+            );
           return Promise.resolve(
-            JSON.stringify({
-              id: version,
-              annotations: { 'workers/message': `Commit ${record.destinationCommit}` },
-            }),
+            JSON.stringify([
+              {
+                created_on: '2026-09-09T00:00:00Z',
+                versions: [{ version_id: version, percentage: 100 }],
+              },
+            ]),
           );
-        return Promise.resolve(
-          JSON.stringify([
-            {
-              created_on: '2026-09-09T00:00:00Z',
-              versions: [{ version_id: version, percentage: 100 }],
-            },
-          ]),
-        );
-      },
-      fetch: (request) => {
-        const url =
-          typeof request === 'string'
-            ? request
-            : request instanceof URL
-              ? request.href
-              : request.url;
-        return Promise.resolve(
-          url.includes('lvbt-release.json')
-            ? new Response(
-                JSON.stringify({
-                  formatVersion: 1,
-                  slug: input.slug,
-                  commit: record.destinationCommit,
-                  artifactHash,
-                }),
-              )
-            : new Response('<h1>Example</h1>'),
-        );
-      },
-      guard: () => undefined,
-    });
+        },
+        fetch: (request) => {
+          const url =
+            typeof request === 'string'
+              ? request
+              : request instanceof URL
+                ? request.href
+                : request.url;
+          return Promise.resolve(
+            url.includes('lvbt-release.json')
+              ? new Response(
+                  JSON.stringify({
+                    ...(mode === 'legacy'
+                      ? {
+                          formatVersion: 1,
+                          slug: input.slug,
+                          commit: record.destinationCommit,
+                          artifactHash,
+                        }
+                      : {
+                          app: input.slug,
+                          releaseId: '123',
+                          commit: mode === 'foreign' ? 'd'.repeat(40) : record.destinationCommit,
+                        }),
+                  }),
+                )
+              : new Response('<h1>Example</h1>'),
+          );
+        },
+        destinationArtifact: (handoff, identity) => {
+          expect(handoff.destinationCommit).toBe(identity.commit);
+          expect(identity).toMatchObject({ app: input.slug, releaseId: '123' });
+          return Promise.resolve(artifactHash);
+        },
+        guard: () => undefined,
+      });
 
-    await expect(operations.verifyDeployment(record)).resolves.toEqual({
-      version,
-      artifactHash,
-    });
-    await operations.writeVerified({
-      ...record,
-      phase: 'destination-verified',
-      destinationVersion: version,
-      artifactHash,
-    });
-    await expect(operations.read()).resolves.toMatchObject({
-      phase: 'destination-verified',
-      destinationVersion: version,
-      artifactHash,
-    });
-  } finally {
-    await rm(root, { recursive: true, force: true });
-  }
-});
+      if (mode === 'foreign') {
+        await expect(operations.verifyDeployment(record)).rejects.toThrow(/source|commit/);
+        await expect(operations.read()).resolves.toMatchObject({ phase: 'labs-paused' });
+        return;
+      }
+      await expect(operations.verifyDeployment(record)).resolves.toEqual({
+        version,
+        artifactHash,
+      });
+      await operations.writeVerified({
+        ...record,
+        phase: 'destination-verified',
+        destinationVersion: version,
+        artifactHash,
+      });
+      await expect(operations.read()).resolves.toMatchObject({
+        phase: 'destination-verified',
+        destinationVersion: version,
+        artifactHash,
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
 
 test('legacy version-only handoff cannot disable ownership or pretend its version is a retained artifact', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-legacy-handoff-'));

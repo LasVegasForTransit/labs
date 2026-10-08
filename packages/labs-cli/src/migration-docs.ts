@@ -23,7 +23,12 @@ and \`pnpm test:e2e\` to exercise the application in a browser.
 The public [Labs URL](https://labs.lasvegasfortransit.org/${slug}/) and Worker name remain unchanged.
 The deployment workflow is disabled until the ownership handoff enables
 \`LVBT_DEPLOYMENT_OWNER\` in this repository. Do not enable it while Labs still deploys this Worker.
-The source identity is recorded in [migration provenance](MIGRATED_FROM.md).
+Main builds, signs and stages saved bytes only. Inspect the exact successful staging run, then run
+\`pnpm promote --run-id <staging-run-id> --expected-version <active-Worker-version>\` from this
+repository to request explicit production promotion. The owner guard is checked on staging and
+promotion. Configure the reviewed \`LVBT_PREVIEW_URL\`, \`LVBT_WORKERS_DEV_SUBDOMAIN\`, separate
+preview Worker credentials and Access protection before staging. No provider baseline is a saved
+recovery artifact. The source identity is recorded in [migration provenance](MIGRATED_FROM.md).
 `,
     'docs/development/tutorials/start-here.md': `# Start here
 

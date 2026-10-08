@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { parseManifestSource } from './manifest-source.js';
 import { migrationPackages, migrationSource } from './migration-source.js';
 import { migrationDocs } from './migration-docs.js';
+import { configureMigrationRelease } from './migration-release.js';
 
 export interface MigrationFile {
   content: Buffer;
@@ -19,29 +20,7 @@ function jsonObject(content: string) {
   return z.record(z.string(), z.unknown()).parse(result.config);
 }
 
-function migrationDeployWorkflow(deploy: string) {
-  const anchor = '    name: Deploy\n    needs: validate';
-  const dispatch = '  workflow_dispatch:\n';
-  const accountSecret = 'CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}';
-  if (!deploy.includes(anchor) || !deploy.includes(dispatch) || !deploy.includes(accountSecret))
-    throw new Error('Review the preset deployment workflow before migration.');
-  return deploy
-    .replace(
-      dispatch,
-      `  workflow_dispatch:\n    inputs:\n      commit:\n        description: Exact reviewed commit to deploy\n        required: true\n        type: string\n`,
-    )
-    .replace(
-      anchor,
-      `    name: Deploy\n    if: vars.LVBT_DEPLOYMENT_OWNER == 'true' && (github.event_name != 'workflow_dispatch' || github.sha == inputs.commit)\n    needs: validate`,
-    )
-    .replace(accountSecret, 'CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}')
-    .replace(
-      '# edit) and CLOUDFLARE_ACCOUNT_ID repository secrets.',
-      '# edit) and the CLOUDFLARE_ACCOUNT_ID repository variable.',
-    );
-}
-
-function configureRoot(files: Tree, slug: string, repository: string) {
+function configureRoot(files: Tree, slug: string, repository: string, site: boolean) {
   const read = (name: string) => {
     const file = files.get(name);
     if (file === undefined) throw new Error(`Missing preset file: ${name}`);
@@ -62,10 +41,13 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   const scripts = z.record(z.string(), z.string()).parse(pkg.scripts);
   scripts['standards:check'] = 'node .lvbt/web-platform/standards/web-platform-cli.ts check';
   scripts['standards:update'] = 'node .lvbt/web-platform/standards/web-platform-cli.ts update';
-  scripts.check = `pnpm standards:check && ${scripts.check}`;
+  scripts.bootstrap = 'node .lvbt/web-platform/packages/cli/src/cli.mjs bootstrap';
+  scripts.preflight = 'node .lvbt/web-platform/packages/cli/src/cli.mjs preflight';
   scripts['build:archive'] = 'turbo run build:archive';
   scripts['test:archive'] = 'turbo run test:archive --concurrency=1';
-  scripts.deploy = `tsx packages/lab-runtime/src/standalone-deploy-cli.ts ${slug}`;
+  scripts.deploy = `lvbt promote --app ${slug}`;
+  scripts.promote = scripts.deploy;
+  scripts.validate = `${scripts.validate} && pnpm test:e2e && pnpm test:archive`;
   pkg.scripts = scripts;
   write('package.json', `${JSON.stringify(pkg, null, 2)}\n`);
   write(
@@ -85,6 +67,11 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   write('.markdownlint-cli2.jsonc', `${JSON.stringify(markdown, null, 2)}\n`);
   const turbo = jsonObject(read('turbo.json'));
   const tasks = z.record(z.string(), z.unknown()).parse(turbo.tasks);
+  const app = jsonObject(read(`apps/${slug}/package.json`));
+  tasks['//#validate'] = {
+    dependsOn: ['//#security:dependencies', `${z.string().parse(app.name)}#build`],
+    cache: false,
+  };
   turbo.globalEnv = [...new Set([...z.array(z.string()).parse(turbo.globalEnv), 'GITHUB_SHA'])];
   tasks['build:archive'] = { dependsOn: ['^build'], outputs: ['dist-archive/**'] };
   tasks['test:archive'] = {
@@ -94,14 +81,10 @@ function configureRoot(files: Tree, slug: string, repository: string) {
   };
   turbo.tasks = tasks;
   write('turbo.json', `${JSON.stringify(turbo, null, 2)}\n`);
-  write(
-    '.github/workflows/deploy.yml',
-    migrationDeployWorkflow(read('.github/workflows/deploy.yml')),
-  );
-  write(
-    '.github/workflows/ci.yml',
-    `${read('.github/workflows/ci.yml').trimEnd()}\n\n      - name: Install Chromium\n        run: pnpm exec playwright install --with-deps chromium\n\n      - name: Production builds\n        run: pnpm build\n\n      - name: Browser acceptance\n        run: pnpm test:e2e\n\n      - name: Archive acceptance\n        run: pnpm test:archive\n`,
-  );
+  configureMigrationRelease(files, slug, repository, {
+    site,
+    metadata: jsonObject(read(`apps/${slug}/wrangler.jsonc`)),
+  });
   write('.lvbt/commit-scopes.txt', `${slug}\nbrand\nui\nruntime\ndocs\nci\ndx\n`);
 }
 
@@ -139,7 +122,7 @@ export function migrationTree(root: string, slug: string, repository: string) {
     if (includesSource(name, directories))
       files.set(name, { content: source.read(name), mode: entry.mode });
   }
-  configureRoot(files, slug, repository);
+  configureRoot(files, slug, repository, parsed.manifest.profile === 'site');
   for (const [name, content] of Object.entries(migrationDocs(parsed.manifest, repository)))
     files.set(name, { content: Buffer.from(content), mode: '100644', generated: true });
   const remote = execFileSync('git', ['remote', 'get-url', 'origin'], {
