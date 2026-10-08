@@ -88,3 +88,16 @@ test('all dependency and full-history secret gates are required uncached pnpm ch
   expect(source).not.toContain('docker run');
   expect(source).not.toContain('pnpm audit --audit-level=high');
 });
+
+test.each(['deploy.yml', 'promote.yml'])(
+  '%s selects the configured named publication path',
+  async (filename) => {
+    const root = fileURLToPath(new URL('../../../', import.meta.url));
+    const tooling = JSON.parse(await readFile(root + '/.lvbt/tooling.json', 'utf8')) as {
+      release: { publicationMode: string };
+    };
+    const source = await readFile(root + '/.github/workflows/' + filename, 'utf8');
+    const mode = /^ {6}publication-mode: (\S+)$/m.exec(source)?.[1] ?? 'version';
+    expect(mode).toBe(tooling.release.publicationMode);
+  },
+);

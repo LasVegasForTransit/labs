@@ -83,6 +83,7 @@ jobs:
     with:
       app: ${{ matrix.app }}
       target: preview
+      publication-mode: named-staging
       attestation-prefix: attestation-${{ matrix.artifactPrefix }}
       release-id: ${{ github.run_id }}
       commit: ${{ github.sha }}
