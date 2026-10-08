@@ -114,6 +114,7 @@ jobs:
     with:
       app: ${{ matrix.app }}
       target: production
+      publication-mode: named-staging
       attestation-prefix: attestation-${{ matrix.artifactPrefix }}
       expected-version: ${{ inputs.expected_version }}
       release-id: ${{ needs.source.outputs.release-id }}
