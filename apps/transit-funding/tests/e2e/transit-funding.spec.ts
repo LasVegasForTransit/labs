@@ -21,6 +21,7 @@ test('matches the publication visual baseline', async ({ page }) => {
   const health = monitorPageHealth(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/transit-funding/');
+  await expect(page.getByRole('heading', { level: 1, name: 'One sentence' })).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
 
   await expect(page).toHaveScreenshot('introduction.png', {
