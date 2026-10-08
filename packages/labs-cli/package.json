@@ -14,7 +14,7 @@
     "check-types": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "validate": "pnpm test:e2e && env LVBT_MIGRATION_BROWSER_ACCEPTANCE=1 vitest run tests/migration-export-acceptance.test.ts && tsx src/release-dry-run.ts",
+    "validate": "pnpm test:e2e && env LVBT_MIGRATION_BROWSER_ACCEPTANCE=1 vitest run --config vitest.acceptance.config.ts && tsx src/release-dry-run.ts",
     "release:smoke": "tsx src/release-smoke.ts",
     "test:release": "playwright test --config playwright.release.config.ts",
     "preview:acceptance": "tsx src/pr-release-browser.ts"

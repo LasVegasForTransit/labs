@@ -12,7 +12,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: 'pnpm -w preview',
+          command: 'pnpm -w preview --prebuilt',
           url: `${url}/`,
           reuseExistingServer: !process.env.CI,
         },
