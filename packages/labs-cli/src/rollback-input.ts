@@ -1,6 +1,14 @@
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
-import { rollbackSchema } from './rollback.js';
+import { z } from 'zod';
+const rollbackSchema = z.strictObject({
+  slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/u),
+  runId: z.string().regex(/^[1-9][0-9]*$/u),
+  expectedVersion: z.uuid(),
+  commit: z.string().regex(/^[a-f0-9]{40}$/u),
+  reason: z.string().trim().min(1).max(120),
+  apply: z.boolean(),
+});
 
 export async function rollbackInput(args: string[]) {
   const { values, positionals } = parseArgs({
@@ -8,7 +16,7 @@ export async function rollbackInput(args: string[]) {
     allowPositionals: true,
     options: {
       slug: { type: 'string' },
-      version: { type: 'string' },
+      'run-id': { type: 'string' },
       'expected-version': { type: 'string' },
       commit: { type: 'string' },
       reason: { type: 'string' },
@@ -23,7 +31,7 @@ export async function rollbackInput(args: string[]) {
     throw new Error('Provide one lab slug.');
   const input = {
     slug: values.slug ?? positionals[0],
-    version: values.version,
+    runId: values['run-id'],
     expectedVersion: values['expected-version'],
     commit: values.commit,
     reason: values.reason,
@@ -33,7 +41,7 @@ export async function rollbackInput(args: string[]) {
     const prompt = createInterface({ input: process.stdin, output: process.stderr });
     try {
       input.slug ??= await prompt.question('Lab slug: ');
-      input.version ??= await prompt.question('Version to restore: ');
+      input.runId ??= await prompt.question('Retained staging run to restore: ');
       input.expectedVersion ??= await prompt.question('Expected current version: ');
       input.commit ??= await prompt.question('Full source commit of the version to restore: ');
       input.reason ??= await prompt.question('Reason for rollback: ');

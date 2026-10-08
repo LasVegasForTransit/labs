@@ -186,3 +186,31 @@ test('accepts equivalent frame protection and additional permission restrictions
 
   expect(checks.find(({ id }) => id === 'live.headers')?.status).toBe('pass');
 });
+
+test('accepts shared saved-release markers only for the corresponding app', async () => {
+  for (const swapped of [false, true]) {
+    const checks = await liveDoctor(
+      'labs.example.org',
+      [{ slug: 'home', name: 'lvbt-labs-home' }],
+      (input) => {
+        const url = requestUrl(input);
+        if (url.endsWith('/lvbt-release.json'))
+          return fetched(
+            response(
+              JSON.stringify({
+                commit: 'c'.repeat(40),
+                releaseId: '123',
+                app: swapped ? 'map' : 'home',
+              }),
+              { headers: { 'content-type': 'application/json' } },
+            ),
+          );
+        if (url.endsWith('/not-a-lab')) return fetched(response('Not found', { status: 404 }));
+        return fetched(response('<h1>Labs</h1>'));
+      },
+    );
+    expect(checks.find(({ id }) => id === 'live.release-markers')?.status).toBe(
+      swapped ? 'fail' : 'pass',
+    );
+  }
+});

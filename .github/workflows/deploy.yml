@@ -1,134 +1,98 @@
-# Deploys affected active and deprecated labs after validation.
-# Requires CLOUDFLARE_API_TOKEN in the production environment.
-name: Deploy
+# Main builds protected staging only. Production promotion requires a separate manual dispatch.
+name: Stage Labs release
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      app:
+        description: 'Explicit profile; draft profiles permit manual preview only'
+        type: string
+        default: home
 
 permissions:
   contents: read
   packages: read
+  actions: read
+  deployments: write
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: labs-staging-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  validate:
-    name: Validate
-    uses: ./.github/workflows/ci.yml
-
-  deploy:
-    name: Deploy
-    needs: validate
+  policy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: production
+    outputs:
+      matrix: ${{ steps.policy.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Select Labs-owned eligible profiles
+        id: policy
+        env:
+          APP: ${{ inputs.app }}
+          EVENT: ${{ github.event_name }}
+        run:
+          pnpm exec tsx packages/labs-cli/src/release-policy-command.ts --target preview --event
+          "$EVENT" --app "$APP"
+  build:
+    needs: policy
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.policy.outputs.matrix) }}
+    uses: LasVegasForTransit/repository-tooling/.github/workflows/release-build.yml@3567f0cb1345e8756eb5d84e0a3ea7b62695125a
+    with:
+      app: ${{ matrix.app }}
+      app-directory: ${{ matrix.appDirectory }}
+      artifact-prefix: ${{ matrix.artifactPrefix }}
+      artifact-source: typed-worker
+      validation-browser-directory: .
+      build-environment: production
+      require-analytics: true
+    secrets: inherit
+  attest:
+    needs: [policy, build]
     permissions:
       contents: read
       actions: read
       packages: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-
-      - name: Setup Node + pnpm
-        uses: ./.github/actions/setup-node-pnpm
-
-      - name: Deploy affected apps
-        shell: bash
-        run: |
-          set -euo pipefail
-          CURRENT=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha')
-          if [ "$CURRENT" != "$GITHUB_SHA" ]; then
-            # Not a failure: the newer commit's own run deploys, and this one must not.
-            echo "::notice::This commit was superseded on main; its newer run deploys instead."
-            exit 0
-          fi
-          # Save the history to a file rather than piping gh into Node: on Node 24.21.0 the pipe
-          # made this step abort with glibc heap corruption ("corrupted double-linked list").
-          RUNS="$RUNNER_TEMP/deploy-runs.json"
-          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/deploy.yml/runs" \
-            --method GET -f branch=main -f per_page=100 > "$RUNS"
-          BASE=$(pnpm exec tsx packages/labs-cli/src/deployment-baseline.ts "$RUNS")
-          if [ -n "$BASE" ]; then
-            pnpm deploy:affected --base "$BASE" --apply --json
-          else
-            pnpm deploy:affected --all --apply --json
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          LVBT_REQUIRE_ANALYTICS: '1'
-          PUBLIC_LVBT_CWA_TOKEN: ${{ vars.PUBLIC_LVBT_CWA_TOKEN }}
-
-      - name: Preserve deployment receipts
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: deployment-receipts-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .wrangler/deployments/
-          include-hidden-files: true
-          if-no-files-found: ignore
-          retention-days: 90
-
-  # A failed deploy leaves main ahead of the live site, and GitHub's own failure email reaches only
-  # the person who merged, if their settings allow it. This keeps one open issue, assigned to the
-  # merger and addressed to the maintainers, until a later deploy succeeds and closes it.
-  alert:
-    name: Report the deploy result
-    needs: [validate, deploy]
-    if: always() && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    permissions:
-      issues: write
-    steps:
-      - name: Open, update, or close the deploy issue
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          RESULT: ${{ needs.deploy.result }}
-          VALIDATION: ${{ needs.validate.result }}
-        with:
-          script: |
-            const title = 'Production deploy failed';
-            const labels = ['deploy', 'maintenance'];
-            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const failed = process.env.RESULT === 'failure' || process.env.VALIDATION === 'failure';
-            const open = (
-              await github.paginate(github.rest.issues.listForRepo, {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                labels: labels.join(','),
-                state: 'open',
-                per_page: 100,
-              })
-            ).find((issue) => issue.title === title && !issue.pull_request);
-            const repo = { owner: context.repo.owner, repo: context.repo.repo };
-            if (failed) {
-              const body = [
-                `@${context.repo.owner}/maintainers: the deploy of ${context.sha.slice(0, 7)} failed, so labs.lasvegasfortransit.org is behind \`main\`.`,
-                '',
-                `Run: ${run} (attempt ${process.env.GITHUB_RUN_ATTEMPT})`,
-                '',
-                'Read the failed step, fix the cause or re-run the failed jobs. This issue closes itself after the next successful deploy.',
-              ].join('\n');
-              if (open) {
-                await github.rest.issues.createComment({ ...repo, issue_number: open.number, body });
-                await github.rest.issues.addAssignees({ ...repo, issue_number: open.number, assignees: [context.actor] });
-              } else {
-                await github.rest.issues.create({ ...repo, title, body, labels, assignees: [context.actor] });
-              }
-            } else if (process.env.RESULT === 'success' && open) {
-              await github.rest.issues.createComment({
-                ...repo,
-                issue_number: open.number,
-                body: `Deployed ${context.sha.slice(0, 7)} successfully: ${run}`,
-              });
-              await github.rest.issues.update({ ...repo, issue_number: open.number, state: 'closed', state_reason: 'completed' });
-            }
+      attestations: write
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.policy.outputs.matrix) }}
+    uses: LasVegasForTransit/repository-tooling/.github/workflows/release-attest.yml@3567f0cb1345e8756eb5d84e0a3ea7b62695125a
+    with:
+      app: ${{ matrix.app }}
+      artifact-prefix: ${{ matrix.artifactPrefix }}
+    secrets: inherit
+  preview:
+    needs: [policy, build, attest]
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.policy.outputs.matrix) }}
+    uses: LasVegasForTransit/repository-tooling/.github/workflows/release-publish.yml@3567f0cb1345e8756eb5d84e0a3ea7b62695125a
+    with:
+      app: ${{ matrix.app }}
+      target: preview
+      attestation-prefix: attestation-${{ matrix.artifactPrefix }}
+      release-id: ${{ github.run_id }}
+      commit: ${{ github.sha }}
+      artifact-prefix: ${{ matrix.artifactPrefix }}
+      app-directory: ${{ matrix.appDirectory }}
+      acceptance-directory: packages/labs-cli
+      preview-environment: preview
+      production-environment: production
+      url: https://lvbt-labs-${{ matrix.app }}-staging.las-vegas-for-better-transit.workers.dev
+      smoke-script: release:smoke
+      browser-script: test:release
+      browser-project: desktop
+    secrets: inherit

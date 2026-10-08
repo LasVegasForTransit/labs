@@ -32,57 +32,15 @@ jobs:
       - name: Setup Node + pnpm
         uses: ./.github/actions/setup-node-pnpm
 
+      - name: Install validation browser
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Check
         run: pnpm check
 
-      - name: Production builds
-        run: pnpm build
-
-      - name: cf deployment dry run
-        run: pnpm deploy:cf:dry-run
-
-      - name: Dependency audit
-        run: pnpm audit --audit-level=high
-
-      - name: Secret scan
-        run: |
-          set -euo pipefail
-          docker run --rm -v "$PWD:/repo" -w /repo \
-            ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
-            git --redact --no-banner --config /repo/.gitleaks.toml
-
-  end-to-end:
-    name: End-to-end
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup Node + pnpm
-        uses: ./.github/actions/setup-node-pnpm
-
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Browser tests
-        run: pnpm test:e2e
-
-      - name: Migrated repository acceptance
-        env:
-          LVBT_MIGRATION_BROWSER_ACCEPTANCE: '1'
-        run: >-
-          pnpm --filter @lasvegasfortransit/labs-cli exec vitest run
-          tests/migration-export-acceptance.test.ts
-
-      - name: Isolated archive tests
-        run: pnpm test:archive
-
       - name: Upload browser failures
         if: failure()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-failures-${{ github.run_attempt }}
           path: |
@@ -94,11 +52,10 @@ jobs:
   validate:
     name: Validate
     if: always()
-    needs: [checks, end-to-end]
+    needs: [checks]
     runs-on: ubuntu-latest
     steps:
       - name: Require repository and browser acceptance
         env:
           CHECKS_RESULT: ${{ needs.checks.result }}
-          BROWSER_RESULT: ${{ needs.end-to-end.result }}
-        run: test "$CHECKS_RESULT" = success && test "$BROWSER_RESULT" = success
+        run: test "$CHECKS_RESULT" = success

@@ -78,16 +78,18 @@ and commit those files through the repository's pull-request workflow. The archi
 source commit and origin repository; unrelated source changes stop preparation so the artifact does
 not claim provenance from different code.
 
-Production deployment uses the existing Worker with asset-only bindings. Verify the original path
-and retain the previous Worker version for rollback before removing app source or moving its
-manifest into `catalog/<slug>.json`. A failed preparation preserves source and any stored artifact;
-inspect both before retrying. JSON failures during `--apply` report `changed: null` because a
-verified archive can exist even when the manifest update fails.
+Declare the ASSETS-only archive profile described in
+[Stage and promote a Labs release](../../operations/how-to/promote.md), then stage and explicitly
+promote its verified saved artifact. Publication uses the existing Worker with asset-only bindings.
+Verify the original path and retain the previous Worker version for rollback before removing app
+source or moving its manifest into `catalog/<slug>.json`. A failed preparation preserves source and
+any stored artifact; inspect both before retrying. JSON failures during `--apply` report
+`changed: null` because a verified archive can exist even when the manifest update fails.
 
 ### Check the deployment
 
 Check the deployed archive using the deployment commit and the current and previous Worker version
-IDs from the production deployment journal:
+IDs from the shared publication receipt:
 
 ```sh
 pnpm lab retire <slug> --verify \
@@ -129,10 +131,10 @@ Repeating finalization after a completed handoff rechecks the deployment without
 overwriting files.
 
 During the handoff, a retired manifest in `apps/<slug>` selects the matching stored archive for
-deployment. The deployment does not rebuild that app or use its original Worker configuration.
-Source remains available until verification succeeds; afterward, its metadata-only catalog record
-selects the same archive and Worker. Archive changes and shared archive-runtime changes select that
-Worker on either side of the handoff.
+deployment. The shared release producer packages the verified archive adapter without rebuilding the
+original app or using its old Worker configuration. Source remains available until verification
+succeeds; afterward, its metadata-only catalog record selects the same archive and Worker. Archive
+changes and shared archive-runtime changes select that Worker on either side of the handoff.
 
 A tombstone requires `--tombstone`, an exception category, and a durable reason in project docs.
 Security, legal, and technical impossibility are the accepted categories.

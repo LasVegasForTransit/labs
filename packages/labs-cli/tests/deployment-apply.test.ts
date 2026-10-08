@@ -46,3 +46,11 @@ test('rejects a clean checkout when remote main advances, and fails closed witho
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('retained apply requires a declared run selector rather than rebuilding checkout bytes', () => {
+  expect(parseApplyArguments(['--all', '--apply', '--run-id', '123'])).toEqual({
+    apply: true,
+    refs: {},
+    runId: '123',
+  });
+});

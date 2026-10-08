@@ -39,9 +39,13 @@ and foundational interface elements; application behavior stays with the project
 | `pnpm lab status <slug>`  | Print one lab's manifest                                |
 | `pnpm test:e2e`           | Browser tests for every lab and the shared preview      |
 | `pnpm build:archive`      | Build every lab's read-only archive                     |
-| `pnpm run deploy`         | Build, then `wrangler deploy` every lab                 |
+| `pnpm run deploy`         | Build, then deploy declared canonical configurations    |
 
 ## License
 
 Repository code uses the [MIT License](LICENSE). Every published lab declares separate licenses for
 code, content, data, and assets.
+
+Retained staging and explicit publication are documented in
+[Stage and promote a Labs release](docs/operations/how-to/promote.md). Main pushes stage eligible
+apps; draft apps require manual preview, and production requires explicit promotion.

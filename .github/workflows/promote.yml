@@ -1,0 +1,130 @@
+name: Promote Labs release
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: Published Labs-owned profile
+        type: string
+        required: true
+        default: home
+      request_id:
+        description: Promotion correlation ID
+        type: string
+        required: false
+      expected_version:
+        description: Expected current production Worker version for recovery or first adoption
+        type: string
+        required: false
+      run_id:
+        description: Verified staging run; empty selects the current staging marker
+        type: string
+        required: false
+
+run-name:
+  Promote Labs release ${{ inputs.request_id }} ${{ inputs.app }} from ${{ inputs.run_id || 'current
+  staging' }}
+permissions:
+  contents: read
+  actions: read
+  deployments: write
+  packages: read
+concurrency:
+  group: labs-production-promotion
+  cancel-in-progress: false
+
+jobs:
+  source:
+    uses: LasVegasForTransit/repository-tooling/.github/workflows/release-source.yml@3567f0cb1345e8756eb5d84e0a3ea7b62695125a
+    with:
+      app: ${{ inputs.app }}
+      preview-environment: preview
+      run-id: ${{ inputs.run_id }}
+    secrets: inherit
+  policy:
+    needs: source
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.policy.outputs.matrix }}
+      handoff: ${{ steps.handoff.outputs.required }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Identify handoff recovery policy
+        id: handoff
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          if [ -f "migrations/$APP.json" ]; then
+            echo 'required=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'required=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Verify retained source lifecycle and deployment ownership
+        if: steps.handoff.outputs.required != 'true'
+        id: policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP: ${{ inputs.app }}
+          COMMIT: ${{ needs.source.outputs.commit }}
+          RELEASE_ID: ${{ needs.source.outputs.release-id }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+        run:
+          pnpm exec tsx packages/labs-cli/src/release-policy-command.ts --target production --event
+          workflow_dispatch --app "$APP" --commit "$COMMIT" --run-id "$RELEASE_ID"
+          --expected-version "$EXPECTED_VERSION"
+  handoff-policy:
+    needs: [source, policy]
+    if: needs.policy.outputs.handoff == 'true'
+    environment: production
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.policy.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-node-pnpm
+      - name: Verify captured retained recovery and disabled destination ownership
+        id: policy
+        env:
+          GH_TOKEN: ${{ secrets.LVBT_MIGRATION_GITHUB_TOKEN || github.token }}
+          APP: ${{ inputs.app }}
+          COMMIT: ${{ needs.source.outputs.commit }}
+          RELEASE_ID: ${{ needs.source.outputs.release-id }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+        run: >-
+          pnpm exec tsx packages/labs-cli/src/release-policy-command.ts --target production --event
+          workflow_dispatch --app "$APP" --commit "$COMMIT" --run-id "$RELEASE_ID"
+          --expected-version "$EXPECTED_VERSION"
+  publish:
+    needs: [source, policy, handoff-policy]
+    if: >-
+      always() && needs.source.result == 'success' && needs.policy.result == 'success' &&
+      (needs.policy.outputs.handoff != 'true' || needs.handoff-policy.result == 'success')
+    strategy:
+      matrix:
+        include: ${{ fromJSON(needs.handoff-policy.outputs.matrix || needs.policy.outputs.matrix) }}
+    uses: LasVegasForTransit/repository-tooling/.github/workflows/release-publish.yml@3567f0cb1345e8756eb5d84e0a3ea7b62695125a
+    with:
+      app: ${{ matrix.app }}
+      target: production
+      attestation-prefix: attestation-${{ matrix.artifactPrefix }}
+      expected-version: ${{ inputs.expected_version }}
+      release-id: ${{ needs.source.outputs.release-id }}
+      commit: ${{ needs.source.outputs.commit }}
+      artifact-prefix: ${{ matrix.artifactPrefix }}
+      app-directory: ${{ matrix.appDirectory }}
+      acceptance-directory: packages/labs-cli
+      preview-environment: preview
+      production-environment: production
+      url: https://labs.lasvegasfortransit.org
+      smoke-script: release:smoke
+      browser-script: test:release
+      browser-project: desktop
+    secrets: inherit

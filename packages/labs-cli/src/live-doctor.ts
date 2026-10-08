@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { readReleaseIdentity } from '@lasvegasfortransit/web-platform/release';
 
 interface WorkerIdentity {
   slug: string;
@@ -143,8 +144,14 @@ export async function liveDoctor(
         get(marker).then(async (response) => {
           if (response.status !== 200) return false;
           try {
-            const parsed = releaseMarker.safeParse(await response.json());
-            return parsed.success && parsed.data.slug === slug;
+            const parsed = releaseMarker.safeParse(await response.clone().json());
+            if (parsed.success) return parsed.data.slug === slug;
+            await readReleaseIdentity(origin, {
+              publicPath: slug === 'home' ? '/' : `/${slug}/`,
+              app: slug,
+              request: async (url) => (await get(new URL(url).pathname)).clone(),
+            });
+            return true;
           } catch {
             return false;
           }

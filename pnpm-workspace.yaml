@@ -20,16 +20,22 @@ minimumReleaseAgeExclude:
 # Temporary transitive pins for published security fixes not yet selected by
 # their direct dependents.
 overrides:
-  fast-uri: 3.1.7
-  sharp: 0.35.4
+  fast-uri: 3.1.8
+  sharp: 0.35.5
   smol-toml: 1.8.0
   'undici@^7.0.0': 7.29.1
   'undici@^8.0.0': 8.10.2
 
-# The organization version baseline. Every LVBT repository carries this same
-# catalog, so a package declares "catalog:" and two repositories cannot drift
-# onto different versions of one tool without it showing up as a change here.
-# Renovate keeps it current.
+  # The organization version baseline. Every LVBT repository carries this same
+  # catalog, so a package declares "catalog:" and two repositories cannot drift
+  # onto different versions of one tool without it showing up as a change here.
+  # Renovate keeps it current.
+  'brace-expansion': '5.0.12'
+  'braces': 'npm:@dieub/braces-depth-guard@3.0.3-pn.3'
+  'devalue': '5.9.4'
+  'http-cache-semantics': '4.3.0'
+  'source-map-js': '1.2.2'
+  'svgo': '4.1.0'
 catalog:
   '@lasvegasfortransit/analytics': 0.1.0
   '@astrojs/check': 0.9.10
@@ -69,3 +75,6 @@ catalog:
   vitest: 4.1.11
   wrangler: 4.141.0
   zod: 4.5.4
+
+# Shared setup validates before installing; preflight never installs.
+verifyDepsBeforeRun: false

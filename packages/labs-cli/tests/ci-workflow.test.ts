@@ -11,12 +11,12 @@ test('retains Playwright failure artifacts for visual review', async () => {
   const source = await readFile(workflow, 'utf8');
 
   expect(source).toContain('if: failure()');
-  expect(source).toContain(
-    'uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f',
-  );
+  expect(source).toMatch(/uses: actions\/upload-artifact@[a-f0-9]{40}/);
   expect(source).toContain('apps/**/test-results/');
   expect(source).toContain('packages/**/test-results/');
-  expect(source.indexOf('Browser tests')).toBeLessThan(source.indexOf('Upload browser failures'));
+  expect(source.indexOf('pnpm check')).toBeLessThan(source.indexOf('Upload browser failures'));
+  expect(source.indexOf('playwright install')).toBeLessThan(source.indexOf('pnpm check'));
+  expect(source).not.toContain('pnpm test:e2e');
 });
 
 test('runs validation once for each pull request commit', async () => {
@@ -28,21 +28,63 @@ test('runs validation once for each pull request commit', async () => {
   expect(source).toMatch(/^ {2}workflow_dispatch:$/m);
 });
 
-test('captures only structured preview output in the deployment receipt', async () => {
+test('delegates affected profile previews and closed cleanup to the shared reviewed workflow', async () => {
   const source = await readFile(previewWorkflow, 'utf8');
-
-  expect(source).toContain('pnpm --silent preview:deploy');
-  expect(source).not.toContain('run preview:deploy --');
+  expect(source).toContain('types: [opened, synchronize, reopened, closed]');
+  expect(source).toMatch(/release-pr-preview\.yml@[a-f0-9]{40}/);
+  expect(source).toContain('pr-release-policy.ts');
+  expect(source).toContain('publication-mode: named-staging');
+  expect(source).toContain('preview-script: api');
+  expect(source).toContain('smoke-script: api');
+  expect(source).toContain('browser-script: preview:acceptance');
+  expect(source).not.toContain('preview:deploy');
+  expect(source).not.toContain('CLOUDFLARE_API_TOKEN');
 });
 
-test('checks cf bundles after app builds without switching production deployment', async () => {
+test('verifies retained artifacts after builds and stages instead of publishing production', async () => {
   const source = await readFile(workflow, 'utf8');
   const deploy = await readFile(
     fileURLToPath(new URL('../../../.github/workflows/deploy.yml', import.meta.url)),
     'utf8',
   );
 
-  expect(source.indexOf('Production builds')).toBeLessThan(source.indexOf('cf deployment dry run'));
-  expect(source).toContain('pnpm deploy:cf:dry-run');
-  expect(deploy).toContain('pnpm deploy:affected');
+  const packageSource = JSON.parse(
+    await readFile(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'),
+  ) as { scripts: { validate: string } };
+  const turbo = JSON.parse(
+    await readFile(fileURLToPath(new URL('../../../turbo.json', import.meta.url)), 'utf8'),
+  ) as { tasks: { validate: { cache: boolean; dependsOn: string[] } } };
+  expect(source).toContain('pnpm check');
+  expect(source).not.toContain('pnpm deploy:cf:dry-run');
+  expect(packageSource.scripts.validate).toContain('tsx src/release-dry-run.ts');
+  expect(turbo.tasks.validate.cache).toBe(false);
+  expect(turbo.tasks.validate.dependsOn).toContain('build');
+  expect(deploy).toContain('target: preview');
+  expect(deploy).not.toContain('target: production');
+  expect(deploy).not.toContain('pnpm deploy:affected');
+});
+
+test('all dependency and full-history secret gates are required uncached pnpm check tasks', async () => {
+  const root = fileURLToPath(new URL('../../../', import.meta.url));
+  const source = await readFile(workflow, 'utf8');
+  const manifest = JSON.parse(await readFile(root + '/package.json', 'utf8')) as {
+    scripts: Record<string, string>;
+  };
+  const turbo = JSON.parse(await readFile(root + '/turbo.json', 'utf8')) as {
+    tasks: Record<string, { cache?: boolean; dependsOn?: string[] }>;
+  };
+  expect(manifest.scripts['security:dependencies']).toBe('pnpm audit --audit-level=high');
+  expect(manifest.scripts['security:secrets']).toBe('lvbt check secrets');
+  for (const task of ['security:dependencies', 'security:secrets']) {
+    expect(turbo.tasks['//#' + task]?.cache).toBe(false);
+    for (const key of [
+      'validate',
+      '@lasvegasfortransit/labs-cli#validate',
+      '@lasvegasfortransit/lab-transit-funding#validate',
+    ])
+      expect(turbo.tasks[key]?.dependsOn).toContain('//#' + task);
+  }
+  expect(source).toContain('fetch-depth: 0');
+  expect(source).not.toContain('docker run');
+  expect(source).not.toContain('pnpm audit --audit-level=high');
 });

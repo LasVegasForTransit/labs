@@ -261,8 +261,8 @@ test('verification operations prove the active version and replace the pause rec
   }
 });
 
-test('rollback operations restore the retained Labs version before removing the handoff', async () => {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-migration-rollback-'));
+test('legacy version-only handoff cannot disable ownership or pretend its version is a retained artifact', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'lvbt-legacy-handoff-'));
   const record = {
     formatVersion: 1 as const,
     ...input,
@@ -270,8 +270,7 @@ test('rollback operations restore the retained Labs version before removing the 
     previousVersion: '11111111-1111-4111-8111-111111111111',
     phase: 'labs-paused' as const,
   };
-  let owner = true;
-  const commands: string[][] = [];
+  let commands = 0;
   try {
     await migrationPauseOperations(root, input, {
       github: () => '',
@@ -279,65 +278,17 @@ test('rollback operations restore the retained Labs version before removing the 
       guard: () => undefined,
     }).write(record);
     const operations = migrationRollbackOperations(root, input.slug, {
-      github: (args) => {
-        commands.push(args);
-        if (args[0] === 'variable' && args[1] === 'set') {
-          owner = false;
-          return '';
-        }
-        if (args[0] === 'variable') return `${String(owner)}\n`;
-        if (args.at(-1)?.endsWith('/commits/main'))
-          return JSON.stringify({ sha: record.destinationCommit });
-        return JSON.stringify({ check_runs: [] });
-      },
-      wrangler: (args) => {
-        commands.push(args);
-        if (args[0] === 'deployments')
-          return Promise.resolve(
-            JSON.stringify([
-              {
-                created_on: '2026-09-10T00:00:00Z',
-                versions: [{ version_id: record.previousVersion, percentage: 100 }],
-              },
-            ]),
-          );
-        return Promise.resolve('');
-      },
-      fetch: (request) => {
-        const url =
-          typeof request === 'string'
-            ? request
-            : request instanceof URL
-              ? request.href
-              : request.url;
-        return Promise.resolve(
-          url.includes('lvbt-release.json')
-            ? Response.json({
-                formatVersion: 1,
-                slug: input.slug,
-                commit: record.sourceCommit,
-                artifactHash: 'd'.repeat(64),
-              })
-            : new Response('<h1>Map</h1>'),
-        );
+      github: () => {
+        commands++;
+        return '';
       },
       guard: () => undefined,
     });
-    await operations.setDestinationOwner(false);
-    await operations.restore(record);
-    await operations.verifyRestored(record);
-    await operations.removeHandoff(record);
-    await expect(operations.read()).resolves.toBeNull();
-    expect(commands).toContainEqual([
-      'versions',
-      'deploy',
-      record.previousVersion,
-      '--yes',
-      '--name',
-      'lvbt-labs-example',
-      '--message',
-      `Migration rollback to ${record.sourceCommit}`,
-    ]);
+    await expect(operations.inspectDestination()).rejects.toThrow(/verified retained source/);
+    await expect(operations.setDestinationOwner(false)).rejects.toThrow(/verified retained source/);
+    await expect(operations.restore(record)).rejects.toThrow(/verified retained source/);
+    expect(commands).toBe(0);
+    expect(await operations.read()).toEqual(record);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

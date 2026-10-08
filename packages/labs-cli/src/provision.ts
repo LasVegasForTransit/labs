@@ -1,13 +1,5 @@
 import { parseArgs } from 'node:util';
-import {
-  reconcileResourceGroups,
-  type ProvisionResource,
-} from '@lasvegasfortransit/web-platform/provision';
-
-interface Check {
-  id: string;
-  status: 'pass' | 'fail' | 'unknown';
-}
+import { runStandardPlatform } from './standard-platform.js';
 
 export function provisionInput(args: string[]) {
   const { values } = parseArgs({
@@ -22,77 +14,11 @@ export function provisionInput(args: string[]) {
   return { apply: values.apply === true, json: values.json === true };
 }
 
-export async function runProvision(
-  apply: boolean,
-  resources: ProvisionResource[],
-  inspect: () => Promise<Check[]>,
-) {
-  return runProvisionGroups(apply, [resources], inspect);
-}
-
-export async function runProvisionGroups(
-  apply: boolean,
-  groups: ProvisionResource[][],
-  inspect: () => Promise<Check[]>,
-) {
-  const checks = await inspect();
-  const required = ['cloudflare.zone'];
-  const blockedBy = required.filter(
-    (id) => !checks.some((check) => check.id === id && check.status === 'pass'),
-  );
-  if (blockedBy.length > 0)
-    return {
-      command: 'provision',
-      ok: false,
-      changed: false,
-      operations: [],
-      blockedBy,
-      remaining: checks.filter((check) => check.status !== 'pass'),
-    };
-  const result = await reconcileResourceGroups(groups, apply);
-  const remaining = (apply ? await inspect() : checks).filter((check) => check.status !== 'pass');
-  return {
-    command: 'provision',
-    ...result,
-    ok: result.ok && remaining.length === 0,
-    blockedBy,
-    remaining,
-  };
-}
-
+/** Compatibility route into the standard; never creates a repository or deploys application code. */
 export async function provision(root: string, args: string[]) {
   const input = provisionInput(args);
-  const { doctor } = await import('./doctor.js');
-  const { provisionResourceGroups } = await import('./provision-providers.js');
-  const initial = await doctor(root, []);
-  let first = true;
-  const inspect = async () => {
-    if (first) {
-      first = false;
-      return initial.checks;
-    }
-    return (await doctor(root, [])).checks;
-  };
-  const groups = await provisionResourceGroups(root, initial.target);
   return {
-    ...(await runProvisionGroups(input.apply, groups, inspect)),
+    ...(await runStandardPlatform(root, input.apply)),
     mode: input.apply ? 'apply' : 'dry-run',
-    managed: [
-      'github.repository',
-      'github.rules',
-      'github.variables',
-      'github.production',
-      'github.credentials',
-      'github.preview',
-      'github.preview-credentials',
-      'github.preview-enabled',
-      'github.analytics-variable',
-      'cloudflare.workers',
-      'cloudflare.worker-previews',
-      'cloudflare.domain',
-      'cloudflare.routes',
-      'cloudflare.analytics',
-    ],
-    verificationRequired: initial.verificationRequired,
   };
 }

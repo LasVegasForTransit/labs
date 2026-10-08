@@ -1,32 +1,18 @@
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import {
   authenticatedCloudflareReader,
-  cloudflareDoctor,
   cloudflareReader,
+  validAnalytics,
 } from '@lasvegasfortransit/web-platform/cloudflare';
-import { githubDoctor, githubReader } from '@lasvegasfortransit/web-platform/github';
 import { discoverLabs, discoverSourceLabs } from './discovery.js';
-import { githubPreviewReader, optionalGitHubRead } from './github-preview-read.js';
-import { liveDoctor } from './live-doctor.js';
+import { liveDoctor, type LiveCheck } from './live-doctor.js';
+import { runStandardPlatform } from './standard-platform.js';
+import { platformIdentity } from './platform-identity.js';
 
-const hostname = z.string().regex(/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/);
-export const doctorInfrastructure = z.object({
-  repository: z.string().regex(/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/),
-  branch: z.string().min(1),
-  environment: z.string().min(1),
-  preview: z.object({
-    environment: z.string().regex(/^[A-Za-z0-9._-]+$/),
-    secret: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
-    enabledVariable: z.string().regex(/^[A-Z][A-Z0-9_]*$/),
-  }),
-  accountId: z.string().regex(/^[a-f0-9]+$/),
-  zoneId: z.string().regex(/^[a-f0-9]+$/),
-  zoneName: hostname,
-  hostname,
+export const labsHealthConfiguration = z.strictObject({
   externalWorkers: z
     .array(
       z
@@ -66,65 +52,60 @@ export function doctorInput(args: string[]) {
 
 export async function doctor(root: string, args: string[]) {
   const input = doctorInput(args);
-  const module = (await import(
-    pathToFileURL(path.join(root, '.lvbt/infrastructure.config.ts')).href
-  )) as { default: unknown };
-  const target = doctorInfrastructure.parse(module.default);
-  if (target.hostname !== target.zoneName && !target.hostname.endsWith(`.${target.zoneName}`))
-    throw new Error('The hostname must belong to the declared zone.');
+  const target = await platformIdentity(root);
+  const module: unknown = await import(
+    pathToFileURL(path.join(root, '.lvbt/labs-health.config.ts')).href
+  );
+  const health = labsHealthConfiguration.parse(
+    z.object({ default: z.unknown() }).parse(module).default,
+  );
   const labs = await discoverLabs(root);
   const sourceLabs = await discoverSourceLabs(root);
-  if (target.externalWorkers.some((worker) => sourceLabs.some((lab) => lab.slug === worker.slug)))
+  if (health.externalWorkers.some((worker) => sourceLabs.some((lab) => lab.slug === worker.slug)))
     throw new Error('An external Worker cannot share a slug with a Labs app.');
   if (
     input.slug !== undefined &&
     !labs.some((lab) => lab.slug === input.slug) &&
-    !target.externalWorkers.some((worker) => worker.slug === input.slug)
+    !health.externalWorkers.some((worker) => worker.slug === input.slug)
   )
     throw new Error(`Unknown lab: ${input.slug}`);
   const workers = sourceLabs
     .filter((lab) => lab.status !== 'draft')
     .map((lab) => ({ slug: lab.slug, name: `lvbt-labs-${lab.slug}` }))
-    .concat(target.externalWorkers);
-  const ruleset: unknown = JSON.parse(
-    await readFile(path.join(root, '.lvbt/web-platform/standards/ruleset.json'), 'utf8'),
-  );
-  const previewEnvironment = `repos/${target.repository}/environments/${encodeURIComponent(target.preview.environment)}`;
-  const github = await githubDoctor(
-    { ...target, ruleset },
-    githubPreviewReader(previewEnvironment, githubReader(root), (endpoint) =>
-      optionalGitHubRead(root, endpoint),
-    ),
-  );
-  let cloudflare;
-  try {
-    cloudflare = authenticatedCloudflareReader(root);
-  } catch {
-    const unavailable = () => Promise.reject(new Error('Cloudflare authentication unavailable.'));
-    cloudflare = { get: unavailable, list: unavailable };
-  }
-  const analyticsReadToken = process.env.CLOUDFLARE_ANALYTICS_READ_TOKEN?.trim();
-  const analyticsReader = analyticsReadToken ? cloudflareReader(analyticsReadToken) : cloudflare;
-  const analyticsEndpoint = `accounts/${target.accountId}/rum/site_info/list`;
-  const cloudflareChecks = {
-    get: (endpoint: string) => cloudflare.get(endpoint),
-    list: (endpoint: string) =>
-      endpoint === analyticsEndpoint ? analyticsReader.list(endpoint) : cloudflare.list(endpoint),
+    .concat(health.externalWorkers);
+  const platform = await runStandardPlatform(root, false);
+  const analytics: LiveCheck = {
+    id: 'cloudflare.analytics',
+    requirement: 'One Web Analytics property includes the Labs hostname.',
+    status: 'unknown',
   };
-  const checks = [
-    ...github,
-    ...(await cloudflareDoctor({ ...target, workers }, cloudflareChecks)),
-    ...(await liveDoctor(target.hostname, workers)),
-  ];
+  try {
+    const token = process.env.CLOUDFLARE_ANALYTICS_READ_TOKEN?.trim();
+    const reader = token ? cloudflareReader(token) : authenticatedCloudflareReader(root);
+    analytics.status = validAnalytics(
+      await reader.list(`accounts/${target.accountId}/rum/site_info/list`),
+      target.hostname,
+    )
+      ? 'pass'
+      : 'fail';
+  } catch {
+    analytics.status = 'unknown';
+  }
+  const checks = [...(await liveDoctor(target.hostname, workers)), analytics];
   return {
     command: 'doctor',
-    scope: 'infrastructure-configuration',
-    ok: checks.every((check) => check.status === 'pass'),
+    scope: 'platform-readiness-and-product-health',
+    ok: platform.ok && checks.every((check) => check.status === 'pass'),
     changed: false,
+    platform,
     target,
     requestedLab: input.slug ?? null,
     checks,
     excludedDrafts: labs.filter((lab) => lab.status === 'draft').map((lab) => lab.slug),
-    verificationRequired: ['Preview analytics exclusion', 'Production rollback'],
+    verificationRequired: [
+      'Protected staging Access policy',
+      'Preview analytics exclusion',
+      'Production rollback',
+    ],
   };
 }

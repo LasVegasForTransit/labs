@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "local": {
+    "env": [
+      {
+        "example": "apps/home/.env.example",
+        "file": "apps/home/.env.local"
+      },
+      {
+        "example": "apps/transit-funding/.env.example",
+        "file": "apps/transit-funding/.env.local"
+      }
+    ],
+    "optional": [
+      {
+        "name": "PUBLIC_LVBT_CWA_TOKEN",
+        "purpose": "Production analytics"
+      }
+    ]
+  },
+  "audits": {
+    "dependencies": {
+      "local": {
+        "command": ["pnpm", "audit", "--prod", "--audit-level=low", "--json"],
+        "format": "pnpm"
+      },
+      "production": {
+        "command": ["pnpm", "audit", "--prod", "--audit-level=low", "--json"],
+        "format": "pnpm"
+      }
+    },
+    "workflow": ".github/workflows/audit-scheduled.yml",
+    "artifactName": "lvbt-audit-report"
+  },
+  "release": {
+    "repository": "LasVegasForTransit/labs",
+    "workersDevSubdomain": "las-vegas-for-better-transit",
+    "artifactSource": "typed-worker",
+    "stagingWorkflow": {
+      "name": "Stage Labs release",
+      "path": ".github/workflows/deploy.yml",
+      "branch": "main"
+    },
+    "promotionWorkflow": {
+      "file": "promote.yml",
+      "titlePrefix": "Promote Labs release",
+      "branch": "main"
+    },
+    "apps": {
+      "home": {
+        "appDirectory": "deploy/home",
+        "typedConfig": "cloudflare.config.ts",
+        "assetsDirectory": "../../apps/home/dist",
+        "artifactPrefix": "lab-home-release",
+        "productionWorker": "lvbt-labs-home",
+        "previewWorker": "lvbt-labs-home-staging",
+        "productionUrl": "https://labs.lasvegasfortransit.org",
+        "previewUrl": "https://lvbt-labs-home-staging.las-vegas-for-better-transit.workers.dev",
+        "publicPath": "/",
+        "previewBindings": {
+          "ASSETS": {
+            "type": "assets"
+          }
+        },
+        "smoke": {
+          "path": "/",
+          "status": 200
+        }
+      },
+      "transit-funding": {
+        "appDirectory": "deploy/transit-funding",
+        "typedConfig": "cloudflare.config.ts",
+        "assetsDirectory": "../../apps/transit-funding/dist",
+        "artifactPrefix": "lab-transit-funding-release",
+        "productionWorker": "lvbt-labs-transit-funding",
+        "previewWorker": "lvbt-labs-transit-funding-staging",
+        "productionUrl": "https://labs.lasvegasfortransit.org",
+        "previewUrl": "https://lvbt-labs-transit-funding-staging.las-vegas-for-better-transit.workers.dev",
+        "publicPath": "/transit-funding/",
+        "previewBindings": {
+          "ASSETS": {
+            "type": "assets"
+          }
+        },
+        "previewOnly": true,
+        "smoke": {
+          "path": "/transit-funding/",
+          "status": 200
+        }
+      }
+    },
+    "publicationMode": "named-staging",
+    "attestation": {
+      "signerWorkflow": "LasVegasForTransit/repository-tooling/.github/workflows/release-attest.yml",
+      "signerCommit": "3567f0cb1345e8756eb5d84e0a3ea7b62695125a"
+    }
+  }
+}

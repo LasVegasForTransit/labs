@@ -32,15 +32,17 @@ that publish previews, deployments, and lifecycle metadata.
 Project resources such as D1, KV, R2, Queues, and Durable Objects derive their names from the slug
 and appear in the owning project's operations reference.
 
-## Reconciliation
+## Readiness and product health
 
-`pnpm provision` owns GitHub and Cloudflare configuration for Labs-managed apps. `pnpm run doctor`
-compares provider configuration with `.lvbt/infrastructure.config.ts` and requests every published
-route without changing either provider. A provider dashboard edit appears as drift on the next run
-and returns to the repository-defined state after reviewed application.
+The root `platform.json` and each app's staging manifest declare provider requirements for shared
+preflight and maintainer bootstrap. `pnpm provision` delegates to read-only preflight; explicit
+`--apply` delegates to interactive shared bootstrap. It never creates a repository or deploys code.
 
-Labs-managed Workers serve a release marker identifying their project. An independently owned Worker
-under the Labs hostname is declared in `externalWorkers` with its slug, Worker name, preview policy,
-and a route-specific live probe. Doctor checks its Worker, exact and subtree routes, security
-headers, and probe. Provisioning leaves that Worker's routes and deployment under its source
-repository's control.
+`pnpm run doctor` adds product-owned live route, security-header, release-marker and analytics
+checks. `.lvbt/labs-health.config.ts` declares the independently owned TransitMapper probe. Its
+routes and deployments remain under its source repository's control.
+
+Main pushes retain and verify staging artifacts. Production requires explicit promotion of the same
+verified artifact. Draft apps permit manual preview only, and retired, graduated and migrated
+projects keep their separate publication ownership. See [Stage and promote](../how-to/promote.md)
+and [Set up infrastructure](../how-to/provision.md) for requirements and unverified provider gates.

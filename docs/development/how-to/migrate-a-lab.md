@@ -79,8 +79,9 @@ pnpm lab migrate <slug> --pause \
 ```
 
 The pause reads the destination's current `main` commit, required check, and deployment-owner
-variable. It also records the active Labs Worker version as the rollback target. Apply only when the
-reported destination commit is the reviewed standalone release:
+variable. It also records the active Labs Worker version and its verified saved release run and
+commit as the recovery target. Apply only when the reported destination commit is the reviewed
+standalone release:
 
 ```sh
 pnpm lab migrate <slug> --pause \
@@ -97,7 +98,8 @@ record reaches `main`. Other labs remain unaffected.
 The public GitHub repository contains the required `Validate` check, production environment,
 variables, and secrets before handoff. Its `LVBT_DEPLOYMENT_OWNER` variable stays disabled while
 Labs owns production deployment. Enable ownership in the destination only after the pause record is
-merged into Labs. The record retains the previous Worker version for rollback.
+merged into Labs. The record retains the previous Worker version and saved release identity for
+recovery.
 
 Plan the destination handoff from a clean Labs `main` checkout:
 
@@ -157,12 +159,30 @@ pnpm lab migrate <slug> --rollback --dry-run
 pnpm lab migrate <slug> --rollback --apply
 ```
 
-Rollback disables destination deployment ownership first, reactivates the exact Labs Worker version
-retained by the pause record, checks its release marker and stable project page, and then removes
-the handoff record. Commit that removal so Labs resumes normal deployment ownership. An unconfirmed
-result indicates that at least one remote mutation occurred; inspect the migration journal and both
-repositories before retrying.
+Rollback first requires the captured `previousRelease` run and commit. It disables destination
+ownership, verifies that readback, and delegates the exact saved release to shared promotion with
+the captured version precondition. Both the retained source and current handoff policy must permit
+the request. The command verifies the public saved-release identity before removing the handoff;
+commit that removal so Labs resumes ordinary ownership. An uncertain outcome preserves the handoff
+and journals for reconciliation.
 
-After a finalized graduation reaches `main`, use the ordinary Worker rollback command for immediate
-traffic recovery and revert the graduation commit to restore Labs source ownership. Never create a
-second Worker or temporary public slug as a handoff workaround.
+Older handoffs containing only `previousVersion` cannot reconstruct retained bytes. They stop before
+ownership changes and require a maintainer to identify and verify the corresponding retained staging
+run and source commit. Provider baseline evidence is not a substitute for a saved artifact.
+
+After finalized graduation, recovery belongs to the destination repository's retained release path.
+Restore Labs ownership through a reviewed lifecycle change before requesting Labs publication. Never
+create a second Worker or temporary public slug as a handoff workaround.
+
+The production policy job rechecks destination ownership using its workflow token. If that token
+cannot read the destination repository variable, a maintainer must supply the documented optional
+`LVBT_MIGRATION_GITHUB_TOKEN` in the Labs production environment with Variables read access to the
+exact destination. No deployment credential is copied, and this policy check never changes
+ownership.
+
+Recovery checks the current phase's recorded provider version before selecting the saved prior run:
+`previousVersion` while Labs is paused, and `destinationVersion` after the destination is verified.
+If that version or the handoff changed, stop and reconcile before retrying. Disabling the
+destination owner alone does not authorize restoring over an unrelated Worker update. Shared
+publication checks the same expected version again before production writes; this is an optimistic
+precondition, not an atomic provider lock.

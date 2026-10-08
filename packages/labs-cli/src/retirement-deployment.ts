@@ -7,7 +7,10 @@ import { archiveRoutes } from './archive-browser.js';
 import { archiveChecksums } from './archive-files.js';
 import { verifyStoredArchive } from './archive-store.js';
 import { activeVersion, verifyArchiveVersion } from '@lasvegasfortransit/web-platform/cloudflare';
-import { verifyReleaseResponse } from '@lasvegasfortransit/web-platform/release';
+import {
+  releaseIdentitySchema,
+  verifyReleaseResponse,
+} from '@lasvegasfortransit/web-platform/release';
 
 const deploymentSchema = z
   .object({
@@ -64,6 +67,32 @@ async function verifyPublicFiles(
   }
 }
 
+async function verifyRetirementMarker(
+  response: Response,
+  version: unknown,
+  marker: { formatVersion: 1; slug: string; commit: string; artifactHash: string },
+) {
+  const saved = releaseIdentitySchema.safeParse(await response.clone().json());
+  const annotation = z
+    .object({ annotations: z.object({ 'workers/message': z.string() }) })
+    .parse(version).annotations['workers/message'];
+  if (saved.success) {
+    if (
+      response.status !== 200 ||
+      saved.data.app !== marker.slug ||
+      saved.data.commit !== marker.commit ||
+      annotation !== `Release ${saved.data.releaseId} at ${marker.commit}`
+    )
+      throw new Error(
+        'The saved archive release identity does not match its active Worker version.',
+      );
+    return;
+  }
+  if (annotation !== `Archive ${marker.commit} ${marker.artifactHash}`)
+    throw new Error('The retained archive annotation does not match its content.');
+  await verifyReleaseResponse(response, marker);
+}
+
 export async function verifyRetirementDeployment(
   root: string,
   raw: RetirementDeployment,
@@ -84,11 +113,6 @@ export async function verifyRetirementDeployment(
   if ((await current()) !== input.version) throw new Error('The retirement version is not active.');
   const version: unknown = JSON.parse(await run(['versions', 'view', input.version, '--json']));
   verifyArchiveVersion(version, input.version);
-  z.object({
-    annotations: z.object({
-      'workers/message': z.literal(`Archive ${input.commit} ${marker.artifactHash}`),
-    }),
-  }).parse(version);
   z.object({ id: z.literal(input.previousVersion) }).parse(
     JSON.parse(await run(['versions', 'view', input.previousVersion, '--json'])),
   );
@@ -96,7 +120,7 @@ export async function verifyRetirementDeployment(
     `https://labs.lasvegasfortransit.org/${input.slug}/lvbt-release.json?commit=${input.commit}`,
     { redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(15000) },
   );
-  await verifyReleaseResponse(response, marker);
+  await verifyRetirementMarker(response, version, marker);
   await verifyPublicFiles(request, input.slug, input.commit, archive.site);
   if ((await current()) !== input.version)
     throw new Error('The active version changed during retirement verification.');

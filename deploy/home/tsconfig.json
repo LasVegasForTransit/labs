@@ -2,7 +2,7 @@
   "extends": "@lasvegasfortransit/typescript-config/base.json",
   "compilerOptions": {
     "allowImportingTsExtensions": true,
-    "types": ["node"]
+    "types": ["node", "@cloudflare/workers-types"]
   },
-  "include": ["*.config.ts", "tests"]
+  "include": ["*.ts", "tests"]
 }

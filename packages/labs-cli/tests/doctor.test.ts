@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { doctorInfrastructure, doctorInput } from '../src/doctor.js';
+import { labsHealthConfiguration, doctorInput } from '../src/doctor.js';
 
 test('doctor accepts repository and project configuration audits', () => {
   expect(doctorInput(['--json', '--dry-run'])).toEqual({ slug: undefined, json: true });
@@ -13,20 +13,7 @@ test('doctor rejects mutations, extra projects, and ambiguous selection', () => 
 });
 
 test('doctor accepts an independently owned Worker only with a scoped live probe', () => {
-  const base = {
-    repository: 'LasVegasForTransit/labs',
-    branch: 'main',
-    environment: 'production',
-    preview: {
-      environment: 'preview',
-      secret: 'CLOUDFLARE_PREVIEW_API_TOKEN',
-      enabledVariable: 'CLOUDFLARE_PREVIEWS_ENABLED',
-    },
-    accountId: 'abc123',
-    zoneId: 'abc123',
-    zoneName: 'example.org',
-    hostname: 'labs.example.org',
-  };
+  const base = {};
   const externalWorker = {
     slug: 'transit-mapper',
     name: 'transitmapper',
@@ -39,11 +26,11 @@ test('doctor accepts an independently owned Worker only with a scoped live probe
   };
   const externalWorkers = [externalWorker];
 
-  expect(doctorInfrastructure.parse({ ...base, externalWorkers }).externalWorkers).toEqual(
+  expect(labsHealthConfiguration.parse({ ...base, externalWorkers }).externalWorkers).toEqual(
     externalWorkers,
   );
   expect(() =>
-    doctorInfrastructure.parse({
+    labsHealthConfiguration.parse({
       ...base,
       externalWorkers: [
         {
@@ -52,5 +39,14 @@ test('doctor accepts an independently owned Worker only with a scoped live probe
         },
       ],
     }),
+  ).toThrow();
+});
+
+test('product health cannot introduce competing provider identity or secret declarations', () => {
+  expect(() =>
+    labsHealthConfiguration.parse({ accountId: 'a'.repeat(32), externalWorkers: [] }),
+  ).toThrow();
+  expect(() =>
+    labsHealthConfiguration.parse({ secrets: ['CLOUDFLARE_API_TOKEN'], externalWorkers: [] }),
   ).toThrow();
 });
