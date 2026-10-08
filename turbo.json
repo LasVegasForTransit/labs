@@ -94,12 +94,19 @@
         "@lasvegasfortransit/lab-home#build",
         "@lasvegasfortransit/lab-transit-funding#build",
         "//#security:dependencies",
-        "//#security:secrets"
+        "//#security:secrets",
+        "@lasvegasfortransit/lab-transit-funding#validate"
       ],
       "cache": false
     },
     "@lasvegasfortransit/lab-transit-funding#validate": {
-      "dependsOn": ["build", "build:archive", "//#security:dependencies", "//#security:secrets"],
+      "dependsOn": [
+        "build",
+        "build:archive",
+        "//#security:dependencies",
+        "//#security:secrets",
+        "@lasvegasfortransit/lab-home#validate"
+      ],
       "cache": false
     },
     "//#security:dependencies": {
@@ -109,6 +116,28 @@
     "//#security:secrets": {
       "cache": false,
       "outputs": []
+    },
+    "@lasvegasfortransit/lab-home#validate": {
+      "dependsOn": [
+        "build",
+        "lint",
+        "check-types",
+        "test",
+        "^test",
+        "@lasvegasfortransit/lab-transit-funding#lint",
+        "@lasvegasfortransit/lab-transit-funding#check-types",
+        "@lasvegasfortransit/lab-transit-funding#test",
+        "@lasvegasfortransit/lab-runtime#test",
+        "@lasvegasfortransit/labs-home-deploy#lint",
+        "@lasvegasfortransit/labs-home-deploy#check-types",
+        "@lasvegasfortransit/labs-home-deploy#test",
+        "@lasvegasfortransit/labs-transit-funding-deploy#lint",
+        "@lasvegasfortransit/labs-transit-funding-deploy#check-types",
+        "@lasvegasfortransit/labs-transit-funding-deploy#test",
+        "//#security:dependencies",
+        "//#security:secrets"
+      ],
+      "cache": false
     }
   }
 }
