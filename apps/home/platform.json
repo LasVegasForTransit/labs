@@ -1,0 +1,15 @@
+{
+  "$schema": "../../.lvbt/web-platform/packages/cli/platform.schema.json",
+  "version": 1,
+  "name": "home protected staging",
+  "cloudflare": {
+    "accountId": "2557b5c2e166292ded0f8425b73075e9",
+    "zone": {
+      "name": "lasvegasfortransit.org",
+      "id": "7f5c9050d47580145fc50b71def46aaf"
+    },
+    "worker": "lvbt-labs-home-staging",
+    "cloudflareConfig": "../../deploy/home/cloudflare.config.ts",
+    "environment": "preview"
+  }
+}

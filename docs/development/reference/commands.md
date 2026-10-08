@@ -5,18 +5,18 @@ on one lab and `pnpm preview` for the shared catalog origin.
 
 ## Standard commands
 
-| Command              | Purpose                                                                     |
-| -------------------- | --------------------------------------------------------------------------- |
-| `pnpm bootstrap`     | `pnpm install`, wire git hooks, then `pnpm preflight`                       |
-| `pnpm preflight`     | Confirm Node, pnpm, dependencies, hooks, scopes, GitHub CLI, and Cloudflare |
-| `pnpm check`         | Format check, Markdown lint, shape rules, then lint, types, and unit tests  |
-| `pnpm check:fix`     | Apply formatting and lint fixes                                             |
-| `pnpm build`         | Production build of every lab                                               |
-| `pnpm build:archive` | Read-only archive build of every lab into `dist-archive/`                   |
-| `pnpm test:archive`  | Build archives and run declared browser suites with live services blocked   |
-| `pnpm test`          | Unit tests for every package                                                |
-| `pnpm test:e2e`      | Browser tests for every lab, then the shared preview navigation test        |
-| `pnpm run deploy`    | Build, then `wrangler deploy` every lab with a wrangler config              |
+| Command              | Purpose                                                                          |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `pnpm bootstrap`     | `pnpm install`, wire git hooks, then `pnpm preflight`                            |
+| `pnpm preflight`     | Confirm Node, pnpm, dependencies, hooks, scopes, GitHub CLI, and Cloudflare      |
+| `pnpm check`         | Format, shape rules, lint, types, tests, browser/export acceptance, and security |
+| `pnpm check:fix`     | Apply formatting and lint fixes                                                  |
+| `pnpm build`         | Production build of every lab                                                    |
+| `pnpm build:archive` | Read-only archive build of every lab into `dist-archive/`                        |
+| `pnpm test:archive`  | Build archives and run declared browser suites with live services blocked        |
+| `pnpm test`          | Unit tests for every package                                                     |
+| `pnpm test:e2e`      | Browser tests for every lab, then the shared preview navigation test             |
+| `pnpm run deploy`    | Dry-run build support; production requires retained `pnpm promote`               |
 
 The full list, exit codes, and hooks are in the
 [repository-tooling command reference](https://github.com/LasVegasForTransit/repository-tooling/blob/main/docs/reference/cli.md).
@@ -89,9 +89,10 @@ not change the Labs Worker or route.
 
 `pnpm lab migrate <slug> --pause --repository <owner/name> --source-commit <commit>` verifies the
 destination's current main commit, required `Validate` result, disabled deployment-owner variable,
-and the active Labs Worker version. Add `--apply` to write `migrations/<slug>.json`. Once committed,
-that record excludes only the migrating slug from Labs production deployment. Both phases support
-guided prompts, complete non-interactive flags, `--dry-run`, and `--json`.
+and the active Labs Worker version plus its verified retained release identity. Add `--apply` to
+write `migrations/<slug>.json`. Once committed, that record excludes only the migrating slug from
+Labs production deployment. Both phases support guided prompts, complete non-interactive flags,
+`--dry-run`, and `--json`.
 
 `pnpm lab migrate <slug> --transfer` rechecks the committed pause and the exact destination commit.
 With `--apply`, it enables `LVBT_DEPLOYMENT_OWNER` and dispatches the destination deployment with
@@ -109,8 +110,9 @@ graduated catalog record. Add `--apply` to move app source and the handoff into 
 storage and publish the metadata-only record in the working tree.
 
 `pnpm lab migrate <slug> --rollback` plans recovery before graduation. Add `--apply` to disable the
-destination owner, reactivate and verify the retained Labs Worker version, and remove the handoff
-record. Provider mutations and uncertain failures are journaled under `.wrangler/migrations/`.
+destination owner, promote and verify the captured retained Labs staging release, and remove the
+handoff record. Provider mutations and uncertain failures are journaled under
+`.wrangler/migrations/`.
 
 ## Deployment planning
 
@@ -130,23 +132,17 @@ previous revision's dependency graph.
 
 ### Applying a deployment
 
-`pnpm deploy:affected --base <commit> --apply --json` builds and deploys the plan. Omit `--apply`
-for a preview, or use `--all` instead of `--base` for a full deployment. Apply requires a clean
-checkout of the planned commit on main and runs `pnpm check` before building. The checkout must
-match remote main. The command checks its commit and cleanliness again after building and
-immediately before each upload; an unavailable remote or a newer commit stops deployment.
+`pnpm deploy:affected --base <commit> --run-id <staging-run-id> --apply --json` selects the planned
+profiles and delegates each to shared retained promotion. Omit `--apply` for a read-only plan; use
+`--all` instead of `--base` for a full plan. Apply requires a clean checkout of the planned commit
+on current remote main and a retained run whose source equals that commit. It does not build or
+invoke a second publisher. Children run before home; a failed child withholds home.
 
-Each artifact contains `lvbt-release.json` with its project slug, source commit, and asset checksum.
-Verification compares the stable URL's marker with the built artifact and confirms that Cloudflare's
-active version matches the upload receipt. A page returning 200 by itself is not release acceptance.
-The command refuses traffic-split deployments rather than recording an incomplete rollback target.
-
-Deployment journals under `.wrangler/deployments/` record the previous version before upload and
-retain unconfirmed uploads for inspection. Do not retry an unconfirmed upload blindly. Inspect the
-journal and current Cloudflare deployment first. CI retains these journals as deployment-receipt
-artifacts for 90 days. A successful immediately preceding run supplies the comparison commit. After
-a failed, cancelled, uncertain, or retried run, CI deploys all published apps. Some apps can already
-be live when another app fails, so comparing only against an older success misses reversions.
+The shared engine verifies exact saved bytes and acceptance before publication. Product incident
+journals under `.wrangler/retained-publications/` retain uncertain command outcomes. Reconcile the
+unique shared workflow run before redispatching. One run must contain the selected profile's
+artifact; use individual `pnpm promote --app <slug> --run-id <run>` requests for profiles from
+different runs.
 
 ## `pnpm preview`
 
@@ -154,3 +150,10 @@ The repository preview runs at `http://127.0.0.1:8797`. It builds nothing itself
 first. It starts each lab as an independent Worker on an internal port, sends exact slug paths to
 the owning lab, and sends every other path to home. Use it for catalog navigation, route ownership,
 and cross-lab acceptance; `pnpm lab preview <slug>` is the faster isolated check.
+
+## Required security checks
+
+`pnpm check` always runs `pnpm security:dependencies` (all dependencies, high severity and above)
+and `pnpm security:secrets` (the pinned shared full-history scanner). Both are uncached Turbo tasks
+required by every product validation path. CI checks out full history and invokes the same command;
+repository Gitleaks allowlists remain authoritative.

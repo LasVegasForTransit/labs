@@ -5,18 +5,10 @@ command that fixes it (`pnpm check:fix` repairs everything a machine can).
 
 ## Standard commands
 
-Every LVBT repository answers to the same commands:
-
-| Command               | What it does                                                    |
-| --------------------- | --------------------------------------------------------------- |
-| `pnpm bootstrap`      | Install dependencies, wire git hooks, and run preflight         |
-| `pnpm preflight`      | Confirm the machine can build and deploy this repository        |
-| `pnpm check`          | Format check, then lint, typecheck, and tests through Turborepo |
-| `pnpm check:fix`      | Apply formatting and lint fixes                                 |
-| `pnpm build`          | Build every package                                             |
-| `pnpm test`           | Run every package's tests                                       |
-| `pnpm run deploy`     | Build, then `wrangler deploy` every app (deployable repos)      |
-| `turbo gen workspace` | Scaffold a new package or app                                   |
+Follow the shared
+[developer workflow](https://github.com/LasVegasForTransit/repository-tooling/blob/main/docs/reference/developer-workflow.md)
+for bootstrap, preflight, validation, audits and explicit staging-to-production promotion. Keep
+application-specific checks in Turbo `validate`; change reusable rules upstream.
 
 ## Create GitHub issues and pull requests
 

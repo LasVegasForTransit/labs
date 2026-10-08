@@ -12,7 +12,7 @@ Cloudflare dashboard build settings remain empty.
 | Home                     | `lvbt-labs-home`               |
 | Project                  | `lvbt-labs-<slug>`             |
 | Durable Object staging   | `lvbt-labs-<slug>-staging`     |
-| New-project pull request | `lvbt-labs-pr-<number>-<slug>` |
+| New-project pull request | `lvbt-labs-<slug>-pr-<number>` |
 
 Worker names derive from the permanent slug. Renaming a title never changes a Worker.
 
@@ -31,20 +31,15 @@ another project.
 
 ### Worker configuration
 
-Every Worker uses `wrangler.jsonc`, a compatibility date within 30 days of the standard release,
-`nodejs_compat`, generated binding types, and structured observability. Static asset requests skip
-Worker code unless the application declares route handling.
+Declared release profiles use canonical typed `deploy/<slug>/cloudflare.config.ts` configuration.
+The shared producer derives the frozen Wrangler-compatible settings from that canonical factory,
+retains compiled modules and assets, and seals their checksums. Wrangler mirrors are compatibility
+outputs, never a separate production publication source. Secret declarations preserve names without
+copying secret values; reviewed preview bindings are explicit and isolated.
 
-Secrets never appear in Wrangler configuration. Non-secret environment values live under `vars`;
-resource bindings match the owning project manifest.
-
-The `cf` beta configurations for home and transit funding live in `deploy/<slug>/`. Those packages
-hold no Astro or Vite dependency, so `cf` delegates bundling to Wrangler and reads the apps' built
-static assets. `pnpm deploy:cf:dry-run` builds both apps and validates both `cf` deployment bundles;
-CI runs that command after its production build. Config tests compare Worker identity, asset paths,
-and existing route settings with the current Wrangler configs. Production deployment, previews,
-archive deployment, and rollback still use Wrangler while their version receipts and verification
-are adapted to `cf`.
+`pnpm check` includes an uncached Turbo validation task that packages and verifies every declared
+profile after builds, alongside browser and migration-export acceptance. No credentials or provider
+writes are required for this local artifact check.
 
 Retirement replaces the application configuration with an asset-only bundle. Its handler accepts GET
 and HEAD for captured URLs, redirects the bare slug to its trailing-slash URL, and rejects
@@ -75,37 +70,30 @@ steps.
 
 ### Preview lifecycle
 
-Existing Workers receive immutable version preview URLs. A new project receives a temporary Worker
-because no production Worker identity exists before merge. The pull request comment lists every
-verified preview and its slug path.
+A same-repository pull request selects affected declared profiles using the product dependency graph
+and lifecycle policy. Drafts remain available only through explicit manual staging. Each selected
+profile delegates to the shared named PR workflow, using an isolated `${productionWorker}-pr-N`
+namespace, reviewed preview resources and no public routes. Forks receive no preview credentials.
 
-The close workflow deletes temporary Workers. Durable Object projects deploy to their dedicated
-staging Worker instead of a version preview.
-
-A project with Durable Object bindings includes `wrangler.staging.jsonc`. Its Worker name is
-`lvbt-labs-<slug>-staging`; `main`, assets, variables, migrations, and every resource binding point
-to staging-owned resources. The configuration contains no routes, enables `workers_dev`, disables
-version preview URLs, and omits the production analytics token. Preview planning rejects a stateful
-project without this file, and deployment rejects a staging Worker that does not already exist.
+The shared operation verifies its marker and API response; the Labs browser adapter checks refresh,
+page health, keyboard navigation, analytics absence, accessibility and desktop/mobile widths.
+Closing the PR delegates deletion of only the derived same-account namespace. Previously created
+legacy preview names require separately reviewed cleanup and are not guessed by the new deletion
+operation.
 
 ### Production
 
-A push to `main` builds the complete affected set before the first upload. Project Workers deploy in
-parallel where route ownership permits. Each public path passes HTTP, asset, header, and browser
-smoke checks. Home deploys after all new catalog targets succeed.
+A push to `main` stages home. Explicit staging selects other declared profiles; production is an
+explicit retained promotion. The shared workflows verify source provenance, saved inventory,
+protected preview acceptance, exact public marker and browser behavior. Product policy checks
+lifecycle and current ownership as well as the retained source. Draft previews remain ineligible for
+promotion.
 
-GitHub records the source commit, Worker version, route set, and verification result as the
-deployment artifact.
-
-Retired catalog records remain deployable after their source packages leave the workspace. Changes
-to their archive or catalog record select the archived Worker and home; deployment-tooling changes
-also select archives. Archived dependencies and shared brand changes do not rebuild captured sites.
-Graduated projects remain outside Labs deployment ownership.
-
-Archive deployments prepare new bundles from verified stored bytes without changing the stored
-archive. A deployment-specific release marker identifies the commit and captured content hash.
-Verification compares that marker at the stable URL and inspects the uploaded version's bindings;
-unexpected bindings or retained secrets fail verification and withhold home deployment.
+Retired catalog records can declare ASSETS-only archive release profiles after app source leaves the
+workspace. The Labs build hook verifies captured checksums and generates the canonical archive
+Worker under `.wrangler/archive-releases/<slug>`, leaving the original archive immutable. The
+standard saved producer and publisher handle that profile, including empty secret-retention
+metadata. Graduated projects remain outside Labs ownership.
 
 ## Analytics and headers
 
@@ -121,7 +109,8 @@ contract.
 
 ## Rollback retention
 
-Worker versions remain independently selectable. `pnpm lab rollback` records the incident, source
-commit, previous version, restored version, and route verification. Database migrations and
-destructive data changes require their own project runbook because Worker rollback does not reverse
-stored data.
+Recovery selects a retained staging run and its exact source commit, with an explicit expected
+production version when using `pnpm lab rollback`. Shared publication checks that precondition
+before production SQL, upload or activation; it remains optimistic rather than an atomic provider
+operation. The product journal records the delegated workflow outcome. Missing saved bytes and
+unknown outcomes require reconciliation. Worker recovery does not reverse persistent data changes.

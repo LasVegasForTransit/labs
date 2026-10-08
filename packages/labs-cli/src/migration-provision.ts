@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import {
   provisionEnvironmentPresence,
@@ -13,6 +12,7 @@ import {
   type ProvisionResource,
 } from '@lasvegasfortransit/web-platform/provision';
 import { provisionEnvironment } from '@lasvegasfortransit/web-platform/github';
+import { platformIdentity } from './platform-identity.js';
 import { optionalGitHubRead } from './github-preview-read.js';
 
 interface MigrationProvisionTarget {
@@ -269,10 +269,7 @@ function defaultMigrationOperations(root: string, input: MigrationProvisionInput
 }
 
 async function infrastructureTarget(root: string) {
-  const module: unknown = await import(
-    pathToFileURL(path.join(root, '.lvbt/infrastructure.config.ts')).href
-  );
-  return z.object({ default: z.unknown() }).parse(module).default;
+  return platformIdentity(root);
 }
 
 async function migrationRuleset(root: string): Promise<unknown> {

@@ -1,3 +1,4 @@
+import { captureMigrationRecovery, retainedRecoverySchema } from './migration-retained-identity.js';
 import { z } from 'zod';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -11,6 +12,7 @@ export const MigrationPausedHandoffV1Schema = z
     sourceCommit: z.string().regex(/^[a-f0-9]{40}$/),
     destinationCommit: z.string().regex(/^[a-f0-9]{40}$/),
     previousVersion: z.uuid(),
+    previousRelease: retainedRecoverySchema.optional(),
     phase: z.literal('labs-paused'),
   })
   .strict();
@@ -63,6 +65,7 @@ export interface MigrationPauseOperations {
   read(): Promise<MigrationHandoffV1 | null>;
   inspectDestination(): Promise<z.infer<typeof destinationSchema>>;
   activeVersion(): Promise<string>;
+  activeRelease?(): Promise<{ releaseId: string; commit: string }>;
   guard(): void | Promise<void>;
   write(record: MigrationPausedHandoffV1): Promise<void>;
 }
@@ -104,13 +107,14 @@ async function inspectedHandoff(
     throw new Error('The destination deployment owner must not be enabled before Labs pauses.');
   if (destination.validate !== 'success')
     throw new Error('The destination commit must pass its Validate check before Labs pauses.');
+  const recovery = await captureMigrationRecovery(operations);
   return MigrationPausedHandoffV1Schema.parse({
     formatVersion: 1,
     slug: input.slug,
     repository: input.repository,
     sourceCommit: input.sourceCommit,
     destinationCommit: destination.commit,
-    previousVersion: await operations.activeVersion(),
+    ...recovery,
     phase: 'labs-paused',
   });
 }

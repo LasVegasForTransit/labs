@@ -34,7 +34,7 @@ Commands:
   deprecate <slug>      Plan or apply a deprecation
   retire <slug>         Prepare, verify, or finalize an archive
   migrate <slug>        Prepare, provision, transfer, verify, or finalize a migration
-  rollback <slug>       Restore a previous Worker version
+  rollback <slug>       Promote a previous retained staging release
 
 Common options:
   --json                Print structured output

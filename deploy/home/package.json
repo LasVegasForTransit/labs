@@ -15,6 +15,7 @@
     "cf": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
-    "wrangler": "catalog:"
+    "wrangler": "catalog:",
+    "@cloudflare/workers-types": "catalog:"
   }
 }

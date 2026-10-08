@@ -12,21 +12,23 @@ test('preview workflow runs credentialed uploads only for enabled same-repositor
   expect(source).toContain('github.event.pull_request.head.repo.full_name == github.repository');
   expect(source).toContain("vars.CLOUDFLARE_PREVIEWS_ENABLED == 'true'");
   expect(source).toContain('environment: preview');
-  expect(source).toContain('CLOUDFLARE_PREVIEW_API_TOKEN');
-  expect(source.indexOf('pnpm test:e2e')).toBeLessThan(
-    source.indexOf('pnpm --silent preview:deploy'),
-  );
-  expect(source).toContain('pnpm --silent preview:deploy');
-  expect(source).not.toContain('run preview:deploy --');
-  expect(source).toContain('--apply --json');
+  expect(source).toContain('secrets: inherit');
+  expect(source).toContain('publication-mode: named-staging');
+  expect(source).toContain('protection: public');
+  expect(source).toContain('browser-script: preview:acceptance');
+  expect(source).not.toContain('CLOUDFLARE_API_TOKEN');
+  expect(source).not.toContain('preview:deploy');
 });
 
-test('preview cleanup runs from the trusted default branch only after a pull request closes', async () => {
-  const source = await workflow('preview-cleanup');
-  expect(source).toContain('types: [closed]');
-  expect(source).toContain('ref: main');
+test('closed cleanup delegates to the same reviewed PR workflow and declared profile selector', async () => {
+  const source = await workflow('preview');
+  expect(source).toContain('types: [opened, synchronize, reopened, closed]');
+  expect(source).toMatch(/release-pr-preview\.yml@[a-f0-9]{40}/);
+  expect(source).toContain('pr-release-policy.ts --action "$ACTION"');
+  expect(source).toContain('app: ${{ matrix.app }}');
+  expect(source.replace(/\s+/gu, ' ')).toContain(
+    "github.event.action == 'closed' && github.event.repository.default_branch || github.sha",
+  );
   expect(source).not.toContain('pull_request_target:');
-  expect(source).toContain('pnpm preview:cleanup');
-  expect(source).not.toContain('run preview:cleanup --');
-  expect(source).toContain('--apply --json');
+  expect(source).not.toContain('preview:cleanup');
 });

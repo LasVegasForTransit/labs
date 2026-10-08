@@ -1,0 +1,92 @@
+{
+  "$schema": ".lvbt/web-platform/packages/cli/platform.schema.json",
+  "version": 1,
+  "name": "Labs production",
+  "cloudflare": {
+    "accountId": "2557b5c2e166292ded0f8425b73075e9",
+    "zone": {
+      "name": "lasvegasfortransit.org",
+      "id": "7f5c9050d47580145fc50b71def46aaf"
+    },
+    "worker": "lvbt-labs-home",
+    "cloudflareConfig": "deploy/home/cloudflare.config.ts",
+    "domains": ["labs.lasvegasfortransit.org"]
+  },
+  "github": {
+    "repository": "LasVegasForTransit/labs",
+    "governance": true,
+    "variables": [
+      {
+        "name": "PUBLIC_LVBT_CWA_TOKEN",
+        "purpose": "Existing shared Labs Web Analytics property token embedded by retained production builds. Preview host gates exclude collection.",
+        "environment": "production",
+        "use": "live"
+      },
+      {
+        "name": "CLOUDFLARE_PREVIEWS_ENABLED",
+        "purpose": "Explicit switch for existing pull-request preview workflow.",
+        "use": "live",
+        "value": "true"
+      }
+    ]
+  },
+  "secrets": [
+    {
+      "name": "CLOUDFLARE_API_TOKEN",
+      "purpose": "Publishes reviewed retained Labs releases after explicit promotion.",
+      "targets": ["github:production"],
+      "use": "live",
+      "url": "https://github.com/LasVegasForTransit/labs/settings/environments",
+      "steps": [
+        "Preserve the existing Labs production environment token.",
+        "If missing, obtain the approved production Worker deployment token from its maintainer-owned credential store; do not copy the preview token."
+      ]
+    },
+    {
+      "name": "CLOUDFLARE_PREVIEW_API_TOKEN",
+      "purpose": "Uploads isolated Labs staging and existing pull-request previews.",
+      "targets": ["github:preview"],
+      "use": "live",
+      "url": "https://github.com/LasVegasForTransit/labs/settings/environments",
+      "steps": [
+        "Preserve the existing Labs preview environment token and its independent value.",
+        "If missing, obtain the approved separate preview credential scoped to the reviewed staging Workers; do not copy the production token."
+      ]
+    },
+    {
+      "name": "CF_ACCESS_CLIENT_ID",
+      "purpose": "Identifies the service credential for protected Labs staging verification.",
+      "targets": ["github:preview"],
+      "use": "live",
+      "url": "https://github.com/LasVegasForTransit/labs/settings/environments",
+      "steps": [
+        "Review the Access service-auth policy for both declared Labs staging Workers and their version preview hostnames.",
+        "Copy the approved preview service token client ID from the maintainer credential store."
+      ]
+    },
+    {
+      "name": "CF_ACCESS_CLIENT_SECRET",
+      "purpose": "Authorizes protected Labs staging marker and browser verification.",
+      "targets": ["github:preview"],
+      "use": "live",
+      "url": "https://github.com/LasVegasForTransit/labs/settings/environments",
+      "steps": [
+        "Review the service token and Access policy with the responsible maintainer; create or rotate only through the approved process.",
+        "Copy the stored preview service-token secret."
+      ]
+    },
+    {
+      "name": "LVBT_MIGRATION_GITHUB_TOKEN",
+      "purpose": "Optional read-only cross-repository credential for checking destination deployment ownership during retained handoff recovery. Ordinary Labs releases use the workflow token.",
+      "targets": ["github:production"],
+      "use": "future",
+      "url": "https://github.com/LasVegasForTransit/labs/settings/environments",
+      "steps": [
+        "A maintainer supplies an approved fine-grained read-only token with Variables read permission for the exact destination repositories.",
+        "Store it as this production environment secret only when a handoff needs cross-repository read access. Do not copy any deployment token; this guard must never write destination ownership."
+      ],
+      "listOnly": true,
+      "neededFor": "Retained recovery of a paused handoff when the default workflow token cannot read destination deployment ownership."
+    }
+  ]
+}

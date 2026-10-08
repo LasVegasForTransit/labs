@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { URL, fileURLToPath } from 'node:url';
 import test from 'node:test';
 import ts from 'typescript';
 
-import cloudflare from '../cloudflare.config.ts';
+import config from '../cloudflare.config.ts';
+
+const cloudflare = config({ mode: 'production', isPreview: false });
 import wranglerBuild from '../wrangler.config.ts';
 
 const deployDir = path.dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
@@ -46,4 +48,13 @@ void test('cf transit funding matches the draft Wrangler worker and asset contra
   );
   assert.equal('triggers' in cloudflare.worker, false);
   assert.equal('domains' in cloudflare.worker, false);
+});
+
+void test('canonical preview uses an independent Worker without production routes', () => {
+  const preview = config({ mode: 'preview', isPreview: true });
+  assert.equal(preview.worker.name, 'lvbt-labs-transit-funding-staging');
+  assert.equal(preview.worker.env.ASSETS.type, 'assets');
+  assert.equal(preview.worker.assets.runWorkerFirst, true);
+  assert.deepEqual('domains' in preview.worker ? preview.worker.domains : [], []);
+  assert.deepEqual('triggers' in preview.worker ? preview.worker.triggers : [], []);
 });

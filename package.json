@@ -4,8 +4,8 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "bootstrap": "lvbt bootstrap",
-    "preflight": "lvbt preflight",
+    "bootstrap": "node .lvbt/web-platform/packages/cli/src/cli.mjs bootstrap",
+    "preflight": "node .lvbt/web-platform/packages/cli/src/cli.mjs preflight",
     "doctor": "tsx packages/labs-cli/src/cli.ts doctor",
     "provision": "tsx packages/labs-cli/src/cli.ts provision",
     "standards:update": "node .lvbt/web-platform/standards/web-platform-cli.ts update",
@@ -14,8 +14,6 @@
     "build:archive": "turbo run build:archive",
     "dev": "turbo run dev",
     "preview": "tsx packages/labs-cli/src/preview.ts",
-    "preview:deploy": "tsx packages/labs-cli/src/pr-preview-command.ts",
-    "preview:cleanup": "tsx packages/labs-cli/src/pr-preview-cleanup-command.ts",
     "lab": "tsx packages/labs-cli/src/cli.ts",
     "lint": "turbo run lint",
     "check-types": "turbo run check-types",
@@ -24,13 +22,20 @@
     "test:archive": "turbo run test:archive --concurrency=1",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm standards:check && pnpm format:check && markdownlint-cli2 && lvbt check && turbo run lint check-types test",
+    "check": "pnpm format:check && markdownlint-cli2 && lvbt check && turbo run lint check-types test validate",
     "check:fix": "pnpm format && markdownlint-cli2 --fix && turbo run lint -- --fix",
     "prepare": "git config --local core.hooksPath .githooks",
     "deploy": "lvbt deploy",
-    "deploy:cf:dry-run": "pnpm build && pnpm --dir deploy/home exec cf deploy --dry-run && pnpm --dir deploy/transit-funding exec cf deploy --dry-run",
+    "deploy:cf:dry-run": "pnpm build && pnpm release:dry-run",
     "deploy:plan": "tsx packages/labs-cli/src/deployment-cli.ts",
-    "deploy:affected": "tsx packages/labs-cli/src/deployment-apply.ts"
+    "deploy:affected": "tsx packages/labs-cli/src/deployment-apply.ts",
+    "audit": "lvbt audit",
+    "postinstall": "lvbt setup-record",
+    "release:smoke": "pnpm --filter @lasvegasfortransit/labs-cli release:smoke",
+    "test:release": "pnpm --filter @lasvegasfortransit/labs-cli test:release",
+    "release:dry-run": "tsx packages/labs-cli/src/release-dry-run.ts",
+    "security:dependencies": "pnpm audit --audit-level=high",
+    "security:secrets": "lvbt check secrets"
   },
   "lint-staged": {
     "*": "prettier --write --ignore-unknown"
@@ -47,7 +52,8 @@
     "tsx": "catalog:",
     "turbo": "catalog:",
     "typescript": "catalog:",
-    "wrangler": "catalog:"
+    "wrangler": "catalog:",
+    "@lasvegasfortransit/web-platform": "file:.lvbt/web-platform/packages/web-platform"
   },
   "packageManager": "pnpm@11.25.0",
   "engines": {

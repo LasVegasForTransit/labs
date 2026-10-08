@@ -1,3 +1,8 @@
+import {
+  readReleaseConfiguration,
+  readReleaseIdentity,
+} from '@lasvegasfortransit/web-platform/release';
+import type { publishRetainedLab } from './retained-publication.js';
 import { execFile, execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { appendFile, lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
@@ -32,6 +37,7 @@ export interface MigrationProviderDependencies {
   wrangler?: Wrangler;
   fetch?: typeof fetch;
   guard?: () => void | Promise<void>;
+  promote?: typeof publishRetainedLab;
 }
 
 const commitSchema = z.object({ sha: z.string().regex(/^[a-f0-9]{40}$/) });
@@ -161,6 +167,15 @@ export function migrationPauseOperations(
     },
     inspectDestination() {
       return Promise.resolve(inspectDestination(github, identity));
+    },
+    async activeRelease() {
+      const config = await readReleaseConfiguration(root, process.env, identity.slug);
+      const release = await readReleaseIdentity(config.productionUrl, {
+        publicPath: config.publicPath,
+        app: identity.slug,
+        ...(dependencies.fetch ? { request: dependencies.fetch } : {}),
+      });
+      return { releaseId: release.releaseId, commit: release.commit };
     },
     async activeVersion() {
       const version = activeVersion(

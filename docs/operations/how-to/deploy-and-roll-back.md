@@ -1,78 +1,63 @@
 # Deploy and roll back
 
-Production deployment follows a validated merge. Local credentials are not part of the normal
-release path.
+Production publication selects a retained staging release. Local builds and provider version IDs
+alone are not publication inputs.
 
 ## Deploy
 
-Merge the reviewed branch after `Validate` succeeds. Follow the production workflow and confirm that
-its affected graph matches the change.
-
-The workflow performs four gates:
-
-1. Build every affected production and archive artifact.
-2. Upload project Workers and record their version IDs.
-3. Verify each exact path and subtree.
-4. Upload home after every catalog target responds successfully.
-
-After completion, run:
+Merge after `Validate` succeeds, then inspect **Stage Labs release**. Main stages home; select
+another declared profile manually when needed. Follow [Stage and promote a Labs release](promote.md)
+to promote the exact verified saved artifact through **Promote Labs release** or:
 
 ```sh
-pnpm lab status <slug>
-pnpm lab doctor <slug>
+pnpm promote --app <slug> --run-id <staging-run-id>
 ```
 
-The deployment is accepted when the GitHub run, Worker version, route owner, public response,
-assets, headers, and browser smoke test agree on the source commit.
+After completion, run `pnpm lab status <slug>` and `pnpm lab doctor <slug>`, then exercise the
+project's primary browser workflow. Acceptance requires the source run, saved artifact, Worker
+version, route owner, public marker, HTTP checks and browser behavior to agree.
 
 ## Roll back one project
 
-List retained versions:
+Choose the previous successful staging run whose artifact remains retained. Read the currently
+active configured Worker version without changing it:
 
 ```sh
 pnpm exec wrangler deployments list --name lvbt-labs-<slug> --json
-pnpm exec wrangler versions list --name lvbt-labs-<slug> --json
 ```
 
-Select the last verified version and inspect the operation:
+Inspect the product policy and recovery request:
 
 ```sh
 pnpm lab rollback <slug> \
-  --version <version-to-restore> \
+  --run-id <retained-staging-run-id> \
   --expected-version <currently-active-version> \
-  --commit <full-source-commit-to-restore> \
+  --commit <full-source-commit-of-selected-run> \
   --reason "Restore working route labels" \
   --dry-run --json
 ```
 
-Use the source commit from the selected version's verified deployment record. Targets require
-standard version provenance; versions without it are rejected before activation. Archive targets
-also carry their captured content hash, so retirement cannot roll back into active application code.
-Omit flags in a terminal to enter the values through guided prompts. Dry runs inspect provider state
-without changing deployments or writing a journal.
+Dry run validates input and current product ownership without dispatching. Replace `--dry-run` with
+`--apply` after review. The adapter verifies the selected run's source commit and delegates to
+shared promotion. Shared publication revalidates retained source, bytes, profile, acceptance and
+current production version before production writes. The expected version is an optimistic
+precondition; it cannot prevent an unrelated provider actor from racing after the check.
 
-Replace `--dry-run` with `--apply` after reviewing the target. Applying requires a clean checkout of
-current remote `main`. The command rechecks the active version before activation, directs all
-traffic to the selected version, and verifies both the public release marker and project page.
-Retired labs reject rollback targets with bindings other than static assets. Secret
-incompatibilities stop the operation; rollback never forces a changed-secret override.
+Draft, graduated and handed-off profiles cannot bypass ownership through rollback. A retired lab
+requires its declared ASSETS-only archive profile and verified captured bytes at both retained and
+current source. A provider version alone cannot reconstruct a missing saved artifact.
 
-The journal under `.wrangler/rollbacks/` records preparation, activation, and verification. A failed
-command with `changed: null` means the provider outcome is unconfirmed, not that nothing happened.
-Inspect the active deployment before retrying. An identical retry verifies the already-restored
-version without activating it again.
-
-Exercise the restored project's primary workflow in a browser before closing the incident. HTTP and
-release-marker checks do not establish application behavior or data compatibility. Home remains
-untouched unless its own output caused the incident.
+The incident journal under `.wrangler/retained-publications/` records preparation and the shared
+command result. `changed: null` means the outcome is unconfirmed. Reconcile the unique workflow run
+and provider state before taking further action; do not blindly dispatch again.
 
 ## Roll back home
 
-Roll back `home` when the catalog, archive, unknown-path handling, or hostname fallback is broken. A
-failed project route belongs to that project's Worker, even when a visitor reached it through home.
+Select `home` when the catalog, archive navigation, unknown paths or hostname fallback caused the
+incident. A project's route remains the responsibility of that project's Worker.
 
 ## Data boundaries
 
-Worker rollback does not reverse D1 migrations, KV writes, R2 objects, Durable Object state, or
-third-party actions. A project with persistent data includes a project runbook that names its
-restore point, migration compatibility window, and verification query.
+Worker recovery does not reverse D1 migrations, KV writes, R2 objects, Durable Object state or
+third-party actions. Each stateful project documents its restore point, additive migration window
+and verification queries. Browser acceptance is still required after recovery.

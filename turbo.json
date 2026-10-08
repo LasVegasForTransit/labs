@@ -1,7 +1,14 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
-  "globalDependencies": ["catalog/**", "retired/**", "apps/*/lab.config.ts"],
+  "globalDependencies": [
+    "catalog/**",
+    "retired/**",
+    "apps/*/lab.config.ts",
+    ".lvbt/web-platform.json",
+    ".lvbt/tooling.json",
+    ".github/workflows/**"
+  ],
   "globalEnv": [
     "CI",
     "GITHUB_REF",
@@ -10,16 +17,26 @@
     "GITHUB_SHA",
     "LVBT_MIGRATION_BROWSER_ACCEPTANCE",
     "LVBT_REQUIRE_ANALYTICS",
-    "PUBLIC_LVBT_CWA_TOKEN"
+    "PUBLIC_LVBT_CWA_TOKEN",
+    "PLAYWRIGHT_BASE_URL",
+    "TARGET",
+    "LVBT_RELEASE_APP"
   ],
   "globalPassThroughEnv": [
     "CLOUDFLARE_API_TOKEN",
     "CLOUDFLARE_ANALYTICS_READ_TOKEN",
     "LVBT_SKIP_PREVIEW_SERVER",
     "NODE_AUTH_TOKEN",
-    "PATH"
+    "PATH",
+    "GITHUB_OUTPUT",
+    "CF_ACCESS_CLIENT_ID",
+    "CF_ACCESS_CLIENT_SECRET",
+    "LVBT_PR_NUMBER"
   ],
   "tasks": {
+    "@lasvegasfortransit/labs-cli#build": {
+      "cache": false
+    },
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -67,6 +84,31 @@
       ],
       "cache": false,
       "outputs": ["playwright-report/**", "test-results/**"]
+    },
+    "validate": {
+      "dependsOn": ["build", "//#security:dependencies", "//#security:secrets"],
+      "cache": false
+    },
+    "@lasvegasfortransit/labs-cli#validate": {
+      "dependsOn": [
+        "@lasvegasfortransit/lab-home#build",
+        "@lasvegasfortransit/lab-transit-funding#build",
+        "//#security:dependencies",
+        "//#security:secrets"
+      ],
+      "cache": false
+    },
+    "@lasvegasfortransit/lab-transit-funding#validate": {
+      "dependsOn": ["build", "build:archive", "//#security:dependencies", "//#security:secrets"],
+      "cache": false
+    },
+    "//#security:dependencies": {
+      "cache": false,
+      "outputs": []
+    },
+    "//#security:secrets": {
+      "cache": false,
+      "outputs": []
     }
   }
 }
