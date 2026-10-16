@@ -87,6 +87,26 @@
           "path": "/transit-funding/",
           "status": 200
         }
+      },
+      "sign": {
+        "appDirectory": "deploy/sign",
+        "typedConfig": "cloudflare.config.ts",
+        "assetsDirectory": "../../apps/sign/dist",
+        "artifactPrefix": "lab-sign-release",
+        "productionWorker": "lvbt-labs-sign",
+        "previewWorker": "lvbt-labs-sign-staging",
+        "productionUrl": "https://sign.lasvegasfortransit.org",
+        "previewUrl": "https://lvbt-labs-sign-staging.las-vegas-for-better-transit.workers.dev",
+        "publicPath": "/",
+        "previewBindings": {
+          "ASSETS": {
+            "type": "assets"
+          }
+        },
+        "smoke": {
+          "path": "/",
+          "status": 200
+        }
       }
     },
     "publicationMode": "named-staging",

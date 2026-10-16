@@ -135,8 +135,18 @@
         "@lasvegasfortransit/labs-transit-funding-deploy#check-types",
         "@lasvegasfortransit/labs-transit-funding-deploy#test",
         "//#security:dependencies",
-        "//#security:secrets"
+        "//#security:secrets",
+        "@lasvegasfortransit/lab-sign#lint",
+        "@lasvegasfortransit/lab-sign#check-types",
+        "@lasvegasfortransit/lab-sign#test",
+        "@lasvegasfortransit/labs-sign-deploy#lint",
+        "@lasvegasfortransit/labs-sign-deploy#check-types",
+        "@lasvegasfortransit/labs-sign-deploy#test"
       ],
+      "cache": false
+    },
+    "@lasvegasfortransit/lab-sign#validate": {
+      "dependsOn": ["build", "@lasvegasfortransit/labs-cli#validate"],
       "cache": false
     }
   }
