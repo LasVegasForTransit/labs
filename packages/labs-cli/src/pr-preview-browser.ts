@@ -11,8 +11,11 @@ async function assertKeyboardReachable(page: Page) {
   if (!focused) throw new Error('Preview has no keyboard-reachable control.');
 }
 
-export async function verifyPreviewBrowser(target: { slug: string }, receipt: { url: string }) {
-  const path = target.slug === 'home' ? '/' : `/${target.slug}/`;
+export async function verifyPreviewBrowser(
+  target: { slug: string; publicPath?: string | undefined },
+  receipt: { url: string },
+) {
+  const path = target.publicPath ?? (target.slug === 'home' ? '/' : `/${target.slug}/`);
   const url = new URL(path, receipt.url).href;
   const browser = await chromium.launch();
   try {

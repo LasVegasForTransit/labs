@@ -38,7 +38,7 @@ test('retained candidate renders its declared Labs product without page errors',
   const config = await readReleaseConfiguration(root);
   const archive = config.appDirectory.startsWith('.wrangler/archive-releases/');
   if (archive) assertArchiveProfile(app, config);
-  else if (app !== 'home' && app !== 'transit-funding')
+  else if (!['home', 'transit-funding', 'sign'].includes(app))
     throw new Error('Select a declared source or archive release app.');
   const failures: string[] = [];
   const analyticsRequests: string[] = [];
@@ -66,6 +66,17 @@ test('retained candidate renders its declared Labs product without page errors',
     await expect(page.getByRole('region', { name: 'Projects' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Transit Funding' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Contribute', exact: true })).toBeVisible();
+  } else if (app === 'sign') {
+    await expect(page).toHaveTitle('Event sign — Las Vegans for Better Transit');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Las Vegans for Better Transit',
+    );
+    await page.getByLabel('Display name').fill('Volunteer meetup');
+    await page.getByRole('button', { name: 'Show sign', exact: true }).click();
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Volunteer meetup');
+    await expect(page.getByRole('region', { name: 'Sign settings' })).toBeHidden();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('region', { name: 'Sign settings' })).toBeVisible();
   } else {
     await expect(page).toHaveTitle('What it would take to fund transit in Southern Nevada');
     await expect(page.getByRole('heading', { level: 1, name: 'One sentence' })).toBeVisible();

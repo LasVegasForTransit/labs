@@ -33,7 +33,7 @@ jobs:
         uses: ./.github/actions/setup-node-pnpm
 
       - name: Install validation browser
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: Check
         run: pnpm check

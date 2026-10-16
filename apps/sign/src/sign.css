@@ -1,0 +1,581 @@
+:root {
+  font-family: 'Public Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  color-scheme: light;
+}
+* {
+  box-sizing: border-box;
+}
+body,
+h1,
+h2,
+p {
+  margin: 0;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  color: inherit;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.event-sign {
+  --sign-background: var(--ember);
+  --sign-foreground: var(--ink);
+  min-height: 100svh;
+  padding: 2rem clamp(1rem, 4vw, 4rem) 3rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+.event-sign[data-color='dark'] {
+  --sign-background: var(--ink);
+  --sign-foreground: var(--paper);
+}
+.setup-header {
+  display: flex;
+  max-width: 88rem;
+  margin: 0 auto 2.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.setup-wordmark {
+  display: block;
+  width: 12rem;
+  height: auto;
+}
+.setup-tool {
+  padding: 0.6rem 0.9rem;
+  border-radius: 2rem;
+  background: var(--paper-raised);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.sign-workspace {
+  display: grid;
+  max-width: 88rem;
+  margin: auto;
+  grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: 2.5rem;
+  align-items: start;
+}
+.sign-preview {
+  min-width: 0;
+}
+.preview-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.preview-caption h2 {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.preview-caption p {
+  font-size: 0.8125rem;
+  color: var(--stone);
+}
+.sign-board {
+  position: relative;
+  width: 100%;
+  height: min(65svh, 43rem);
+  min-height: 24rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--sign-background);
+  color: var(--sign-foreground);
+  container-type: size;
+}
+.sign-art {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  padding: 4cqh 5cqw 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2cqh;
+}
+.sign-masthead {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.sign-masthead p {
+  font-size: min(3.8cqw, 3.5cqh);
+  font-weight: 600;
+}
+.sign-title-area {
+  display: flex;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+}
+.sign-art h1 {
+  width: 100%;
+  font-size: min(13cqw, 19cqh);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-wrap: nowrap;
+}
+.sign-art h1 span {
+  display: block;
+}
+[data-text-color='white'] .sign-art h1 {
+  color: var(--paper);
+}
+.sign-art h1.sign-custom-name {
+  text-wrap: balance;
+  white-space: normal;
+  overflow-wrap: normal;
+  line-height: 1.05;
+}
+.sign-domain {
+  font-size: min(3.6cqw, 3.2cqh);
+  font-weight: 600;
+}
+.sign-settings {
+  padding-top: 2.25rem;
+}
+.settings-heading {
+  margin-bottom: 2rem;
+}
+.settings-heading h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.settings-heading p {
+  margin-top: 0.75rem;
+  font-size: 0.9375rem;
+  color: var(--stone);
+  line-height: 1.5;
+}
+.sign-field label,
+.sign-appearance legend {
+  display: block;
+  margin-bottom: 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.sign-field input {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.8rem 0.9rem;
+  border: 1.5px solid var(--stone);
+  border-radius: 0.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1rem;
+}
+.sign-field input::placeholder {
+  color: var(--stone);
+  opacity: 1;
+}
+.sign-field p {
+  margin-top: 0.55rem;
+  color: var(--stone);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+.sign-appearance {
+  margin: 1.75rem 0 0;
+  padding: 0;
+  border: 0;
+}
+.sign-colors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.sign-colors button {
+  display: grid;
+  position: relative;
+  gap: 0.65rem;
+  padding: 0.625rem;
+  border: 1.5px solid var(--stone);
+  border-radius: 0.625rem;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.sign-colors button[aria-pressed='true'] {
+  border: 2px solid var(--ink);
+  padding: calc(0.625rem - 0.5px);
+  background: var(--paper-raised);
+}
+.color-sample {
+  display: flex;
+  min-height: 4rem;
+  border-radius: 0.3rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+.color-sample-orange {
+  background: var(--ember);
+  color: var(--ink);
+}
+.color-sample-dark {
+  background: var(--ink);
+  color: var(--paper);
+}
+.color-check {
+  position: absolute;
+  right: 0.625rem;
+  bottom: 0.625rem;
+}
+[aria-pressed='false'] .color-check {
+  visibility: hidden;
+}
+.sign-actions {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 2rem;
+}
+.sign-show,
+.sign-copy {
+  display: flex;
+  min-height: 3.25rem;
+  padding: 0.8rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+.sign-show {
+  background: var(--ink);
+  color: var(--paper);
+}
+.sign-copy {
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.sign-help {
+  margin-top: 1rem;
+  color: var(--stone);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+.sign-exit {
+  position: fixed;
+  z-index: 2;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  min-height: 3rem;
+  padding: 0.6rem 1rem;
+  align-items: center;
+  gap: 1.25rem;
+  border-radius: 0.4rem;
+  font-weight: 700;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 2px 12px #0003;
+}
+.event-sign [hidden] {
+  display: none;
+}
+.event-sign :is(button, input):focus-visible {
+  outline: 3px solid var(--rust);
+  outline-offset: 4px;
+}
+.is-displaying {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  min-height: 0;
+  height: 100dvh;
+  padding: 0;
+}
+.is-displaying .setup-header,
+.is-displaying .preview-caption {
+  display: none;
+}
+.is-displaying .sign-workspace {
+  display: block;
+  height: 100%;
+  max-width: none;
+}
+.is-displaying .sign-preview {
+  height: 100%;
+}
+.is-displaying .sign-board {
+  height: 100%;
+  min-height: 0;
+  border-radius: 0;
+}
+.is-displaying .sign-art {
+  padding-bottom: 0;
+}
+.sign-no-script {
+  padding: 1rem 0;
+  font-size: 0.875rem;
+}
+@media (width < 1000px) {
+  .sign-workspace {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+  .sign-board {
+    height: 20rem;
+    min-height: 0;
+  }
+  .sign-settings {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding-top: 0;
+  }
+  .settings-heading {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+  .settings-heading h2 br {
+    display: none;
+  }
+  .sign-appearance {
+    margin: 0;
+  }
+  .sign-actions {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 0;
+  }
+  .sign-help {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+}
+@media (width < 760px) {
+  .event-sign {
+    padding: 1.25rem 1rem 2rem;
+  }
+  .setup-header {
+    margin-bottom: 1.5rem;
+  }
+  .sign-workspace {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  .preview-caption {
+    flex-direction: row;
+    align-items: baseline;
+    margin-bottom: 0.75rem;
+  }
+  .sign-board {
+    height: 15rem;
+    min-height: 0;
+  }
+  .sign-settings {
+    display: block;
+    padding-top: 0;
+  }
+  .settings-heading {
+    display: none;
+  }
+  .sign-appearance {
+    margin-top: 1.25rem;
+  }
+  .color-sample {
+    min-height: 2.75rem;
+    font-size: 1.5rem;
+  }
+  .sign-actions {
+    grid-template-columns: 1fr;
+    margin-top: 1.5rem;
+  }
+  .is-displaying {
+    padding: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .setup-header,
+  .sign-settings {
+    animation: setup-arrive 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .sign-preview {
+    animation: setup-arrive 440ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .sign-colors button,
+  .sign-show,
+  .sign-copy {
+    transition:
+      transform 160ms ease,
+      background-color 160ms ease;
+  }
+  .sign-show:hover {
+    transform: translateY(-2px);
+  }
+  .sign-show:active,
+  .sign-copy:active,
+  .sign-colors button:active {
+    transform: scale(0.98);
+  }
+  .is-displaying .sign-preview {
+    animation: none;
+  }
+  .is-displaying .sign-art h1 {
+    animation: sign-arrive 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .is-displaying .sign-exit {
+    animation: setup-arrive 300ms ease both;
+  }
+}
+@keyframes setup-arrive {
+  from {
+    transform: translateY(10px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes sign-arrive {
+  from {
+    transform: translateY(14px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.event-sign:has(.sign-no-script) .sign-workspace {
+  grid-template-columns: 1fr;
+}
+
+@media (width < 760px) {
+  .sign-help {
+    margin-top: 1rem;
+  }
+}
+
+.sign-signature {
+  display: flex;
+  width: 100%;
+  padding: 2.5cqh 0 4cqh;
+  gap: 2cqw;
+  align-items: center;
+  color: var(--sign-foreground);
+}
+.signature-logo {
+  display: none;
+  width: max(40px, min(8cqw, 9cqh));
+  height: auto;
+  flex-shrink: 0;
+}
+.signature-copy {
+  min-width: 0;
+}
+.signature-name {
+  font-size: min(3.5cqw, 3cqh);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.sign-domain {
+  margin-top: 0.4cqh;
+  font-size: min(3.1cqw, 2.6cqh);
+  font-weight: 400;
+}
+.is-displaying .sign-signature {
+  padding-bottom: max(4.5rem, env(safe-area-inset-bottom));
+}
+@media (width < 760px) {
+  .setup-wordmark {
+    width: 11.25rem;
+  }
+}
+
+[data-color='dark'] .signature-logo {
+  display: block;
+}
+
+html {
+  overflow-y: auto;
+}
+html:has(.is-displaying),
+body:has(.is-displaying) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.is-displaying {
+  overflow: clip;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+.is-displaying .sign-board {
+  overflow: clip;
+}
+.sign-exit {
+  width: 3rem;
+  height: 3rem;
+  padding: 0.6rem;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+}
+.controls-visible .sign-exit,
+.sign-exit:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+@media (hover: hover) {
+  .sign-exit:hover {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sign-exit {
+    transition: opacity 160ms ease;
+  }
+}
+.sign-text-colors {
+  border: 0;
+  padding: 0;
+  margin: 1.25rem 0 0;
+}
+.sign-text-colors legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.65rem;
+}
+.text-color-options {
+  display: flex;
+  gap: 0.5rem;
+}
+.text-color-options button {
+  min-height: 2.75rem;
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--stone);
+  border-radius: 0.5rem;
+}
+.text-color-options button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.text-color-options button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+@media (760px <= width < 1000px) {
+  .sign-text-colors {
+    margin: 0;
+    grid-column: 1 / -1;
+  }
+}

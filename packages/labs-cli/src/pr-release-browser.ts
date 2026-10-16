@@ -14,4 +14,4 @@ const url = process.env.PLAYWRIGHT_BASE_URL;
 if (!url || !config.profile)
   throw new Error('Select the uploaded PR candidate and reviewed Labs profile.');
 validateWorkerSmokeOrigin(url, config, true);
-await verifyPreviewBrowser({ slug: config.profile }, { url });
+await verifyPreviewBrowser({ slug: config.profile, publicPath: config.publicPath }, { url });
