@@ -4,10 +4,10 @@ import { ensureTaskCard, attachTaskCardMessage } from '../../src/storage/notion-
 import { taskRuntime } from './support/task-checkins';
 
 const edits: unknown[] = [];
-async function eventually(ready: () => boolean) {
-  for (let attempt = 0; attempt < 100 && !ready(); attempt++)
+async function eventually(ready: () => boolean | Promise<boolean>) {
+  for (let attempt = 0; attempt < 100 && !(await ready()); attempt++)
     await new Promise((resolve) => setTimeout(resolve, 20));
-  assert.ok(ready(), 'manual continuation completes');
+  assert.ok(await ready(), 'manual continuation completes');
 }
 const fixture = await taskRuntime({
   manualUpdatesOnly: true,
@@ -79,6 +79,14 @@ try {
   await eventually(() => completions.length === 1);
   assert.deepEqual(completions, [account.task], 'dropdown changes Notion status');
   assert.equal(sends.length, 0, 'no new Discord messages are sent');
+  await eventually(
+    async () =>
+      (
+        await db
+          .prepare("SELECT state FROM task_checkin_operations WHERE id='pending-delivery'")
+          .first()
+      )?.state === 'superseded',
+  );
   assert.equal(
     (
       await db
