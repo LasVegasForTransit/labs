@@ -20,6 +20,9 @@ minimumReleaseAgeExclude:
 # Temporary transitive pins for published security fixes not yet selected by
 # their direct dependents.
 overrides:
+  markdown-it: 14.3.3
+  vite: 8.2.4
+  zod: 4.6.6
   fast-uri: 3.1.8
   sharp: 0.35.5
   smol-toml: 1.9.0

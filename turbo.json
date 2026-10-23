@@ -141,7 +141,10 @@
         "@lasvegasfortransit/lab-sign#test",
         "@lasvegasfortransit/labs-sign-deploy#lint",
         "@lasvegasfortransit/labs-sign-deploy#check-types",
-        "@lasvegasfortransit/labs-sign-deploy#test"
+        "@lasvegasfortransit/labs-sign-deploy#test",
+        "@lasvegasfortransit/lab-task-checkins#lint",
+        "@lasvegasfortransit/lab-task-checkins#check-types",
+        "@lasvegasfortransit/lab-task-checkins#test"
       ],
       "cache": false
     },

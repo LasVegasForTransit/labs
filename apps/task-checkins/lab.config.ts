@@ -1,3 +1,5 @@
+import type { LabManifestV1 } from '@lasvegasfortransit/lab-runtime/manifest';
+
 export default {
   manifestVersion: 1,
   slug: 'task-checkins',
@@ -21,4 +23,4 @@ export default {
     data: 'LicenseRef-Private-LVBT',
     assets: 'MIT',
   },
-} as const;
+} as const satisfies LabManifestV1;

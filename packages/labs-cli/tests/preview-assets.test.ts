@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'vitest';
 
-import { preparePreviewAssets } from '../src/preview-assets.js';
+import { hasStaticPreview, preparePreviewAssets } from '../src/preview-assets.js';
 
 test('prebuilt acceptance preserves the files another preview is serving', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'labs-prebuilt-'));
@@ -34,6 +34,24 @@ test('interactive preview builds before checking its assets', async () => {
       await writeFile(entry, 'fresh interactive artifact');
     });
     expect(await readFile(entry, 'utf8')).toBe('fresh interactive artifact');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('web preview includes static apps and excludes headless Workers', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'labs-preview-kind-'));
+  try {
+    for (const [slug, config] of [
+      ['home', '{"assets": {"directory": "./dist"},}'],
+      ['bot', '{"main": "src/index.ts"}'],
+    ] as const) {
+      const directory = path.join(root, 'apps', slug);
+      await mkdir(directory, { recursive: true });
+      await writeFile(path.join(directory, 'wrangler.jsonc'), config);
+    }
+    expect(await hasStaticPreview(root, 'home')).toBe(true);
+    expect(await hasStaticPreview(root, 'bot')).toBe(false);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

@@ -11,7 +11,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 
 import { validateManifestForDirectory, type LabManifestV1 } from './manifest.js';
-import { preparePreviewAssets } from './preview-assets.js';
+import { hasStaticPreview, preparePreviewAssets } from './preview-assets.js';
 
 const previewHost = '127.0.0.1';
 const publicPort = 8797;
@@ -58,7 +58,11 @@ async function discoverTargets(root: string): Promise<PreviewTarget[]> {
     if (right.slug === 'home') return 1;
     return left.slug.localeCompare(right.slug);
   });
-  return manifests.map((manifest, index) => ({
+  const webManifests: LabManifestV1[] = [];
+  for (const manifest of manifests) {
+    if (await hasStaticPreview(root, manifest.slug)) webManifests.push(manifest);
+  }
+  return webManifests.map((manifest, index) => ({
     slug: manifest.slug,
     port: firstWorkerPort + index,
   }));
