@@ -8,3 +8,4 @@ tooling
 docs
 ci
 dx
+bot

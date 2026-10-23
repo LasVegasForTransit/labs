@@ -23,6 +23,9 @@ runs; `pnpm lab dev <slug>` runs one lab. The repository follows the
 [`apps/transit-funding`](apps/transit-funding/README.md) owns the first experiment prepared for
 import.
 
+[`apps/task-checkins`](apps/task-checkins/README.md) owns Discord task updates and Notion project
+conversations. It reuses the existing LVBT bot and canonical member identity.
+
 Each application keeps its source and product documentation together. Shared packages provide brand
 and foundational interface elements; application behavior stays with the project that owns it.
 

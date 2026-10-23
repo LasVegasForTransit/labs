@@ -2,3 +2,4 @@ pnpm-lock.yaml
 .lvbt/web-platform/
 .claude/worktrees/
 retired/*/
+apps/task-checkins/worker-configuration.d.ts

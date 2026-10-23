@@ -1,0 +1,52 @@
+export type AccessProvider = 'google_workspace' | 'discord';
+export type ProviderState = 'granted' | 'absent' | 'unknown';
+export type AccessFailure =
+  'provider_unavailable' | 'rate_limited' | 'permission_denied' | 'unknown';
+export interface ProviderConfiguration {
+  configured: boolean;
+  /** Non-secret account/domain or server ID; confirmations cannot cross contexts. */
+  contextId: string;
+  memberRoleId?: string | null;
+  /** Explicit resource registry when the runtime supplies one. */
+  resourceIds?: readonly string[];
+}
+export type AccessConfiguration = Partial<Record<AccessProvider, ProviderConfiguration>>;
+export interface ProviderAccess {
+  state: ProviderState;
+  reason:
+    | 'ambiguous_account'
+    | 'not_linked'
+    | 'not_mapped'
+    | 'not_configured'
+    | 'not_checked'
+    | 'stale'
+    | AccessFailure
+    | null;
+  observedAt: string | null;
+}
+export function needsAccessRecovery(row: {
+  targetId: string;
+  expectedAccess: boolean;
+  operationState: string | null;
+  discord: ProviderAccess;
+  googleWorkspace: ProviderAccess;
+}): boolean {
+  const providers = row.targetId === 'person' ? [row.discord] : [row.discord, row.googleWorkspace];
+  const expected = row.expectedAccess ? 'granted' : 'absent';
+  return row.operationState === 'retry' && providers.some((access) => access.state !== expected);
+}
+export interface AccessObservation {
+  personId: string;
+  targetId: string;
+  provider: AccessProvider;
+  identityId: string;
+  identityEmail: string | null;
+  resourceId: string;
+  contextId: string;
+  generation: number;
+  expectedAccess: boolean;
+  state: ProviderState;
+  failure?: AccessFailure;
+  observedAt: string;
+  expiresAt: string;
+}
