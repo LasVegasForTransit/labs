@@ -101,7 +101,7 @@ test('promotion evaluates the retained source lifecycle even after the working t
   const run = promisify(execFile);
   try {
     const { stdout } = await run('git', ['rev-parse', 'HEAD'], { cwd: root });
-    await run('git', ['clone', '--local', '--no-checkout', root, temporary]);
+    await run('git', ['clone', '--local', '--no-hardlinks', '--no-checkout', root, temporary]);
     await mkdir(path.join(temporary, '.lvbt'), { recursive: true });
     await mkdir(path.join(temporary, 'apps/transit-funding'), { recursive: true });
     await writeFile(
@@ -147,7 +147,7 @@ test('current graduated ownership blocks promotion of an older active source rel
   const run = promisify(execFile);
   try {
     const { stdout } = await run('git', ['rev-parse', 'HEAD'], { cwd: root });
-    await run('git', ['clone', '--local', '--no-checkout', root, temporary]);
+    await run('git', ['clone', '--local', '--no-hardlinks', '--no-checkout', root, temporary]);
     await mkdir(path.join(temporary, '.lvbt'), { recursive: true });
     await mkdir(path.join(temporary, 'apps/home'), { recursive: true });
     await writeFile(
