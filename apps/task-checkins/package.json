@@ -10,7 +10,8 @@
     "lint": "eslint . --max-warnings 0",
     "check-types": "wrangler types worker-configuration.d.ts --include-runtime=false --strict-vars=false --check && tsc --noEmit",
     "test": "node --import tsx --test --test-concurrency=2 tests/core/*.test.ts tests/integrations/*.test.ts tests/storage/*.test.ts",
-    "test:e2e": "node --import tsx tests/e2e/manual-updates.spec.ts"
+    "test:e2e": "node --import tsx tests/e2e/manual-updates.spec.ts",
+    "validate": "pnpm test:e2e"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
@@ -20,6 +21,7 @@
     "typescript": "catalog:",
     "wrangler": "catalog:",
     "@lasvegasfortransit/eslint-config": "file:../../.lvbt/web-platform/packages/eslint-config",
-    "miniflare": "catalog:"
+    "miniflare": "catalog:",
+    "@lasvegasfortransit/lab-runtime": "workspace:*"
   }
 }
