@@ -304,6 +304,9 @@ catalogs:
     lint-staged:
       specifier: 17.4.1
       version: 17.4.1
+    miniflare:
+      specifier: 5.20260926.0-alpha
+      version: 5.20260926.0-alpha
     markdownlint-cli2:
       specifier: 0.23.2
       version: 0.23.2
@@ -794,6 +797,33 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 4.1.11(@types/node@24.13.3)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
+
+  apps/task-checkins:
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: 'catalog:'
+        version: 5.20260901.1
+      '@lasvegasfortransit/eslint-config':
+        specifier: 'file:../../.lvbt/web-platform/packages/eslint-config'
+        version: file:.lvbt/web-platform/packages/eslint-config(eslint@10.9.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(turbo@2.10.12)(typescript@6.0.3)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
+      'eslint':
+        specifier: 'catalog:'
+        version: 10.9.1(jiti@2.7.0)(supports-color@10.2.2)
+      'miniflare':
+        specifier: 'catalog:'
+        version: 5.20260926.0-alpha(@types/node@24.13.3)
+      'tsx':
+        specifier: 'catalog:'
+        version: 4.23.13
+      'typescript':
+        specifier: 'catalog:'
+        version: 6.0.3
+      'wrangler':
+        specifier: 'catalog:'
+        version: 4.141.0(@cloudflare/workers-types@5.20260901.1)(@types/node@24.13.3)
 
 packages:
 

@@ -1,0 +1,44 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "lvbt-labs-task-checkins",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-04",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+  "triggers": {
+    "crons": [],
+  },
+  "vars": {
+    "LVBT_TASK_CHECKINS_ENABLED": "false",
+    "LVBT_TASK_UPDATES_ENABLED": "false",
+    "LVBT_DISCORD_WORK_ENABLED": "false",
+    "LVBT_NOTION_TASK_SOURCE_ID": "",
+    "LVBT_NOTION_TASK_PRODUCTION_SOURCE_ID": "",
+    "LVBT_DISCORD_APPLICATION_ID": "",
+    "LVBT_DISCORD_GUILD_ID": "",
+    "LVBT_DISCORD_PRODUCTION_GUILD_ID": "",
+    "LVBT_DEPLOYMENT_ENV": "preview",
+  },
+  "d1_databases": [
+    {
+      "binding": "PLATFORM_DB",
+      "database_name": "lvbt-platform-preview",
+      "database_id": "8bb072e7-9865-487a-8867-d97fdb2ea00b",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "services": [
+    {
+      "binding": "MEMBER_PLATFORM",
+      "service": "lvbt-website-preview",
+    },
+  ],
+  "secrets": {
+    "required": ["LVBT_DISCORD_PUBLIC_KEY", "LVBT_DISCORD_BOT_TOKEN", "LVBT_NOTION_TASK_API_KEY"],
+  },
+}

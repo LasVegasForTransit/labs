@@ -1,0 +1,35 @@
+export const staffRoles = {
+  organizationRoles: {
+    title: 'Roles',
+    description: 'Manage the roles you can assign to members.',
+    manage: 'Manage roles',
+    heading: 'Roles',
+    empty: 'No roles yet.',
+    personEmpty: 'No roles assigned.',
+    addHeading: 'Add a role',
+    name: 'Role name',
+    create: 'Add role',
+    rename: 'Rename',
+    renameHeading: 'Rename {name}',
+    save: 'Save name',
+    retire: 'Archive role',
+    stopUsing: 'Archive',
+    retireHeading: 'Archive {name}?',
+    retireHint:
+      'Members who already have this role keep it. It won’t be available for new assignments.',
+    retired: 'Archived',
+    retiredHeading: 'Archived roles',
+    retiredHint: 'These remain on existing member records until you remove them.',
+    assign: 'Add role',
+    choose: 'Choose a role',
+    remove: 'Remove',
+    unavailable: 'This form expired. Reload the page and try again.',
+    invalid: 'Enter a role name of 1–100 characters.',
+    conflict:
+      'This role changed or its name is already in use. Reload the page and check the current roles.',
+    assignmentConflict:
+      'This role is no longer available or the member’s roles changed. Reload the profile and try again.',
+    back: '← Roles',
+    backMembers: '← Members',
+  },
+} as const;
