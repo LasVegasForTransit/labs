@@ -16,6 +16,11 @@ and `MEMBER_PLATFORM` to its matching website Worker. Store `LVBT_DISCORD_PUBLIC
 `LVBT_DISCORD_BOT_TOKEN`, and `LVBT_NOTION_TASK_API_KEY` as secrets, never in committed
 configuration.
 
+During cutover, `LVBT_DISCORD_JOBS` may bind the existing jobs Worker to retain its stored provider
+credentials. Labs handles signed interactions and saves durable human actions; that private service
+executes the action and refreshes the same card. Both Workers must use the same canonical database
+and task source. Without this binding, Labs executes actions with its own provider secrets.
+
 ## Move an existing installation
 
 1. Deploy the Labs Worker with all feature switches false and no cron triggers. Keep the existing
