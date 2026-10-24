@@ -29,15 +29,16 @@ export async function taskCheckinInteraction(
     typeof custom === 'string' &&
     custom.startsWith('tc:')
   ) {
+    const request = new Request('https://jobs.internal/notion/task-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: event.id }),
+    });
+    const continuation = env.LVBT_DISCORD_JOBS
+      ? env.LVBT_DISCORD_JOBS.fetch(request)
+      : handleManualTaskUpdate(request, env);
     waitUntil(
-      handleManualTaskUpdate(
-        new Request('https://jobs.internal/notion/task-update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: event.id }),
-        }),
-        env,
-      )
+      continuation
         .then(async (result) => {
           await result.body?.cancel();
         })

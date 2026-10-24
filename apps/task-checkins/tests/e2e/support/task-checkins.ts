@@ -183,8 +183,12 @@ export async function taskRuntime(
           bindings: {
             ...common,
             LVBT_DISCORD_PUBLIC_KEY: publicKey,
-            LVBT_NOTION_TASK_API_KEY: 'fixture-only',
-            LVBT_DISCORD_BOT_TOKEN: 'fixture-only',
+            ...(options.manualUpdatesOnly
+              ? {}
+              : {
+                  LVBT_NOTION_TASK_API_KEY: 'fixture-only',
+                  LVBT_DISCORD_BOT_TOKEN: 'fixture-only',
+                }),
           },
           serviceBindings: {
             DISCORD_WORK: { name: 'jobs', entrypoint: 'WorkPreview' },
