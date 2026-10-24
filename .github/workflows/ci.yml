@@ -36,6 +36,8 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium webkit
 
       - name: Check
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
         run: pnpm check
 
       - name: Upload browser failures
